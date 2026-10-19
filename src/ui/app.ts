@@ -304,28 +304,28 @@ function drawScene() {
   const ink = 'var(--ink)';
   const soft = 'var(--ink-soft)';
   // Walls and fixtures.
-  parts.push(`<path d="${wob(8, 62, 352, 62, 1, 0.8)}" stroke="${soft}" stroke-width="1.5" fill="none"/>`);
+  parts.push(`<path d="${wob(8, 50, 352, 50, 1, 0.8)}" stroke="${soft}" stroke-width="1.5" fill="none"/>`);
   parts.push(
-    `<path d="${wob(300, 62, 300, 14, 2, 0.6)} ${wob(336, 62, 336, 14, 3, 0.6)}" stroke="${soft}" stroke-width="1.5" fill="none"/>`,
+    `<path d="${wob(300, 50, 300, 6, 2, 0.6)} ${wob(336, 50, 336, 6, 3, 0.6)}" stroke="${soft}" stroke-width="1.5" fill="none"/>`,
   );
-  parts.push(`<text x="318" y="76" text-anchor="middle" font-size="11" fill="${soft}">back door</text>`);
+  parts.push(`<text x="318" y="62" text-anchor="middle" font-size="11" fill="${soft}">back door</text>`);
   parts.push(
-    `<path d="${wob(22, 44, 72, 44, 4)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="46" y="76" text-anchor="middle" font-size="11" fill="${soft}">staff table</text>`,
+    `<path d="${wob(22, 34, 72, 34, 4)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="46" y="62" text-anchor="middle" font-size="11" fill="${soft}">staff table</text>`,
   );
   parts.push(
-    `<path d="${wob(162, 62, 162, 18, 5, 0.6)} ${wob(198, 62, 198, 18, 6, 0.6)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="180" y="76" text-anchor="middle" font-size="11" fill="${soft}">storeroom</text>`,
+    `<path d="${wob(162, 50, 162, 6, 5, 0.6)} ${wob(198, 50, 198, 6, 6, 0.6)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="180" y="62" text-anchor="middle" font-size="11" fill="${soft}">storeroom</text>`,
   );
   // Stations.
   const st = (x: number, label: string, key: number, on: boolean, heat: number) => {
     parts.push(
-      `<path d="${wob(x - 46, 150, x + 46, 150, key)} ${wob(x + 46, 150, x + 46, 168, key + 1, 0.6)} ${wob(x + 46, 168, x - 46, 168, key + 2)} ${wob(x - 46, 168, x - 46, 150, key + 3, 0.6)}" stroke="${on ? ink : soft}" stroke-width="1.5" fill="var(--paper-2)"/>`,
+      `<path d="${wob(x - 46, 160, x + 46, 160, key)} ${wob(x + 46, 160, x + 46, 178, key + 1, 0.6)} ${wob(x + 46, 178, x - 46, 178, key + 2)} ${wob(x - 46, 178, x - 46, 160, key + 3, 0.6)}" stroke="${on ? ink : soft}" stroke-width="1.5" fill="var(--paper-2)"/>`,
     );
     parts.push(
-      `<text x="${x}" y="184" text-anchor="middle" font-size="12" fill="${on ? ink : soft}">${label}</text>`,
+      `<text x="${x}" y="194" text-anchor="middle" font-size="12" fill="${on ? ink : soft}">${label}</text>`,
     );
     for (let i = 0; i < heat; i++)
       parts.push(
-        `<path d="M${x - 30 + i * 9} 148 q3 -7 0 -12" stroke="var(--rope)" stroke-width="1.3" fill="none" opacity="0.8"/>`,
+        `<path d="M${x - 30 + i * 9} 158 q3 -7 0 -12" stroke="var(--rope)" stroke-width="1.3" fill="none" opacity="0.8"/>`,
       );
   };
   const backlog = (k: 'grill' | 'cold') =>
@@ -338,29 +338,29 @@ function drawScene() {
   st(180, 'cold', 20, true, 0);
   // Cold backlog as small hatch marks.
   for (let i = 0; i < Math.min(8, backlog('cold')); i++)
-    parts.push(`<path d="M${150 + i * 8} 146 l4 -8" stroke="var(--sky)" stroke-width="1.3"/>`);
+    parts.push(`<path d="M${150 + i * 8} 156 l4 -8" stroke="var(--sky)" stroke-width="1.3"/>`);
   if (n >= 2) {
     st(298, 'dish', 30, true, 0);
     for (let i = 0; i < Math.min(12, s.plates.pile); i++)
       parts.push(
-        `<ellipse cx="${280 + (i % 3) * 14}" cy="${144 - Math.floor(i / 3) * 4}" rx="7" ry="2" stroke="${soft}" stroke-width="1.2" fill="var(--paper)"/>`,
+        `<ellipse cx="${280 + (i % 3) * 14}" cy="${154 - Math.floor(i / 3) * 4}" rx="7" ry="2" stroke="${soft}" stroke-width="1.2" fill="var(--paper)"/>`,
       );
   }
   // The pass and its clean plates.
-  parts.push(`<path d="${wob(20, 232, 340, 232, 40)}" stroke="${ink}" stroke-width="2" fill="none"/>`);
-  parts.push(`<text x="24" y="250" font-size="12" fill="${soft}">the pass</text>`);
+  parts.push(`<path d="${wob(20, 244, 340, 244, 40)}" stroke="${ink}" stroke-width="2" fill="none"/>`);
+  parts.push(`<text x="24" y="260" font-size="12" fill="${soft}">the pass</text>`);
   for (let i = 0; i < Math.min(14, s.plates.clean); i++)
     parts.push(
-      `<ellipse cx="96" cy="${228 - i * 3}" rx="14" ry="3" stroke="${ink}" stroke-width="1.1" fill="var(--paper)"/>`,
+      `<ellipse cx="96" cy="${240 - i * 3}" rx="14" ry="3" stroke="${ink}" stroke-width="1.1" fill="var(--paper)"/>`,
     );
   if (s.plates.clean === 0)
     parts.push(
-      `<text x="96" y="222" text-anchor="middle" class="hand" font-size="16" fill="var(--rope)">no plates</text>`,
+      `<text x="96" y="234" text-anchor="middle" class="hand" font-size="16" fill="var(--rope)">no plates</text>`,
     );
   // The jar.
   if (n >= 2) {
     const jx = s.jarPlace === 'pass' ? 250 : 270;
-    const jy = s.jarPlace === 'pass' ? 226 : 52;
+    const jy = s.jarPlace === 'pass' ? 238 : 40;
     const coins = Math.min(9, Math.round(s.jar / 12));
     parts.push(
       `<path d="M${jx - 8} ${jy - 18} L${jx - 9} ${jy} L${jx + 9} ${jy} L${jx + 8} ${jy - 18}" stroke="${ink}" stroke-width="1.3" fill="none"/>`,
@@ -389,10 +389,10 @@ function drawScene() {
     const k = at[pl] ?? 0;
     at[pl] = k + 1;
     const x = pl === 'idle' ? 150 + COOKS.indexOf(id) * 64 : base.x + 30 * k;
-    const y = pl === 'grill' || pl === 'cold' || pl === 'dish' ? 108 : pl === 'idle' ? 196 : 40;
+    const y = pl === 'grill' || pl === 'cold' || pl === 'dish' ? 124 : pl === 'idle' ? 212 : 22;
     parts.push(figure(id, x, y));
   }
-  el.innerHTML = `<svg viewBox="0 0 360 262" preserveAspectRatio="xMidYMid meet" role="img" aria-label="The kitchen">${parts.join('')}<g id="bub"></g></svg>`;
+  el.innerHTML = `<svg viewBox="0 -26 360 294" preserveAspectRatio="xMidYMax meet" role="img" aria-label="The kitchen">${parts.join('')}<g id="bub"></g></svg>`;
   drawBubbles();
 }
 
@@ -440,7 +440,7 @@ function drawBubbles() {
     if (!c.here) continue;
     const pl = placeOf(id);
     const base = PLACES[pl] ?? (PLACES.idle as { x: number; y: number });
-    const y = pl === 'grill' || pl === 'cold' || pl === 'dish' ? 52 : pl === 'idle' ? 140 : 96;
+    const y = pl === 'grill' || pl === 'cold' || pl === 'dish' ? 82 : pl === 'idle' ? 160 : 96;
     const text = b.text.length > 34 ? `${b.text.slice(0, 33)}…` : b.text;
     const x = Math.max(70, Math.min(290, base.x));
     out.push(
@@ -491,23 +491,25 @@ function drawSheet() {
     return;
   }
   if (!selected) {
-    const lines = s.said.slice(-3).reverse();
-    const key = `j${s.said.length}${seenHint.tap}`;
+    const lines = s.said.slice(-3);
+    const key = `j${s.said.length}${seenHint.tap}${COOKS.map((id) => (s ? placeOf(id) + cookOf(s, id).gone : '')).join()}`;
     if (sheetKey === key) return;
     sheetKey = key;
     const tip =
       s.night === 1 && !seenHint.tap
-        ? '<div class="hint">Tap Selim or Dilek in the kitchen.</div>'
+        ? '<div class="hint">Tap a cook. On a ticket, △ is from the grill and ○ from the cold side; filled is ready.</div>'
         : s.night === 2 && s.minute < openAt(2) + 40
           ? '<div class="hint">Plates come back dirty. Someone has to wash them.</div>'
           : '';
-    el.innerHTML = `${tip}<div class="journal">${lines
+    el.innerHTML = `${tip}${crewRow()}<div class="journal">${lines
       .map((x) =>
         x.who === 'narrator'
           ? `<div>${esc(x.text)}</div>`
           : `<div class="hand">${NAMES[x.who as CookId]}: “${esc(x.text)}”</div>`,
       )
       .join('')}</div>`;
+    for (const b of el.querySelectorAll<HTMLButtonElement>('[data-pick]'))
+      b.addEventListener('click', () => select(b.dataset.pick as CookId));
     return;
   }
   const h = hintsFor(selected);
@@ -529,6 +531,27 @@ function drawSheet() {
     <div class="hint">${seenHint.job ? (c.pending ? 'They heard you.' : 'Hold a job to insist.') : 'Tap a job to ask. Hold it to insist.'}</div>`;
   document.getElementById('close')?.addEventListener('click', () => select(null));
   for (const b of el.querySelectorAll<HTMLButtonElement>('.verbs button')) bindHold(b);
+}
+
+const WHERE: Record<string, string> = {
+  grill: 'on grill',
+  cold: 'on cold',
+  dish: 'on dish',
+  yard: 'out back',
+  table: 'eating',
+  store: 'storeroom',
+  idle: 'free',
+};
+
+function crewRow(): string {
+  if (!s) return '';
+  const st = s;
+  return `<div class="crew">${COOKS.filter((id) => cookOf(st, id).here)
+    .map((id) => {
+      const c = cookOf(st, id);
+      return `<button data-pick="${id}" ${c.gone ? 'disabled' : ''}><b>${NAMES[id]}</b><span class="soft">${c.gone ? 'gone' : (WHERE[placeOf(id)] ?? '')}</span></button>`;
+    })
+    .join('')}</div>`;
 }
 
 function bindHold(b: HTMLButtonElement) {
@@ -721,6 +744,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 export const _debug = {
+  refresh: () => enter(),
+  step: (n: number) => {
+    for (let i = 0; i < n && s && s.phase === 'service'; i++) step(s);
+  },
   get state() {
     return s;
   },

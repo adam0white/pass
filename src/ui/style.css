@@ -185,8 +185,11 @@ button:disabled {
 }
 .rail {
   display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
   gap: 6px;
-  overflow-x: auto;
+  overflow: hidden;
+  max-height: 210px;
   padding: 4px 12px 8px;
   min-height: 74px;
   scrollbar-width: none;
@@ -338,4 +341,20 @@ button:disabled {
   .verbs button.holding .fill {
     transition: none;
   }
+}
+.crew {
+  display: flex;
+  gap: 6px;
+}
+.crew button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+  min-height: 52px;
+  font-size: 15px;
+}
+.crew button .soft {
+  font-size: 13px;
 }
