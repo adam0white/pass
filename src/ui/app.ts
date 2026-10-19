@@ -46,6 +46,7 @@ import {
   trustOf,
   type Verb,
 } from '../sim/kitchen.ts';
+import { lab } from './lab.ts';
 
 const SAVE = 'pass-save-v3';
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
@@ -160,6 +161,7 @@ export function start() {
 }
 
 function title() {
+  lab.screen('title');
   cancelAnimationFrame(raf);
   const save = readSave();
   const old = !save && oldSave();
@@ -266,6 +268,7 @@ function enter() {
 
 function service() {
   if (!s) return;
+  lab.screen(`night ${s.night}: service`);
   selected = null;
   cachedHints = null;
   shownSaid = Math.max(0, s.said.length - 3);
@@ -861,6 +864,8 @@ function evening() {
   sheetKey = '';
   const r = st.reports.at(-1);
   if (!r) return;
+  lab.screen(`night ${r.night}: evening`);
+  lab.milestone(`service ${r.night} done`);
   const pl = planOf(r.night);
   const next = r.night < LAST_NIGHT ? planOf(r.night + 1) : null;
   const total = r.served + r.walked;
@@ -930,6 +935,7 @@ function evening() {
       ${nextBtn}
       ${!ended && !toSunday && !st.lost && next ? `<p class="soft" style="font-size:15px">${esc(next.intro.at(-1) ?? '')}</p>` : ''}
       <button id="export">Save a playtest file</button>
+      <button id="send">Send this run to the notebook</button>
     </div>
     ${footer()}
   </div>`;
@@ -954,6 +960,7 @@ function evening() {
     ending();
   });
   document.getElementById('export')?.addEventListener('click', download);
+  document.getElementById('send')?.addEventListener('click', sendRun);
   window.scrollTo(0, 0);
 }
 
@@ -976,6 +983,8 @@ function sunday() {
   if (!s?.sunday) return;
   const st = s;
   const pg = st.sunday as NonNullable<GameState['sunday']>;
+  lab.screen('sunday');
+  lab.milestone(`week ${pg.week} done`);
   cancelAnimationFrame(raf);
   writeSave();
   const nextWeek = pg.week < 4 ? weekOf(pg.week + 1) : null;
@@ -1085,6 +1094,7 @@ function sunday() {
     <div class="actions">
       <button class="primary" id="open">${pg.week < 4 ? 'Open on Wednesday' : 'Close the notebook'}</button>
       <button id="export">Save a playtest file</button>
+      <button id="send">Send this run to the notebook</button>
     </div>
     ${footer()}
   </div>`;
@@ -1100,6 +1110,7 @@ function sunday() {
     enter();
   });
   document.getElementById('export')?.addEventListener('click', download);
+  document.getElementById('send')?.addEventListener('click', sendRun);
   window.scrollTo(0, 0);
 }
 
@@ -1108,6 +1119,8 @@ function sunday() {
 function ending() {
   if (!s) return;
   const st = s;
+  lab.screen('ending');
+  lab.milestone('ending reached');
   cancelAnimationFrame(raf);
   const lines = st.reports.flatMap((r) => r.reviews.map((x) => ({ id: x.id, t: x.aboutYou })));
   const crew = activeCrew(st);
@@ -1149,17 +1162,25 @@ function ending() {
     ${st.stamps.length ? `<p class="soft">The notebook:</p>${stampList(st.stamps.map((x) => x.id))}` : ''}
     <div class="actions">
       <button id="export">Save a playtest file</button>
+      <button id="send">Send this run to the notebook</button>
       <button class="primary" id="again">A new notebook</button>
     </div>
     ${footer()}
   </div>`;
   document.getElementById('export')?.addEventListener('click', download);
+  document.getElementById('send')?.addEventListener('click', sendRun);
   document.getElementById('again')?.addEventListener('click', () => {
     clearSave();
     s = newGame((Date.now() ^ (Math.random() * 1e9)) >>> 0);
     enter();
   });
   window.scrollTo(0, 0);
+}
+
+function sendRun() {
+  if (!s) return;
+  const st = s;
+  lab.openSendDialog({ getRun: () => exportRun(st, FRAMEWORK_VERSION) });
 }
 
 function download() {
