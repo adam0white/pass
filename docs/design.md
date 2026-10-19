@@ -62,7 +62,7 @@ The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, o
 - **Pushing is remembered** (pass@3). Sunday quits run from the first Sunday; earlier weeks' compliance carries over, halved each week. A quit after week 1 opens hiring early.
 - **A quiet kitchen runs the clock four times faster** (page only).
 
-## Deferred (target: after the owner plays pass@2)
+## Deferred (target: after the owner plays pass@3)
 - Waiters and front-of-house as HF people.
 - Workers AI voice for the evening (not needed; HF lines carry it).
 - A cook quitting mid-service, not only on Sunday.
