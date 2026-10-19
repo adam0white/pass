@@ -47,11 +47,13 @@ import {
   type Verb,
 } from '../sim/kitchen.ts';
 
-const SAVE = 'pass-save-v2';
-const OLD_SAVE = 'pass-save-v1';
+const SAVE = 'pass-save-v3';
+const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
 const SPEEDS = [0.5, 1.5, 3.5] as const;
 const SPEED_NAMES = ['slow', 'steady', 'fast'];
 const SLOWDOWN = 0.5;
+/** How much faster the clock runs while the kitchen is quiet. */
+const QUIET = 4;
 
 interface Save {
   game: string;
@@ -89,7 +91,7 @@ function readSave(): Save | null {
 }
 function oldSave(): boolean {
   try {
-    return localStorage.getItem(OLD_SAVE) !== null;
+    return OLD_SAVES.some((k) => localStorage.getItem(k) !== null);
   } catch {
     return false;
   }
@@ -110,7 +112,7 @@ function clearSave() {
   pages = [];
   try {
     localStorage.removeItem(SAVE);
-    localStorage.removeItem(OLD_SAVE);
+    for (const k of OLD_SAVES) localStorage.removeItem(k);
   } catch {}
 }
 
@@ -139,7 +141,15 @@ const footer = () =>
 const markLink = '<a class="mark" href="https://human.adamwhite.work">◇ human framework</a>';
 const weekTitle = (n: number) => `${planOf(n).title}, week ${planOf(n).week}`;
 /** What the week's bill comes to so far: the bill, anything carried over, and the new hands' wages. */
-const billNow = (st: GameState) => weekOf(planOf(st.night).week).bill + st.carry + st.wagesDue;
+/** Saturday's bill as it will stand: the week's bill, what was carried, and the hires' wages for the whole week. */
+function billNow(st: GameState): number {
+  const week = planOf(st.night).week;
+  let left = 0;
+  for (let n = st.night + (st.phase === 'service' ? 0 : 1); n <= LAST_NIGHT && planOf(n).week === week; n++)
+    left++;
+  const wages = st.crew.filter((m) => !m.founder && !m.left).reduce((a, m) => a + m.wage, 0);
+  return weekOf(week).bill + st.carry + st.wagesDue + wages * left;
+}
 
 // ---------- title ----------
 
@@ -303,7 +313,10 @@ function frame(t: number) {
   last = t;
   if (s.phase === 'service') {
     const slow = selected || s.request?.state === 'asking';
-    const rate = slow ? Math.min(SPEEDS[speed] ?? 2, SLOWDOWN) : (SPEEDS[speed] ?? 2);
+    // A quiet kitchen (nothing on the rail, nobody at the door for a while) runs the clock on faster.
+    const soon = s.minute + 10;
+    const quiet = !s.tickets.some((t) => t.status === 'open' || (t.status === 'waiting' && t.at <= soon));
+    const rate = slow ? Math.min(SPEEDS[speed] ?? 2, SLOWDOWN) : (SPEEDS[speed] ?? 2) * (quiet ? QUIET : 1);
     carry += dt * rate;
     let stepped = false;
     while (carry >= 1 && s.phase === 'service') {
@@ -440,6 +453,7 @@ function drawScene() {
     `<path d="${wob(162, 50, 162, 6, 5, 0.6)} ${wob(198, 50, 198, 6, 6, 0.6)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="180" y="62" text-anchor="middle" font-size="11" fill="${soft}">storeroom</text>`,
   );
   const o = owed(st);
+  const manned = new Set(st.cooks.filter((c) => c.here && !c.gone).map((c) => placeOf(c.id)));
   list.forEach((name, i) => {
     const x = pos[name] as number;
     const key = 10 + i * 10;
@@ -462,6 +476,20 @@ function drawScene() {
           ? 'grill, dark'
           : name;
     parts.push(`<text x="${x}" y="194" text-anchor="middle" font-size="12" fill="${stroke}">${label}</text>`);
+    const waiting =
+      name === 'grill'
+        ? o.grill
+        : name === 'cold'
+          ? o.cold
+          : name === 'oven'
+            ? o.oven
+            : st.plates.pile >= 4 && st.plates.clean <= 2
+              ? 1
+              : 0;
+    if (waiting > 0 && !off && !manned.has(name))
+      parts.push(
+        `<text x="${x}" y="146" text-anchor="middle" class="hand" font-size="14" fill="var(--rope)">${name === 'oven' && st.oven.heat < OVEN_HOT ? 'pide waiting, oven cold' : 'nobody on it'}</text>`,
+      );
     if (name === 'grill' && !off)
       for (let k = 0; k < Math.min(6, o.grill); k++)
         parts.push(
@@ -868,8 +896,8 @@ function evening() {
   const ended = st.phase === 'end';
   const toSunday = !ended && !st.lost && isLastOfWeek(r.night);
   const jarChoice =
-    !ended && r.night === 3
-      ? `<div class="card"><div>${lightJar ? 'The jar was light again tonight. Nevin used to say nothing about it.' : 'The jar sits by the back door, out of my sight.'}</div>
+    !ended && r.night === 3 && !st.jarDecided
+      ? `<div class="card"><div>${lightJar ? 'The jar was light again tonight. Nevin used to say nothing about it.' : st.jarPlace === 'pass' ? 'The jar sits on the pass now.' : 'The jar sits by the back door, out of my sight.'}</div>
         <div class="row" style="flex-direction:column"><button data-jar="talk">Sit with Rafi on the back step</button><button data-jar="move">Move the jar to the pass</button><button data-jar="leave">Leave it</button></div></div>`
       : '';
   const bill = r.bill

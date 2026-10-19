@@ -46,7 +46,7 @@ export const WEEKS: readonly Week[] = [
     patience: 36,
     intro: [
       'Ahmet the butcher came by on Monday with a bill in Nevin’s name. He wants it by Saturday.',
-      'Selim had the oven lit before I got in. Pide is back on the board.',
+      'Selim had the oven lit before I got in. Pide is back on the board. Somebody has to keep it hot, or the pide waits.',
     ],
   },
   {
@@ -168,7 +168,6 @@ function buildNights(): NightPlan[] {
             'Selim put a small book on the pass this afternoon: Nevin’s ledger. He didn’t say a word.',
           );
         if (i === 1) {
-          plan.intro.push('A new face on the line tonight, if I hired one.');
           plan.request = { who: 'hire', at: 19 * 60 + 40, kind: 'leave-early' };
         }
         if (i === 2) plan.intro.push('Two tables booked for a birthday, and the derby again.');

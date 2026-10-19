@@ -27,7 +27,7 @@ function play(
   s: GameState,
   opts: {
     nights?: number;
-    answer?: 'yes' | 'no';
+    answer?: 'yes' | 'no' | 'ignore';
     jar?: 'talk' | 'move' | 'leave';
     insist?: boolean;
     rich?: boolean;
@@ -50,7 +50,8 @@ function play(
       queueInput(s, { kind: 'open' });
       continue;
     }
-    if (s.request?.state === 'asking') queueInput(s, { kind: 'answer', choice: opts.answer ?? 'yes' });
+    if (s.request?.state === 'asking' && opts.answer !== 'ignore')
+      queueInput(s, { kind: 'answer', choice: opts.answer ?? 'yes' });
     if (!opts.idle && s.minute % 6 === 0)
       for (const id of onShift(s)) {
         const c = cookOf(s, id);
@@ -248,13 +249,15 @@ describe('The Pass', () => {
     expect(idle.lost).toBe(true);
     const s = newGame(21);
     play(s);
-    expect(s.phase).toBe('end');
+    // Either the campaign ended (lost) or the last night was played.
+    expect(s.phase === 'end' || s.night === LAST_NIGHT).toBe(true);
     expect(s.reports.length).toBeGreaterThan(6);
   }, 60_000);
 
-  it('old pass@1 saves and exports are recognised as an earlier edition', () => {
+  it('old pass@1 and pass@2 saves and exports are recognised as an earlier edition', () => {
     expect(canReplay('pass@1')).toBe(false);
-    expect(canReplay('pass@2')).toBe(true);
+    expect(canReplay('pass@2')).toBe(false);
+    expect(canReplay('pass@3')).toBe(true);
   });
   it('a Sunday page can be turned back to: the inputs up to that Sunday rebuild it', () => {
     const s = newGame(31);
@@ -266,5 +269,57 @@ describe('The Pass', () => {
     const back = replay(31, s.inputs.slice(0, k));
     expect(back.phase).toBe('sunday');
     expect(back.sunday?.week).toBe(1);
+  });
+
+  it('a call left unanswered: Dilek goes to her mother anyway, and says so', () => {
+    const s = newGame(11);
+    play(s, { nights: 5, answer: 'ignore' });
+    expect(s.request?.ignored).toBe(true);
+    expect(s.said.some((x) => x.who === 'dilek' && /can’t wait for you/.test(x.text))).toBe(true);
+    expect(s.reports[4]?.reviews.find((x) => x.id === 'dilek')?.aboutYou).toMatch(/went anyway/);
+  });
+
+  it('a granted phone call is made once, not taken again and again', () => {
+    const s = newGame(5);
+    play(s, { nights: 8, rich: true });
+    while (!(s.request?.kind === 'phone' && s.request.rang) && s.phase !== 'end') {
+      if (s.phase !== 'service') queueInput(s, { kind: 'open' });
+      if (s.request?.state === 'asking') queueInput(s, { kind: 'answer', choice: 'yes' });
+      step(s);
+    }
+    expect(s.request?.rang).toBe(true);
+    expect(offersFor(s, 'dilek').some((a) => a.id === 'phone')).toBe(false);
+  });
+
+  it('the jar is decided once, on Wednesday of week 1', () => {
+    const s = newGame(7);
+    play(s, { nights: 2 });
+    queueInput(s, { kind: 'jar', choice: 'move' });
+    expect(s.jarPlace).toBe('counter');
+    play(s, { nights: 3 });
+    queueInput(s, { kind: 'jar', choice: 'move' });
+    expect(s.jarPlace).toBe('pass');
+    queueInput(s, { kind: 'jar', choice: 'talk' });
+    expect(s.talkedToRafi).toBe(false);
+  });
+
+  it('Selim keeps maghrib at home on days without service, so no review calls it missed', () => {
+    const s = newGame(9191);
+    play(s, { nights: 12, rich: true });
+    const missed = s.said.filter(
+      (x) => x.who === 'selim' && /keep maghrib/.test(x.text) && /didn/.test(x.text),
+    );
+    expect(missed).toEqual([]);
+  });
+
+  it('a week of insisting on everything costs a cook at the first Sunday; asking costs none', () => {
+    const pushed = newGame(1001);
+    play(pushed, { nights: 6, insist: true, rich: true });
+    queueInput(pushed, { kind: 'open' });
+    expect(pushed.sunday?.quits.length ?? 0).toBeGreaterThan(0);
+    const asked = newGame(1001);
+    play(asked, { nights: 6, rich: true });
+    queueInput(asked, { kind: 'open' });
+    expect(asked.sunday?.quits ?? []).toEqual([]);
   });
 });

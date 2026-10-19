@@ -32,7 +32,7 @@ const COMPLIED: Pools = {
     'You had me on {verb} at {time}. Nevin never did.',
     '{time}. You pushed and I did it. I’m writing that down.',
     'I did your {verb}. Don’t make it a habit.',
-    'At {time} I said not now and you didn’t hear me.',
+    'At {time} you didn’t ask me. You told me.',
   ],
   dilek: [
     '{time}, {verb}. I did it. I wasn’t happy.',
@@ -56,12 +56,18 @@ const COMPLIED_MANY: Pools = {
   selim: [
     'You made me do it {n} times tonight. I counted.',
     '{n} times. Nevin asked me twice in twenty years.',
+    'All night you told me. I’m too old to be told.',
   ],
   dilek: [
     '{n} times you made me tonight. Count them yourself.',
     'I lost count after {n}. That’s not a kitchen.',
+    'You don’t ask any more. You just say it.',
   ],
-  rafi: ['{n} times, Chef. I’m not a dog.', 'You made me {n} times. My hands are shaking.'],
+  rafi: [
+    '{n} times, Chef. I’m not a dog.',
+    'You made me {n} times. My hands are shaking.',
+    'You kept telling me tonight. I kept doing it. I don’t know why.',
+  ],
   hire: [
     '{n} times in one night. I didn’t come here for that.',
     '{n} times. Where I worked before, the chef said it once.',
@@ -75,12 +81,12 @@ const LET_BE: Pools = {
     'You let me say no tonight. I noticed.',
   ],
   dilek: [
-    'You took my no at {time}. I’ll take your yes another night.',
+    'You took my no tonight. I’ll take your yes another night.',
     'I said not now and you let me. Thank you, I suppose.',
   ],
   rafi: ['I said no and you didn’t shout. Huh.', 'You asked about {verb} and let it go. Nobody does that.'],
   hire: [
-    'You took no for an answer at {time}. I can work with that.',
+    'You took no for an answer tonight. I can work with that.',
     'I said not now. You didn’t push. Good.',
   ],
 };
@@ -151,6 +157,10 @@ const PLAIN: Pools = {
     'My knees, Chef. My knees.',
     'Twenty years on that grill. It still surprises me.',
     'Go home, Chef. You look worse than me.',
+    'The köfte went out right tonight. All of it.',
+    'I’ll be in at four. Somebody has to start the stock.',
+    'Nevin would have liked a full room. She liked noise.',
+    'Quiet hands tonight. Good.',
   ],
   dilek: [
     'You called it right tonight. Don’t let it go to your head.',
@@ -159,14 +169,22 @@ const PLAIN: Pools = {
     'Mum asked if you’re married. I said I don’t know.',
     'The cold side was clean all night. Did you see?',
     'Same again tomorrow. God help us.',
+    'Rafi is getting faster. Don’t tell him I said so.',
+    'I burned my wrist on a tray. It’s nothing.',
+    'Nevin’s börek recipe is in my head, not on paper. Remember that.',
+    'Bus home. Bed. Do it again.',
   ],
   rafi: [
     'Is it always like this? Don’t answer.',
     'I kept up tonight. Did you see?',
     'My hands are prunes, Chef.',
-    'Can I take some börek home? For my sister.',
+    'I took some börek home for my sister. Selim said it was fine.',
     'I didn’t break anything. Well. One.',
     'Selim smiled at me tonight. I think.',
+    'I found Nevin’s old scrubbing brush. It’s better than mine.',
+    'Dilek showed me how she does the parsley. Fast.',
+    'My sister says the kitchen smells follow me home.',
+    'I counted the plates. All there.',
   ],
   hire: [
     'Long night. Good kitchen, though.',
@@ -231,6 +249,8 @@ export function aboutYou(input: {
   id: string;
   founder: boolean;
   events: NightEvent[];
+  /** Stations they worked tonight: a no is not remembered as "let be" if they did the job anyway. */
+  worked?: readonly string[];
   asked: number;
   trustDelta: number;
   used: Set<string>;
@@ -253,8 +273,11 @@ export function aboutYou(input: {
       input.used.add(key);
       return fill(t, e, n);
     }
-    // Every line used: say the first one again rather than nothing.
-    return fill(list[start % list.length] as string, e, n);
+    // Every line used: start the pool over for this cook, so lines come round in turn rather than one repeating.
+    for (const t of list) input.used.delete(`${input.id}:${t}`);
+    const t = list[start % list.length] as string;
+    input.used.add(`${input.id}:${t}`);
+    return fill(t, e, n);
   };
   const complied = input.events.filter((e) => e.verdict === 'complied');
   if (complied.length >= 2) return choose(COMPLIED_MANY, complied[0], complied.length) ?? '';
@@ -263,8 +286,13 @@ export function aboutYou(input: {
   if (crew) return choose(CREW_RULE, crew) ?? '';
   const counter = input.events.find((e) => e.verdict === 'countered');
   if (counter) return choose(COUNTER, counter) ?? '';
+  // A no the chef let stand: not insisted on, not followed by a yes to the same job, and the job not done anyway.
   const letBe = input.events.find(
-    (e) => e.verdict === 'refused' || e.verdict === 'deferred' || e.verdict === 'modified',
+    (e, i) =>
+      (e.verdict === 'refused' || e.verdict === 'deferred') &&
+      !e.insisted &&
+      !input.events.slice(i + 1).some((x) => x.verb === e.verb) &&
+      !(input.worked ?? []).includes(e.verb),
   );
   if (letBe && input.trustDelta >= -0.01) return choose(LET_BE, letBe) ?? '';
   if (input.asked === 0) return choose(SILENT) ?? '';
@@ -293,5 +321,44 @@ export function changeLine(name: string, kind: string, subject: string): string 
     return `${name} hardly ${doing[action].replace(/^goes/, 'goes')} any more.`;
   if (kind === 'mood') return null;
   if (kind === 'trust') return null;
+  return null;
+}
+
+/**
+ * A lapse the cook names after close (HF muhasaba names it; the game says it in the cook's words). Only commitments
+ * the cook would talk about are named; a lapse the chef caused (sent home, let go early) is released before it counts.
+ */
+const LAPSE: Record<string, Record<string, string>> = {
+  maghrib: { selim: 'I missed maghrib tonight. Tomorrow I step away before the rush.' },
+  'my rule about the jar': {
+    rafi: 'I didn’t keep my rule about the jar. Next time I’ll be ready when it comes.',
+  },
+  'my rule about the plates': { selim: 'I washed plates in the rush. Twenty years I didn’t.' },
+  'my rule about smoking': { dilek: 'I smoked in the rush. I said I wouldn’t, and I did.' },
+  'going to my mother': { dilek: 'I should have gone to my mother. I stayed.' },
+  'my shift': {
+    selim: 'I walked out before close. I don’t do that.',
+    dilek: 'I left before the end. I’ll make it up.',
+    rafi: 'I went before close. Sorry, Chef.',
+  },
+};
+
+export function lapseLine(id: string, missed: readonly string[]): string {
+  for (const m of missed) {
+    const l = LAPSE[m]?.[id];
+    if (l) return l;
+  }
+  return '';
+}
+
+/** What a watcher sees when last night's resolve weighs in a choice, by the resolve's key. */
+export function resolveSeen(name: string, key: string): string | null {
+  if (key === 'maghrib') return `${name} went for maghrib before the rush, as he said he would.`;
+  if (key === 'my rule about the jar') return `${name} turned from the jar, as he said he would.`;
+  if (key === 'my rule about smoking')
+    return `${name} left her cigarettes in her coat, as she said she would.`;
+  if (key === 'my rule about the plates')
+    return `${name} left the plates to the dish pit, as he said he would.`;
+  if (key === 'my shift') return `${name} stayed on the line, as they said they would.`;
   return null;
 }

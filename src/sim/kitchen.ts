@@ -72,10 +72,18 @@ import {
   STATIONS,
   type Station,
 } from './cooks.ts';
-import { aboutYou, changeLine, type NightEvent, REQUEST_LINES, VERB_WORD } from './lines.ts';
+import {
+  aboutYou,
+  changeLine,
+  lapseLine,
+  type NightEvent,
+  REQUEST_LINES,
+  resolveSeen,
+  VERB_WORD,
+} from './lines.ts';
 import { hashUnit } from './rng.ts';
 
-export const GAME_VERSION = 'pass@2';
+export const GAME_VERSION = 'pass@3';
 export const PRICE = 40;
 export const PIDE_PRICE = 15;
 const ASK = 0.5;
@@ -153,7 +161,7 @@ export interface CookState {
   here: boolean;
   /** Left for the night (walked out, sent home, or went to someone). */
   gone: boolean;
-  pending: { s: Suggestion; verb: Verb; counter?: boolean } | null;
+  pending: { s: Suggestion; verb: Verb; counter?: boolean; quiet?: boolean } | null;
   deferred: { s: Suggestion; verb: Verb; until: number } | null;
   /** A station turned down because of a break in progress: kept for the rest of that break. */
   breakDeferred: { verb: Verb; endsAt: number; rest: string } | null;
@@ -168,8 +176,12 @@ export interface CookState {
     complied: number;
     assented: number;
     events: NightEvent[];
+    /** Stations the cook worked tonight, asked or not. */
+    worked: string[];
   };
   week: { complied: number; insisted: number; nights: number };
+  /** Times made to comply in earlier weeks, halved each week: old pushing fades but is not forgotten. */
+  pushedBefore: number;
   trustAtOpen: number;
   remembered: boolean;
 }
@@ -186,6 +198,10 @@ export interface Request {
   who: CookId;
   state: 'asking' | 'yes' | 'no';
   at: number;
+  /** Nobody answered in time, so the cook decided for themselves. */
+  ignored?: boolean;
+  /** The granted call has been made (it is offered once). */
+  rang?: boolean;
 }
 
 export interface BillResult {
@@ -247,6 +263,8 @@ export interface GameState {
   jar: number;
   jarSkimmed: number;
   jarPlace: 'counter' | 'pass';
+  /** The chef has decided about the jar (once, on Wednesday of week 1). */
+  jarDecided: boolean;
   talkedToRafi: boolean;
   request: Request | null;
   regulars: Record<string, RegularState>;
@@ -351,6 +369,7 @@ export function newGame(seed: number): GameState {
     jar: 0,
     jarSkimmed: 0,
     jarPlace: 'counter',
+    jarDecided: false,
     talkedToRafi: false,
     request: null,
     regulars,
@@ -390,12 +409,21 @@ function blankCook(id: CookId): CookState {
     made: 0,
     night: blankNight(),
     week: { complied: 0, insisted: 0, nights: 0 },
+    pushedBefore: 0,
     trustAtOpen: 0,
     remembered: false,
   };
 }
 
-const blankNight = () => ({ asked: 0, insisted: 0, refused: 0, complied: 0, assented: 0, events: [] });
+const blankNight = () => ({
+  asked: 0,
+  insisted: 0,
+  refused: 0,
+  complied: 0,
+  assented: 0,
+  events: [],
+  worked: [] as string[],
+});
 
 export const personOf = (s: GameState, id: CookId): Person => s.people.find((p) => p.id === id) as Person;
 export const cookOf = (s: GameState, id: CookId): CookState => s.cooks.find((c) => c.id === id) as CookState;
@@ -436,6 +464,7 @@ function offDay(s: GameState, day: number) {
       d + 11 * 60,
     );
     hostAct(p, offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }), d + 14 * 60);
+    prayAtHome(p, d);
     hostAct(p, offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }), d + 19 * 60);
     hostAct(
       p,
@@ -443,6 +472,22 @@ function offDay(s: GameState, day: number) {
       Math.max(p.now, d + 23 * 60),
     );
   }
+}
+
+/** On a day without service, whoever keeps maghrib keeps it at home (so the evening review does not count it missed). */
+function prayAtHome(p: Person, d: number) {
+  if (!p.agenda.commitments.some((c) => c.label === 'maghrib')) return;
+  hostAct(
+    p,
+    offer('pray', {
+      label: 'pray maghrib',
+      duration: 8,
+      effort: 0,
+      advertises: { meaning: 0.3 },
+      norms: [{ normId: 'salah', relation: 'fulfills' }],
+    }),
+    Math.max(p.now, d + 18 * 60 + 45),
+  );
 }
 
 /** The people still with the lokanta (a cook who left is no longer lived). */
@@ -522,7 +567,10 @@ function startNight(s: GameState, n: number) {
     c.made = 0;
     c.remembered = false;
     c.night = blankNight();
-    if (isFirstOfWeek(n)) c.week = { complied: 0, insisted: 0, nights: 0 };
+    if (isFirstOfWeek(n)) {
+      c.pushedBefore = (c.pushedBefore ?? 0) / 2 + c.week.complied;
+      c.week = { complied: 0, insisted: 0, nights: 0 };
+    }
     if (!c.here) continue;
     c.trustAtOpen = trustOf(p);
     tick(p, Math.max(p.now, s.minute));
@@ -541,13 +589,6 @@ function startNight(s: GameState, n: number) {
         importance: 0.75,
       });
   }
-  for (const m of s.crew)
-    if (cookOf(s, m.id).here) {
-      const p = personOf(s, m.id);
-      const rec = p.review?.last;
-      if (rec && rec.resolved.length > 0 && p.review && (p.review.lastDay ?? -9) >= pl.day - 1)
-        say(s, m.id, reviewLine(p) ?? '', 'journal');
-    }
 }
 
 const isFirstOfWeek = (n: number) => n === 1 || planOf(n - 1).week !== planOf(n).week;
@@ -654,10 +695,12 @@ export function offersFor(s: GameState, id: CookId): Affordance[] {
       placeId: 'line',
       skill: { id: st, difficulty: st === 'grill' ? 0.5 : st === 'oven' ? 0.45 : 0.35 },
       // Honest per person: a station you are good at feels like competence; your own station, like standing.
+      // Work waiting on the rail pulls a cook to it (they can all see the tickets); an idle station pulls less.
       advertises: {
         competence: 0.1 + 0.35 * (p.skills[st]?.level ?? 0.3),
         esteem: st === m.home ? 0.2 : 0.05,
         belonging: 0.05,
+        meaning: 0.2 * Math.min(1, waitingAt(s, st) / (st === 'dish' ? 6 : 3)),
       },
       tags: ['work'],
       // Paid by the hour: a stretch on the line is a stretch of wages.
@@ -684,9 +727,13 @@ export function offersFor(s: GameState, id: CookId): Affordance[] {
     );
   }
   list.push(offer('wait', { label: 'catch my breath', duration: 5, effort: 0, advertises: {} }));
-  list.push(
-    offer('home', { label: LABEL.home, duration: 30, effort: 0.1, advertises: { rest: 0.5, sleep: 0.2 } }),
-  );
+  // The crew rule holds for going home too: the last cook in leaves only with leave given, or once the rail is empty.
+  const released = s.request?.who === id && s.request.state === 'yes';
+  const railEmpty = !s.tickets.some((t) => t.status === 'open' || t.status === 'waiting');
+  if (canLeave || released || railEmpty)
+    list.push(
+      offer('home', { label: LABEL.home, duration: 30, effort: 0.1, advertises: { rest: 0.5, sleep: 0.2 } }),
+    );
   if (canLeave && id === 'dilek')
     list.push(
       offer('smoke', {
@@ -707,7 +754,13 @@ export function offersFor(s: GameState, id: CookId): Affordance[] {
         advertises: { leisure: 0.3 },
       }),
     );
-  if (canLeave && s.request?.state === 'yes' && s.request.who === id && s.request.kind === 'phone')
+  if (
+    canLeave &&
+    s.request?.state === 'yes' &&
+    s.request.who === id &&
+    s.request.kind === 'phone' &&
+    !s.request.rang
+  )
     list.push(
       offer('phone', {
         label: 'ring my mother',
@@ -805,12 +858,15 @@ export function forecastLine(s: GameState, id: CookId): string | null {
   const st = memberOf(s, id).home;
   const aff = offersFor(s, id).find((a) => a.id === st);
   if (!aff?.followedBy) return null;
-  return bodyForecast(p, aff).line;
+  // Said only when it is news: "I'll still have enough" on every tap is noise.
+  const line = bodyForecast(p, aff).line;
+  return /still have enough/.test(line) ? null : line;
 }
 
 /** The crew rule, as the cook would put it: who is already out back. */
 function crewShort(s: GameState, id: CookId, verb: Verb, offers: Affordance[]): string | null {
-  if ((verb !== 'break' && verb !== 'eat') || offers.some((o) => o.id === verb)) return null;
+  if ((verb !== 'break' && verb !== 'eat' && verb !== 'home') || offers.some((o) => o.id === verb))
+    return null;
   const out = onShift(s)
     .filter((x) => x !== id && !inKitchen(s, x))
     .map((x) => nameOf(s, x));
@@ -866,6 +922,10 @@ function apply(s: GameState, inp: Input) {
       const c = s.cooks.find((x) => x.id === inp.cook);
       if (!c?.here || c.gone) return;
       const p = personOf(s, inp.cook);
+      if (!inp.insist && !c.pending && p.activity?.affordanceId === inp.verb && isStation(inp.verb)) {
+        say(s, c.id, 'I’m on it, Chef.', 'answer');
+        return;
+      }
       c.night.asked += 1;
       if (inp.insist) {
         c.night.insisted += 1;
@@ -877,7 +937,8 @@ function apply(s: GameState, inp: Input) {
       return;
     }
     case 'jar': {
-      if (s.phase !== 'evening') return;
+      if (s.phase !== 'evening' || s.night !== 3 || s.jarDecided) return;
+      s.jarDecided = true;
       jarChoice(s, inp.choice);
       return;
     }
@@ -967,26 +1028,49 @@ function releaseShift(p: Person, now: number) {
       releaseCommitment(p, c.id);
 }
 
-function answerRequest(s: GameState, choice: 'yes' | 'no') {
+/** Minutes a cook waits for an answer before deciding for themselves. */
+const REQUEST_WAIT: Record<string, number> = { mother: 6, phone: 10 };
+
+/** Nobody answered: Dilek goes to her mother anyway; anyone else lets it drop. Both cost more trust than a no. */
+function ignoreRequest(s: GameState) {
+  const rq = s.request as Request;
+  rq.ignored = true;
+  answerRequest(s, rq.kind === 'mother' ? 'yes' : 'no', true);
+}
+
+function answerRequest(s: GameState, choice: 'yes' | 'no', ignored = false) {
   const rq = s.request as Request;
   rq.state = choice;
   const p = personOf(s, rq.who);
   const c = cookOf(s, rq.who);
   const lines = REQUEST_LINES[rq.kind];
-  if (choice === 'yes') {
+  if (ignored) adoptVoiceTrust(p, CHEF, 0, 0.07);
+  else if (choice === 'yes') {
     adoptVoiceTrust(p, CHEF, 1, 0.06);
     socialEvent(p, { at: s.minute, kind: 'help', otherId: CHEF, byMe: false, magnitude: 0.6 });
   } else adoptVoiceTrust(p, CHEF, 0, 0.05);
-  if (lines) say(s, rq.who, choice === 'yes' ? lines.yes : lines.no, 'answer');
+  if (lines)
+    say(
+      s,
+      rq.who,
+      ignored
+        ? rq.kind === 'mother'
+          ? 'I can’t wait for you, Chef. I’m going.'
+          : 'Never mind. Forget I asked.'
+        : choice === 'yes'
+          ? lines.yes
+          : lines.no,
+      'answer',
+    );
   const d = nightStart(s.night);
   switch (rq.kind) {
     case 'mother':
       if (choice === 'yes') {
         releaseShift(p, s.minute);
-        c.pending = { s: { voiceId: CHEF, affordanceId: 'home', strength: 0.8 }, verb: 'home' };
+        c.pending = { s: { voiceId: CHEF, affordanceId: 'home', strength: 0.8 }, verb: 'home', quiet: true };
       } else {
         c.night.asked += 1;
-        c.pending = { s: { voiceId: CHEF, affordanceId: 'cold', strength: 0.7 }, verb: 'cold' };
+        c.pending = { s: { voiceId: CHEF, affordanceId: 'cold', strength: 0.7 }, verb: 'cold', quiet: true };
       }
       break;
     case 'advance':
@@ -994,7 +1078,11 @@ function answerRequest(s: GameState, choice: 'yes' | 'no') {
       break;
     case 'phone':
       if (choice === 'yes')
-        c.pending = { s: { voiceId: CHEF, affordanceId: 'phone', strength: 0.8 }, verb: 'break' };
+        c.pending = {
+          s: { voiceId: CHEF, affordanceId: 'phone', strength: 0.8 },
+          verb: 'break',
+          quiet: true,
+        };
       break;
     case 'leave-early':
       if (choice === 'yes') {
@@ -1012,7 +1100,7 @@ function answerRequest(s: GameState, choice: 'yes' | 'no') {
       break;
     case 'eat-first':
       if (choice === 'yes')
-        c.pending = { s: { voiceId: CHEF, affordanceId: 'eat', strength: 0.8 }, verb: 'eat' };
+        c.pending = { s: { voiceId: CHEF, affordanceId: 'eat', strength: 0.8 }, verb: 'eat', quiet: true };
       break;
     case 'my-way':
       if (choice === 'yes') s.myWay = rq.who;
@@ -1031,6 +1119,8 @@ export function step(s: GameState): void {
   const pl = plan(s);
   for (const t of s.tickets) if (t.status === 'waiting' && t.at <= m) arrive(s, t);
   scripted(s, m, pl);
+  if (s.request?.state === 'asking' && m - s.request.at >= (REQUEST_WAIT[s.request.kind] ?? 12))
+    ignoreRequest(s);
   for (const c of s.cooks) {
     if (!c.here) continue;
     if (c.gone) {
@@ -1130,7 +1220,9 @@ function cookMinute(s: GameState, c: CookState) {
   const p = personOf(s, c.id);
   tick(p, s.minute);
   let a = p.activity;
+  let ended: string | undefined;
   if (a && s.minute >= a.endsAt) {
+    ended = a.affordanceId;
     endActivity(p, 'completed', s.minute, s, c);
     a = null;
   }
@@ -1167,12 +1259,27 @@ function cookMinute(s: GameState, c: CookState) {
     else c.idleUntil = s.minute + 3;
     return;
   }
+  const from = a?.affordanceId ?? ended;
   if (a) endActivity(p, 'interrupted', s.minute, s, c);
+  // Sent home by the chef: the chef has released the shift, so going is not a broken promise.
+  if (aff.id === 'home' && voice?.verb === 'home') releaseShift(p, s.minute);
   if (!begin(p, aff, rec)) {
     c.idleUntil = s.minute + 3;
     return;
   }
   c.made = 0;
+  if (isStation(aff.id) && !c.night.worked.includes(aff.id)) c.night.worked.push(aff.id);
+  // A cook who moves station on their own says so in the journal, with what a watcher would see as the reason.
+  if (!voice && from && from !== aff.id && isStation(from) && isStation(aff.id)) {
+    const w = waitingAt(s, from);
+    say(
+      s,
+      'narrator',
+      `${nameOf(s, c.id)} left ${VERB_WORD[from]} for ${VERB_WORD[aff.id]}${w === 0 ? `; ${CLEAR[from]}` : waitingAt(s, aff.id) > w ? ', where more was waiting' : ''}.`,
+      'journal',
+    );
+  }
+  if (aff.id === 'phone' && s.request?.kind === 'phone' && s.request.who === c.id) s.request.rang = true;
   if (aff.id === 'home') {
     c.gone = true;
     const went = s.request?.who === c.id && s.request.state === 'yes';
@@ -1206,7 +1313,7 @@ function answered(
   s: GameState,
   c: CookState,
   p: Person,
-  voice: { s: Suggestion; verb: Verb; counter?: boolean },
+  voice: { s: Suggestion; verb: Verb; counter?: boolean; quiet?: boolean },
   r: SuggestionResolution,
   rec: DecisionRecord,
   onBreak: Activity | null,
@@ -1223,9 +1330,7 @@ function answered(
   let text = r.says;
   let counter: Verb | undefined;
   const crewRule =
-    r.verdict === 'refused' &&
-    r.reason === 'unavailable' &&
-    OFF_LINE.includes(verb === 'break' ? 'break' : verb);
+    r.verdict === 'refused' && r.reason === 'unavailable' && (OFF_LINE.includes(verb) || verb === 'home');
   if (crewRule) {
     const out = onShift(s)
       .filter((x) => x !== c.id && !inKitchen(s, x))
@@ -1262,6 +1367,21 @@ function answered(
     const on = p.activity?.affordanceId;
     const came = on && on in VERB_WORD ? ` for ${VERB_WORD[on]}` : '';
     text = `I came off my ${c.breakDeferred.rest}${came}. ${capital(VERB_WORD[verb] ?? verb)}, not yet.`;
+  } else if (
+    onBreak &&
+    (r.verdict === 'assented' || r.verdict === 'complied') &&
+    rec.chosenAffordanceId === verb &&
+    (STATIONS as readonly string[]).includes(verb)
+  ) {
+    // Off a break for the job: a person says what they are giving up.
+    const cut: Record<string, string> = {
+      eat: 'Leaving my plate, then.',
+      smoke: 'Out with the cigarette.',
+      phone: 'I’ll ring back.',
+      break: 'There goes my ten.',
+    };
+    text = `${cut[onBreak.affordanceId] ?? cut.break} ${text}`;
+    if (c.breakDeferred?.verb === verb) c.breakDeferred = null;
   } else if (r.verdict === 'assented' && c.breakDeferred?.verb === verb) {
     if (s.minute < c.breakDeferred.endsAt && !onBreak)
       text = `I’m up now anyway. ${capital(VERB_WORD[verb] ?? verb)}, fine.`;
@@ -1275,6 +1395,7 @@ function answered(
     counter = r.counterOffer.affordanceId as Verb;
   const verdict = voice.counter && r.verdict === 'assented' ? 'countered' : r.verdict;
   c.night.events.push({ at: s.minute, verb, verdict, insisted: !!voice.s.insist, crewRule });
+  if (voice.quiet) return;
   if (!wasDeferred || r.verdict !== 'deferred') {
     say(s, c.id, text, 'answer');
     s.lastAnswer = { at: s.minute, who: c.id, verb, verdict, text, counter, insisted: !!voice.s.insist };
@@ -1290,6 +1411,12 @@ function notePrompt(s: GameState, id: CookId, p: Person) {
   if (!r || r.at !== s.minute || s.lastPromptAt[id] === r.at) return;
   s.lastPromptAt[id] = r.at;
   if (r.outcome === 'assented') return;
+  if (
+    s.said.some(
+      (x) => x.at >= openAt(s.night) && x.kind === 'prompt' && x.text.startsWith('Rafi looked at the jar'),
+    )
+  )
+    return;
   // HF's lens vocabulary is not a caption (docs/hf-requests.md); the game says what a watcher would see.
   const line =
     r.outcome === 'turned'
@@ -1299,12 +1426,16 @@ function notePrompt(s: GameState, id: CookId, p: Person) {
 }
 
 /** HF muhasaba: a resolve formed last night weighed in a choice tonight. Said once a night. */
-function noteResolve(s: GameState, c: CookState, _p: Person, rec: DecisionRecord) {
+function noteResolve(s: GameState, c: CookState, p: Person, rec: DecisionRecord) {
   if (c.remembered) return;
   const chosen = rec.considered.find((x) => x.affordanceId === rec.chosenAffordanceId);
   if (!chosen?.terms.some((t) => t.source.startsWith('review:') && t.value > 0.02)) return;
   c.remembered = true;
-  say(s, 'narrator', `${nameOf(s, c.id)} kept to what was said last night.`, 'journal');
+  // HF's term does not name its resolve; the chosen act and the person's resolves say which it was.
+  const keys = (p.review?.resolves ?? []).map((r) => r.label ?? r.key);
+  const key = chosen.affordanceId === 'pray' ? 'maghrib' : keys.find((k) => k !== 'maghrib');
+  const line = key ? resolveSeen(nameOf(s, c.id), key) : null;
+  if (line) say(s, 'narrator', line, 'journal');
 }
 
 const capital = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
@@ -1363,6 +1494,22 @@ export function stationOf(s: GameState, id: CookId): Station | null {
 export const pileOf = (s: GameState): number => s.plates.pile;
 
 /** What the open tickets still owe each station, in portions. */
+const CLEAR: Record<string, string> = {
+  grill: 'the grill was clear',
+  cold: 'the cold side was clear',
+  dish: 'the plates were done',
+  oven: 'nothing was in the oven',
+};
+
+const isStation = (x: string): boolean => (STATIONS as readonly string[]).includes(x);
+
+/** Work waiting at a station: portions owed, or dirty plates. */
+function waitingAt(s: GameState, st: string): number {
+  if (st === 'dish') return s.plates.pile;
+  const o = owed(s);
+  return st in o ? o[st as keyof typeof o] : 0;
+}
+
 export function owed(s: GameState): Record<'grill' | 'cold' | 'oven', number> {
   const o = { grill: 0, cold: 0, oven: 0 };
   for (const t of s.tickets)
@@ -1524,6 +1671,10 @@ function evening(s: GameState, c: CookState): string {
   if (rq && rq.who === c.id && rq.state !== 'asking') {
     const l = REQUEST_LINES[rq.kind];
     if (l) {
+      if (rq.ignored)
+        return rq.kind === 'mother'
+          ? 'I asked you and you didn’t even look up. I went anyway.'
+          : 'I asked you something tonight. You never answered.';
       if (rq.kind === 'mother' && rq.state === 'no' && c.night.refused > 0)
         return 'You asked me to stay while she lay on the floor.';
       return rq.state === 'yes' ? l.eveYes : l.eveNo;
@@ -1536,6 +1687,7 @@ function evening(s: GameState, c: CookState): string {
     id: c.id,
     founder: memberOf(s, c.id).founder,
     events: c.night.events,
+    worked: c.night.worked,
     asked: c.night.asked,
     trustDelta: trustOf(personOf(s, c.id)) - c.trustAtOpen,
     used,
@@ -1543,6 +1695,14 @@ function evening(s: GameState, c: CookState): string {
   });
   s.usedLines = [...used].slice(-400);
   return line;
+}
+
+/** Tonight's named lapse, if the evening review found one the cook would talk about. */
+function lapseOf(s: GameState, id: CookId): string {
+  const p = personOf(s, id);
+  const said = reviewLine(p);
+  if (!said || said.startsWith('Today I kept') || !p.review?.last) return '';
+  return lapseLine(memberOf(s, id).template ?? id, p.review.last.missed);
 }
 
 function closeNight(s: GameState) {
@@ -1575,7 +1735,7 @@ function closeNight(s: GameState) {
     skimmed: s.jarSkimmed - prevSkim,
     reviews: s.cooks
       .filter((c) => c.here)
-      .map((c) => ({ id: c.id, line: reviewLine(personOf(s, c.id)) ?? '', aboutYou: evening(s, c) })),
+      .map((c) => ({ id: c.id, line: lapseOf(s, c.id), aboutYou: evening(s, c) })),
     stamps: [],
     regulars: tonight
       .filter((t) => t.regular && !t.friend)
@@ -1601,7 +1761,7 @@ function closeNight(s: GameState) {
     report.request = {
       kind: s.request.kind,
       who: s.request.who,
-      answer: unanswered ? 'none' : s.request.state === 'yes' ? 'yes' : 'no',
+      answer: unanswered || s.request.ignored ? 'none' : s.request.state === 'yes' ? 'yes' : 'no',
     };
   if (pl.gasOut) {
     report.gas = true;
@@ -1685,7 +1845,7 @@ function enterSunday(s: GameState) {
   const page: SundayPage = {
     week,
     changes: changesThisWeek(s, week),
-    quits: week >= 2 && week < 4 ? decideQuits(s, week) : [],
+    quits: week < 4 ? decideQuits(s, week) : [],
     candidates: week === 2 || week === 3 ? candidates(s, week) : [],
     offday: week === 2 && !!activeCrew(s).find((m) => m.id === 'dilek'),
     tabs:
@@ -1749,7 +1909,7 @@ function decideQuits(s: GameState, _week: number): { id: CookId; words: string }
   for (const m of activeCrew(s)) {
     const c = cookOf(s, m.id);
     const p = personOf(s, m.id);
-    const pushed = c.week.complied;
+    const pushed = c.week.complied + (c.pushedBefore ?? 0) / 2;
     const trust = trustOf(p);
     // Honest per person: a kitchen that has worn your trust away feels less like belonging and more like a cage.
     const stay = offer('stay', {
@@ -1854,6 +2014,7 @@ function leaveSunday(s: GameState) {
   const n = s.night;
   const pl = planOf(n);
   const sunday = (pl.week - 1) * 7 + 6;
+  for (const p of livePeople(s)) prayAtHome(p, sunday * 1440);
   for (const p of livePeople(s))
     hostAct(
       p,
