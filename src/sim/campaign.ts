@@ -41,7 +41,7 @@ export const WEEKS: readonly Week[] = [
     week: 2,
     title: 'The street',
     owed: 'Ahmet the butcher',
-    bill: 3600,
+    bill: 3000,
     weekdays: [2, 3, 4, 5],
     patience: 36,
     intro: [
@@ -53,7 +53,7 @@ export const WEEKS: readonly Week[] = [
     week: 3,
     title: 'The ledger',
     owed: 'the landlord',
-    bill: 4400,
+    bill: 4200,
     weekdays: [2, 3, 4, 5],
     patience: 32,
     intro: ['The landlord’s letter: the rent goes up this month, and he would like last month’s too.'],

@@ -89,6 +89,12 @@ const HF_WAGE = 6;
 /** Oven heat (0..1) at which pide bakes. */
 export const OVEN_HOT = 0.7;
 const OFF_LINE = ['break', 'smoke', 'eat', 'phone'];
+const REST_WORD: Record<string, string> = {
+  break: 'ten',
+  smoke: 'cigarette',
+  eat: 'plate',
+  phone: 'phone call',
+};
 
 export type Verb = Station | 'break' | 'eat' | 'home';
 export const VERBS: readonly Verb[] = ['grill', 'cold', 'dish', 'oven', 'break', 'eat', 'home'];
@@ -150,7 +156,7 @@ export interface CookState {
   pending: { s: Suggestion; verb: Verb; counter?: boolean } | null;
   deferred: { s: Suggestion; verb: Verb; until: number } | null;
   /** A station turned down because of a break in progress: kept for the rest of that break. */
-  breakDeferred: { verb: Verb; endsAt: number } | null;
+  breakDeferred: { verb: Verb; endsAt: number; rest: string } | null;
   idleUntil: number;
   progress: number;
   /** Portions made in the current stretch (an honest world effect at its end). */
@@ -1182,7 +1188,7 @@ function cookMinute(s: GameState, c: CookState) {
 function answered(
   s: GameState,
   c: CookState,
-  _p: Person,
+  p: Person,
   voice: { s: Suggestion; verb: Verb; counter?: boolean },
   r: SuggestionResolution,
   rec: DecisionRecord,
@@ -1227,8 +1233,18 @@ function answered(
             ? `Off the phone for ${job}? One minute.`
             : `Off my ten for ${job}? Let me have my ten.`;
     text = `${why}${would[0] ? ` ${capital(VERB_WORD[would[0]] ?? '')} I’d do.` : ''}`;
-    c.breakDeferred = { verb, endsAt: onBreak.endsAt };
+    c.breakDeferred = { verb, endsAt: onBreak.endsAt, rest: REST_WORD[onBreak.affordanceId] ?? 'ten' };
     if (would[0]) counter = would[0];
+  } else if (
+    !onBreak &&
+    (r.verdict === 'deferred' || r.verdict === 'modified') &&
+    c.breakDeferred?.verb === verb &&
+    s.minute < c.breakDeferred.endsAt
+  ) {
+    // Still the same no as on the break: say so, rather than a new reason that doesn't fit.
+    const on = p.activity?.affordanceId;
+    const came = on && on in VERB_WORD ? ` for ${VERB_WORD[on]}` : '';
+    text = `I came off my ${c.breakDeferred.rest}${came}. ${capital(VERB_WORD[verb] ?? verb)}, not yet.`;
   } else if (r.verdict === 'assented' && c.breakDeferred?.verb === verb) {
     if (s.minute < c.breakDeferred.endsAt && !onBreak)
       text = `I’m up now anyway. ${capital(VERB_WORD[verb] ?? verb)}, fine.`;

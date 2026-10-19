@@ -30,6 +30,7 @@ function play(
     answer?: 'yes' | 'no';
     jar?: 'talk' | 'move' | 'leave';
     insist?: boolean;
+    rich?: boolean;
     idle?: boolean;
   } = {},
 ) {
@@ -37,6 +38,8 @@ function play(
   while (s.phase !== 'end') {
     if (s.phase === 'evening') {
       if (s.night >= nights) return;
+      // A test stand-in for good nights: keep the bills paid so later weeks can be reached.
+      if (opts.rich) s.till += 20000;
       if (s.night === 3) queueInput(s, { kind: 'jar', choice: opts.jar ?? 'leave' });
       queueInput(s, { kind: 'open' });
       continue;
@@ -89,6 +92,21 @@ describe('The Pass', () => {
     for (const id of ['selim', 'dilek']) hints(s, id, true);
     expect(fingerprint(s)).toBe(before);
     expect(JSON.stringify(s.people.map((p) => p.rng))).toBe(rng);
+  });
+
+  it('the telegraph for a new hire, the chef’s guess, is pure too', () => {
+    const s = newGame(9);
+    play(s, { nights: 11, rich: true });
+    queueInput(s, { kind: 'open' });
+    for (let i = 0; i < 60; i++) step(s);
+    const hire = onShift(s).find((id) => !memberOf(s, id).founder);
+    expect(hire).toBeTruthy();
+    const chef = JSON.stringify(s.chef);
+    const before = fingerprint(s);
+    const h = hints(s, hire as string);
+    expect(h.some((x) => x.guess)).toBe(true);
+    expect(JSON.stringify(s.chef)).toBe(chef);
+    expect(fingerprint(s)).toBe(before);
   });
 
   it('insisting never turns a cannot or will-not into a yes', () => {
@@ -144,10 +162,10 @@ describe('The Pass', () => {
   it('a break refusal stays coherent across asks', () => {
     // The owner's report: a cook on a break turned down one job, took another, then took the first after all.
     // Now the first answer says what is different about that job, the deferral is remembered for the rest of the
-    // break, and taking it later is explained.
+    // break, and the third answer is either taking it with a reason or the same no, said as the same no.
     const s = newGame(1);
-    let checked = 0;
-    while (s.phase === 'service' && checked === 0) {
+    const thirds: string[] = [];
+    while (s.phase === 'service' && thirds.length < 6) {
       step(s);
       for (const id of onShift(s)) {
         const a = personOf(s, id).activity;
@@ -162,7 +180,7 @@ describe('The Pass', () => {
         step(t);
         expect(t.lastAnswer?.verdict).toBe('deferred');
         expect(t.lastAnswer?.text).toMatch(/I’d do\./);
-        expect(t.lastAnswer?.text).not.toMatch(/^Not now/);
+        expect(t.lastAnswer?.counter).toBe(yes.verb);
         queueInput(t, { kind: 'ask', cook: id, verb: yes.verb });
         step(t);
         expect(t.lastAnswer?.verdict).toBe('assented');
@@ -171,12 +189,15 @@ describe('The Pass', () => {
         step(t);
         queueInput(t, { kind: 'ask', cook: id, verb: no.verb });
         step(t);
-        if (t.lastAnswer?.verdict === 'assented') expect(t.lastAnswer.text).toMatch(/up now anyway/);
-        checked += 1;
-        break;
+        const third = t.lastAnswer;
+        if (third?.verdict === 'assented') expect(third.text).toMatch(/up now anyway/);
+        else expect(third?.text).toMatch(/^I came off my .*not yet\.$/);
+        thirds.push(third?.verdict ?? '');
       }
     }
-    expect(checked).toBe(1);
+    // Both endings occur on this seed: taking the job after all, and the same no.
+    expect(thirds).toContain('assented');
+    expect(thirds.some((v) => v !== 'assented')).toBe(true);
   });
 
   it('somebody stays on the line: the last cook in the kitchen is not offered a break', () => {

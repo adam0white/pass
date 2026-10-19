@@ -287,7 +287,6 @@ function service() {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-counter]');
     if (!b || !s?.lastAnswer) return;
     queueInput(s, { kind: 'ask', cook: s.lastAnswer.who, verb: b.dataset.counter as Verb, counter: true });
-    s.lastAnswer = { ...s.lastAnswer, counter: undefined };
     writeSave();
     drawCaption();
   });
@@ -619,14 +618,15 @@ function drawCaption() {
   if (!el) return;
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
-  const key = fresh && a ? `${a.at}${a.who}${a.counter ?? ''}` : '';
+  const key = fresh && a ? `${a.at}${a.who}${a.counter ?? ''}${s.inputs.length}` : '';
   if (key === captionKey) return;
   captionKey = key;
   if (!fresh || !a) {
     el.innerHTML = '';
     return;
   }
-  const canTake = a.counter && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
+  const taken = s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
+  const canTake = a.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
   el.innerHTML = `<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(a.text)}”</span>${canTake ? `<button data-counter="${a.counter}">Take it: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
 }
 
