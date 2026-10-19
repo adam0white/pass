@@ -785,12 +785,18 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
         verb,
         verdict: g.resolution.verdict,
         says: g.resolution.says,
-        short: shortOf(g.resolution),
+        short: crewShort(s, id, verb, offers) ?? shortOf(g.resolution),
         guess: g.confidence < 0.6,
       };
     }
     const r = predict(p, offers, sug);
-    return { verb, verdict: r.verdict, says: r.says, short: shortOf(r), guess: false };
+    return {
+      verb,
+      verdict: r.verdict,
+      says: r.says,
+      short: crewShort(s, id, verb, offers) ?? shortOf(r),
+      guess: false,
+    };
   });
 }
 
@@ -802,6 +808,17 @@ export function forecastLine(s: GameState, id: CookId): string | null {
   return bodyForecast(p, aff).line;
 }
 
+/** The crew rule, as the cook would put it: who is already out back. */
+function crewShort(s: GameState, id: CookId, verb: Verb, offers: Affordance[]): string | null {
+  if ((verb !== 'break' && verb !== 'eat') || offers.some((o) => o.id === verb)) return null;
+  const out = onShift(s)
+    .filter((x) => x !== id && !inKitchen(s, x))
+    .map((x) => nameOf(s, x));
+  return out.length ? `not with ${listOf(out)} out` : 'someone must stay';
+}
+
+const afterless = (label: string) => label.replace(/^after I /, '');
+
 function shortOf(r: SuggestionResolution): string {
   switch (r.verdict) {
     case 'assented':
@@ -809,7 +826,7 @@ function shortOf(r: SuggestionResolution): string {
     case 'complied':
       return 'if I must';
     case 'deferred':
-      return r.counterOffer?.label ? `after I ${r.counterOffer.label}` : 'not now';
+      return r.counterOffer?.label ? `after I ${afterless(r.counterOffer.label)}` : 'not now';
     case 'modified':
       return r.counterOffer?.label ? `rather ${r.counterOffer.label}` : 'something else';
     case 'refused':

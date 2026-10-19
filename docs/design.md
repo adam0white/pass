@@ -37,9 +37,30 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 - **B. Half Time**, coaching an under-14 team through a season. Rejected: slow sim between matches, spatial football on a phone.
 - **C. Last Ferry**, the last crossings before a storm. Rejected: a one-night puzzle; too close to The Night Watch.
 
-## Deferred (target: after the owner's first playtest)
-- A seventh night onward (a second week) and hiring.
+## The campaign (pass@2, 2026-10-19)
+
+The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, one notebook.
+
+| Week | Title | Services | New, brought by a person | Bill |
+|---|---|---|---|---|
+| 1 | The arrears | Mon to Sat | Rafi and the plates, the tip jar, the match crowd, the critic and Dilek's call, the bank | ₺5,200 to the bank |
+| 2 | The street | Wed to Sat | the pide oven (heat you keep up), regulars with names and tabs | ₺3,000 |
+| 3 | The ledger | Wed to Sat | the ledger on the pass, hiring and quitting on Sunday | ₺4,200 plus wages |
+| 4 | Nevin's name | Wed to Sat | the anniversary (Nevin's apron), the night the gas fails, a wedding order with a due time | ₺6,200 plus wages |
+
+- **Bills and strikes.** Each Saturday the week's bill is paid from the till. A shortfall is carried at 1.1× and gives a strike; two strikes, or any shortfall in week 4, loses the lokanta.
+- **Sunday page.** Between weeks: who changed (HF `diffChronicle`, unprompted habits in kitchen words), who quits (an HF `decide` between staying and leaving, moved by trust and how often they were pushed), two candidates to hire (new HF people with their own temperament; their hints are the chef's guesses through `predictAs`, pencilled until known), and a decision card or two: Dilek's day off, the regulars' tabs, the pide price, letting a cook go, the offer to buy the name.
+- **Saves on the same fiction.** The notebook is the save: seed plus inputs, replayed. The title page offers "Turn back to Sunday, week N", which replays the inputs up to that Sunday.
+- **Stamps** in the notebook for a week without walkouts, without insisting, Rafi keeping his rule, and others (`STAMPS` in `campaign.ts`).
+- **Refusals said at the pass.** The last answer is a caption at the pass in the cook's words, with a "Take it" button when it carries a counter-offer.
+- **The crew rule.** Break, smoke, eat and phone are offered only while another cook is in the kitchen (`docs/hf-requests.md` 6).
+- **A break's no stays the same no.** A cook who defers a job from a break they chose says why this job and not another, and keeps that answer until the break ends (owner bug, `docs/playtests/owner-2026-10-19.md`).
+
+## Deferred (target: after the owner plays pass@2)
 - Waiters and front-of-house as HF people.
 - Workers AI voice for the evening (not needed; HF lines carry it).
-- Refusals voiced at the pass, out loud, instead of in a bubble (Mehmet playtest).
-- Three cooks out back at once is legal; a host rule or a crew-level norm could answer it (Mehmet playtest).
+- A cook quitting mid-service, not only on Sunday.
+- Bad guests: a table that pushes a cook, and a cook who answers back.
+- A supplier failing on the wedding night.
+- A limit on how many rush asks a cook will refuse before he stops answering (now unbounded).
+- A crew-level duty in HF instead of the host's crew rule (HF request 6).
