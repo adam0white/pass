@@ -488,7 +488,7 @@ function drawScene() {
               : 0;
     if (waiting > 0 && !off && !manned.has(name))
       parts.push(
-        `<text x="${x}" y="146" text-anchor="middle" class="hand" font-size="14" fill="var(--rope)">${name === 'oven' && st.oven.heat < OVEN_HOT ? 'pide waiting, oven cold' : 'nobody on it'}</text>`,
+        `<text x="${Math.min(290, Math.max(70, x))}" y="146" text-anchor="middle" class="hand" font-size="14" fill="var(--rope)">${name === 'oven' && st.oven.heat < OVEN_HOT ? 'pide waiting' : 'nobody on it'}</text>`,
       );
     if (name === 'grill' && !off)
       for (let k = 0; k < Math.min(6, o.grill); k++)

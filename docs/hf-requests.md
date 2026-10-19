@@ -9,3 +9,6 @@ Filed 2026-10-19 against HF 2.7.0, and appended to `~/code/human-framework/docs/
 5. **A voice answering the person's own request** (mirror of `noteVoicePromise`). Workaround: `adoptVoiceTrust` with a small host-chosen step.
 6. **A duty held by a group** ("somebody stays on the line"). Workaround: a host rule that withholds the off-the-line offers from the last cook in the kitchen.
 7. (2026-10-18, kept) `reviewLine` for a kept day reads "Today I kept <label>" and only works with noun-phrase labels. The game composes kept-day lines itself.
+8. (2026-10-19, polish round) **A `review:resolve` term does not name its resolve.** A host that wants to show muhasaba weighing in a choice ("Rafi turned from the jar, as he said he would") cannot tell which resolve the term came from. Proposal: carry the resolve key on the term (for example `review:resolve:<key>`, or a `ref` field). Workaround: the game infers it from the chosen act and the person's resolve list.
+
+Status against HF 2.8.0 (upgraded 2026-10-19): items 1 (`decidedBy`), 4 (firm self-rule), 5 and 6 (group duty) are on HF's deferred list; none is closed by 2.8.0, so every workaround above stays.

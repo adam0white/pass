@@ -27,7 +27,7 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 - Stations: grill, cold, dish. A cook working a station turns minutes into portions at a rate set by skill, HF body capacity, and protest. The pass plates a ticket when its portions are ready and a clean plate is free. A table that waits too long walks out.
 - Money is world truth and may be shown as a number. A person's inner state is never shown as a number: posture, hand-written lines and the journal show it.
 
-## The people (HF 2.7.0, pinned exactly)
+## The people (HF 2.8.0, pinned exactly)
 - **Selim**, grill, 56. Worked for Nevin twenty years. Honest, proud, prays maghrib (a quiet offer at sunset; a journal line, no station effect).
 - **Dilek**, cold, 34. Smokes; her own rule is no smoke in the rush (an HF abstention); a habit pulls the other way. Reviews by ruminating.
 - **Rafi**, dish, 19. Broke. A habit toward the tip jar against his held norm on theft: an HF prompting. If the chef talks to him he gets a practised response (redirect) that grows with use; moving the jar removes the offer instead.
@@ -37,7 +37,7 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 - **B. Half Time**, coaching an under-14 team through a season. Rejected: slow sim between matches, spatial football on a phone.
 - **C. Last Ferry**, the last crossings before a storm. Rejected: a one-night puzzle; too close to The Night Watch.
 
-## The campaign (pass@2, 2026-10-19)
+## The campaign (pass@2, 2026-10-19; pass@3 after the polish round)
 
 The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, one notebook.
 
@@ -55,6 +55,12 @@ The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, o
 - **Refusals said at the pass.** The last answer is a caption at the pass in the cook's words, with a "Take it" button when it carries a counter-offer.
 - **The crew rule.** Break, smoke, eat and phone are offered only while another cook is in the kitchen (`docs/hf-requests.md` 6).
 - **A break's no stays the same no.** A cook who defers a job from a break they chose says why this job and not another, and keeps that answer until the break ends (owner bug, `docs/playtests/owner-2026-10-19.md`).
+- **Cooks go where the work is, and say so** (pass@3). Work waiting at a station makes it more meaningful to a cook (HF `advertises.meaning`, in proportion to what waits). A self-chosen move goes in the journal with its visible reason.
+- **Requests do not wait forever** (pass@3). Dilek's mother: six minutes, then she goes anyway. Other requests drop after ten to twelve minutes. Ignoring costs more trust than a no.
+- **The crew rule covers going home** (pass@3). The last cook in leaves only with leave given or an empty rail.
+- **Close lines claim only what happened** (pass@3). Lapses are named in each cook's words, and only for commitments the cook would talk about. A no is remembered as let be only if it stood. Selim prays maghrib at home on days without service.
+- **Pushing is remembered** (pass@3). Sunday quits run from the first Sunday; earlier weeks' compliance carries over, halved each week. A quit after week 1 opens hiring early.
+- **A quiet kitchen runs the clock four times faster** (page only).
 
 ## Deferred (target: after the owner plays pass@2)
 - Waiters and front-of-house as HF people.
@@ -64,3 +70,5 @@ The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, o
 - A supplier failing on the wedding night.
 - A limit on how many rush asks a cook will refuse before he stops answering (now unbounded).
 - A crew-level duty in HF instead of the host's crew rule (HF request 6).
+- A hire's own voice in service: hires speak HF's stock answers until the Sunday page (rule-breaker playtest).
+- Talking to a cook outside the scripted moments ("Rafi has been quiet all afternoon"; cozy playtest).

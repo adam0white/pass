@@ -1842,11 +1842,13 @@ function enterSunday(s: GameState) {
   s.minute = sunday * 1440 + 12 * 60;
   s.phase = 'sunday';
   const week = pl.week;
+  const quits = week < 4 ? decideQuits(s, week) : [];
   const page: SundayPage = {
     week,
     changes: changesThisWeek(s, week),
-    quits: week < 4 ? decideQuits(s, week) : [],
-    candidates: week === 2 || week === 3 ? candidates(s, week) : [],
+    quits,
+    // Hiring opens in week 2; a cook who walks after week 1 opens it early.
+    candidates: week === 2 || week === 3 || (week === 1 && quits.length > 0) ? candidates(s, week) : [],
     offday: week === 2 && !!activeCrew(s).find((m) => m.id === 'dilek'),
     tabs:
       week === 3

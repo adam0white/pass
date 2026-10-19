@@ -1,0 +1,90 @@
+# Polish playtest: the mischievous rule-breaker, 2026-10-19
+
+- **Tester:** a source-unread agent (Fable), briefed to push on the cooks and break the rules. It played the text harness (`scratch/play.ts`) in two runs: seed 9090 and seed 9191.
+- **Build:** the pass@2 sim at commit 8b9dba6 (HF 2.7.0).
+- **Exports:** [run a](polish-2026-10-19-rule-breaker-a.json) and [run b](polish-2026-10-19-rule-breaker-b.json).
+- **How far:** run a lost at the end of week 2. Run b reached Wednesday of week 3.
+
+## Their words, verbatim
+
+### 1. Verdict to the designer
+
+The close-of-night lines are the game. When Dilek said "20:47, the grill. I did it. I wasn’t happy." and "She was fine, as it turns out. You didn’t know that at seven, though." I believed there was a person on the other side of the pass. During service it's thinner: one stock set of six phrases shared by every cook, including the new hire who was sold to me as a fighter, and a handful of lines that contradict what the journal says happened. Nobody quit in two runs and about fifty insists. The counting is honest (they only count the reluctant yeses, never the cheerful ones), the thresholds move, and the jar move had a consequence I could read a week later. Fix the false-memory lines and the shared templates and the cooks will hold up.
+
+### 2. What I pushed on, and what the cooks did
+
+**Swapped everyone to the station they hate (brat, Mon wk1 17:25).** Selim: "Fine. Since you insist." Dilek: "If you insist. I’d rather not." Both worked "with crossed arms". By 17:51 both had drifted back to their own stations without a word. Timed it properly in week 2 (brat, Wed wk2): insists at 17:25/17:27 held until somewhere between 17:49 and 17:59, then both released at the same moment, silently. Coherent that they drift; the silence isn't.
+
+**Sent Dilek home before the rush (brat, Mon wk1 17:49).** Plain ask: "Not now. After I work the cold side." Insist at 17:51: "If you insist. I’d rather not." and she hung up the apron. At close: "2 times you made me tonight. Count them yourself." Exact.
+
+**Insisted the last cook take a break with tickets up (brat, Mon wk1 18:10 and 18:22).** Selim: "Somebody has to stay on the line." Refused the insist both times, card read "break: someone must stay". Good. Then at 19:19, still alone, three tickets up, I insisted home: "If you insist. I’d rather not." and he left. Same again Thu wk1 20:31 with six tickets and nobody else in the building. He will not leave the line for a break but will leave it for the night. Reads as a seam, not a person.
+
+**Asked the same job five times (brat, Mon wk1 18:24–18:32).** Already on the grill, Selim said "Fine." / "Alright, I’ll do it." five times. Never "I'm already on it." Same with Dilek's counter-offer at 18:45 Tue wk1 and `take`: "Alright, I’ll do it." for the station she was standing at.
+
+**Everyone out back at once (brat, Tue wk1 18:01–18:05).** Selim "Fine. Since you insist.", Dilek "Fine.", Rafi: "Not with Selim and Dilek already out there." Real refusal, names people. Best in-service line of the run.
+
+**Pulled a cook off his break through three jobs (brat, Tue wk1 18:07–18:11).** Selim out back: "Not that — I’ll work the grill." / "I’ll work the grill instead." / "Alright, I’ll do it." Not a word about the break being cut short. Contrast Fri wk1 19:25 when I pulled him off his meal: "Leave my plate for the grill? Let me eat first." and then he took the grill unprompted at 19:35. The meal is protected; the break isn't.
+
+**Ignored the jar (brat, all of wk1–2).** "Rafi looked at the jar a long moment, and left it." fired at 17:25, 17:50, 18:15, 18:40 … every 25 minutes, every night, dozens of times. "The tip jar was lighter than it should have been." most nights. Rafi at close Wed wk1: "I didn’t keep my rule about the jar. Next time I’ll be ready when it comes." then "I didn’t break anything. Well. One." In brat2 I moved it to the pass Wed wk1 after close: "Rafi watched me carry it and said nothing." and the week-2 Sunday notebook read "Rafi kept his rule all week". That's a consequence I could feel.
+
+**Pushed Dilek to breaking (brat, Sat wk1 17:25–17:39).** Six insists accepted, then at 17:37 "Why would I listen to you?" and 17:39 "You’ve pushed me enough." Card went to "no" on every job including her own cold side, held 30+ minutes while she kept working. At close: "I lost count after 6. That’s not a kitchen." Repeated Sat wk2: broke on the fourth insist (17:31). Her threshold dropped by half in a week. Rafi (brat2) broke on the sixth insist both Wed wk2 and Thu wk2; his held steady.
+
+**Refused a request (brat, Fri wk2 19:25).** Dilek: "Five minutes, Chef. I need to ring my mother. She’s not answering." Answered no. "Fine. After close, then." Close: "She was fine, as it turns out. You didn’t know that at seven, though." Perfect. In brat2 I said yes (Fri wk2 19:42): "Five minutes. Thank you." and at close "She was fine. She’d fallen asleep with the television on. Thank you for the five minutes." Both branches land.
+
+**Refused her Wednesdays off (brat2, Sun wk2) and then ran that Wednesday.** Close line Wed wk3: "Quiet night from you. I liked it, mostly." Nothing about her mother, the clinic, or the no. Null result.
+
+**Sent Selim home three nights running after "Don’t make it a habit" (brat, Thu wk1 close; then Wed/Thu/Fri wk2 19:09, 19:13, 19:26).** Stock lines each time: "Fine. Since you insist." / "If you insist. I’d rather not." Close lines: "You had me on going home at 19:13. Nevin never did." / "19:26. You pushed and I did it. I’m writing that down." He wrote it down. He never refused, never quit.
+
+**Pushed the new hire on her first night (brat2, Wed wk3 17:25–17:33).** Hülya, five insists, stock lines only. Close: "5 times. Where I worked before, the chef said it once." The only time her backstory reached her mouth.
+
+### 3. Bugs, contradictions, script showing through
+
+1. **Request card outlives the asker (brat2, Fri wk1).** Dilek's "Mum’s had a fall. Chef, can I go?" came at 19:40. "Dilek hung up the apron and went home." at 20:46. The card was still asking at 21:33. I answered yes. 21:33 Dilek: "Thank you. Thank you, Chef." Close: "You let me go to her. I won’t forget it." She thanked me from home for permission I gave 47 minutes after she left.
+2. **Till looks clamped to the debt (brat2, Sat wk1).** ₺5,200 / ₺5,200 at 21:01, 21:33 and close while 27 of 33 tables were fed. The night's take was exactly the ₺1,080 gap. "paid ₺5,200 to the bank. ₺0 left."
+3. **Event feed stopped printing (brat only, from Thu wk2).** No "-- meanwhile --" block during any wait, but the journal tail kept gaining lines (Ilyas, jar looks, "Selim hung up the apron"). Clean proof: brat Fri wk2 19:26 `ask Selim home insist` and the following `wait 30`, both unfiltered. brat2 printed the feed normally all the way through, so something differs between the two saves.
+4. **False memories.** Selim (brat, Wed wk2 close): "At 19:09 I said not now and you didn’t hear me." At 19:09 he said "Fine. Since you insist." Dilek (brat2, Mon wk1 close): "I said not now and you let me." She said "I’ll work the cold side instead." Selim at every week-2 and week-3 open, both seeds: "I didn’t keep maghrib. Next time I’ll be ready when it comes." The journal has him in the storeroom for maghrib every single night.
+5. **Shared template.** "I didn’t keep my shift / my rule about the jar / maghrib. Next time I’ll be ready when it comes." on all three cooks, repeated at the next day's open. It also has them blaming themselves for things I ordered (Selim after I sent him home). "N times, Chef. I’m not a dog." twice on Rafi. "You made me N times. My hands are shaking." twice.
+6. **Scripted calendar.** Dilek's mother falls at Friday 19:40 in both seeds. Jar looks every 25 minutes on the dot. Derby, food writer, Kemal, Ilyas, Hasan Bey all on fixed nights.
+7. **Number mismatches.** Header all of Wed wk3 (brat2): "₺5,350 due Saturday". Close page: "₺5,440 for the landlord." The gap is Hülya's ₺90, probably wage added at close, but it's two numbers for one debt. "oven: cold" beside "Selim had the oven lit before I got in." (both seeds, Wed wk2 17:25). "dish pit: empty" while Rafi is "at the dish pit." "out back; upright, working with crossed arms" for a man on a break.
+8. **Ordering.** Thursday preview after Hülya's first full shift: "A new face on the line tonight, if I hired one." Table 6 "gave up and left" three times between 19:55 and 20:15 (brat, Mon wk1). Sunday wk1 skipped to "Open on Wednesday", then the journal says the butcher came Monday.
+9. **Ambiguous silence (brat, Thu wk2 17:25–17:31).** "Rafi has been quiet all afternoon", then three insists with no reply line at all; he just moved. Might be deliberate. I couldn't tell silence from a dropped reply.
+10. **Ignored card reads as a no without saying so.** Dilek at close (brat, Fri wk1): "I stayed. Don’t ask me that again." I never answered her. The journal also has "Dilek hung up the apron and went home." that night; my wait rolled past it so I can't date when she left.
+11. **Sunday wk1 had no choices**, `choose hire yes` silently no-oped, and `jar talk`/`jar move` during the day do nothing with no feedback. The jar only takes input on the close page.
+
+### 4. Did pushing have consequences I could feel later?
+
+Yes, in four places: Dilek's breaking point went from the 7th insist to the 4th a week later; the counts at close always matched my reluctant insists exactly and never the cheerful "Fine."s, so I learned which ones cost; the jar at the pass changed "lighter than it should have been" into "Rafi kept his rule all week"; and the money fell every night I pushed (brat Mon wk1 ₺240 vs hands-off ₺560; brat2 Thu wk2 ₺430 after six insists). What did not follow through: "Don’t make it a habit" then three nights sent home with no refusal; "Push me like that on a Saturday and see" then six compliant insists before the break; a refused clinic day with no mention of it; and after ten nights of this, "Gone from the kitchen: nobody." I never saw a quit.
+
+### 5. The three changes I'd most want
+
+1. **Make them notice the obvious.** "I'm already on it" when asked for the job they're doing; a word when a break is cut short the way a meal already gets one; and a request card that retires when the asker leaves, with an ignored card saying "you didn't answer me" rather than "I stayed."
+2. **Kill the shared confession template and the false memories.** No "I didn’t keep X. Next time I’ll be ready when it comes." on three different people for things I ordered, and never "I said not now" when the journal shows "Fine. Since you insist." Every self-report at close should be checkable against the journal, because I will check.
+3. **Let the threats bite.** "Don’t make it a habit" should become a refusal the third night. Somebody should walk after fifty insists in ten nights. Hülya came with "I was right" and then said the same six sentences as everyone else; give each cook two or three lines in service that are theirs alone.
+
+### 6. How far I got, and the exports
+
+- **brat (seed 9090):** 10 nights, lost at the butcher end of week 2 ("₺3,100 short. The game is lost."). Never reached a Sunday with choices.
+- **brat2 (seed 9191):** paid the bank exactly at week 1, rolled debt at week 2, made the week-2 Sunday (refused Dilek's Wednesdays, hired Hülya, raised prices), played Wednesday week 3 to close. About 170 commands across both.
+- `/Users/abdul/code/pass/scratch/sessions/brat-export.json`
+- `/Users/abdul/code/pass/scratch/sessions/brat2-export.json` (rewritten after week 3 Wednesday; holds the full run)
+
+## What changed (pass@3, commit 3f9b231)
+
+| Report | Finding | Change |
+|---|---|---|
+| Card outlives the asker; an ignored card read as "I stayed" | Confirmed. | A request resolves itself after six minutes (the mother's call) or ten to twelve (others). Dilek goes anyway: "I can’t wait for you, Chef. I’m going." Her evening line is "I asked you and you didn’t even look up. I went anyway." Ignoring costs more trust than a no. |
+| "Already on it" | Confirmed. | Asking a cook for the station they are working gets "I’m on it, Chef." and is not counted as an ask. |
+| A cut break gets no word | Confirmed. | "There goes my ten." / "Leaving my plate, then." / "Out with the cigarette." / "I’ll ring back.", then the answer. |
+| The last cook leaves for the night | Confirmed: the crew rule covered breaks but not going home. | Going home is offered to the last cook in the kitchen only with leave given (a granted request) or once the rail is empty. The answer: "Somebody has to stay on the line." |
+| False memories at close | Confirmed. The complied line "At {time} I said not now" did not check that a no came first. "You let it be" counted counter-offers, nos that were later insisted on, and jobs the cook did anyway. | That complied line is now "At {time} you didn’t ask me. You told me." A no is remembered as let be only if it was not insisted on, not asked again and the job was not done. |
+| "I didn’t keep maghrib" every week | **Confirmed, a host bug.** On days without service the game did not live Selim's evening prayer, so HF's evening review (muhasaba) counted it missed. | He prays maghrib at home on days off and Sundays. Test: "Selim keeps maghrib at home". |
+| Shared confession template; next-day repeat | Confirmed. HF's `reviewLine` phrases every lapse the same way. | The game names a lapse in each cook's words, only for commitments the cook would talk about ("I washed plates in the rush. Twenty years I didn’t."). The repeat at the next open is gone. The muhasaba sign during service now says what a watcher sees ("Rafi turned from the jar, as he said he would."). |
+| Selim blames himself for being sent home | Confirmed. | The chef sending a cook home releases the shift first, so it is not a broken promise. |
+| Jar line every 25 minutes | Confirmed. | Once a night. |
+| Nobody quits after fifty insists | Confirmed. Quits ran only on the week 2 and 3 Sundays and counted that week alone. | Quits also run on the first Sunday, and earlier weeks' pushing carries over (halved each week). In the headless measure (4 seeds), the always-insist policy loses Selim and the push policy loses all three. The plain asking policies lose nobody. Test: "a week of insisting on everything costs a cook". |
+| "A new face on the line tonight, if I hired one." | Confirmed. | Removed. |
+| Two numbers for one debt | Confirmed. | The header's bill includes the hires' wages for the whole week. |
+| Repeated close lines | Confirmed. | More lines per founder; when a cook's pool runs out it starts over in turn instead of repeating one. |
+| Till clamped to the debt; feed stopped printing; "dish pit: empty"; crossed arms on a break | The harness, not the page. | None. |
+| Scripted calendar | Deliberate: the week's events are written; tables and orders are pre-rolled per seed. | None. |
+| Hülya speaks in stock lines | Confirmed. HF supplies answer sentences; a hire's own voice in service is not built. | Deferred (design doc). |
