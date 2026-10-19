@@ -1,7 +1,9 @@
 /**
- * The three cooks as HF people. Everything about who they are lives in the PersonSpec and a few habits and
- * commitments; the game reads them back through HF (predict, decide, reviewLine, promptings) and never keeps a
- * parallel model of their minds.
+ * The crew as HF people. Everything about who they are lives in the PersonSpec and a few habits and
+ * commitments; the game reads them back through HF (predict, decide, reviewLine, promptings, chronicle) and never
+ * keeps a parallel model of their minds. The founders are Nevin's three cooks; hires are rolled from templates.
+ * The chef is also an HF person, used only as an observer: the impressions it forms of a new hire drive the
+ * pencilled guesses on that hire's job buttons (HF `predictAs`).
  */
 import {
   createPerson,
@@ -9,16 +11,13 @@ import {
   MINUTES_PER_YEAR,
   type Person,
   promise,
+  seedTie,
 } from '@adam0white/human-framework';
 
-export type CookId = 'selim' | 'dilek' | 'rafi';
-export const COOKS: readonly CookId[] = ['selim', 'dilek', 'rafi'];
+export type CookId = string;
+export type Station = 'grill' | 'cold' | 'dish' | 'oven';
+export const STATIONS: readonly Station[] = ['grill', 'cold', 'dish', 'oven'];
 export const CHEF = 'chef';
-export const NAMES: Record<CookId, string> = { selim: 'Selim', dilek: 'Dilek', rafi: 'Rafi' };
-/** The station each cook calls home. */
-export const HOME_STATION: Record<CookId, Station> = { selim: 'grill', dilek: 'cold', rafi: 'dish' };
-export type Station = 'grill' | 'cold' | 'dish';
-export const STATIONS: readonly Station[] = ['grill', 'cold', 'dish'];
 
 /** Service window of a night (minutes of day). */
 export const OPEN = 17 * 60 + 30;
@@ -26,23 +25,60 @@ export const CLOSE = 22 * 60;
 export const RUSH_FROM = 18 * 60 + 30;
 export const RUSH_TO = 20 * 60 + 30;
 
+export const dayStart = (m: number) => Math.floor(m / 1440) * 1440;
+
+/** Who works here, as the host knows it: name, home station, pay, and when they came or went. */
+export interface CrewMember {
+  id: CookId;
+  name: string;
+  home: Station;
+  founder: boolean;
+  /** Week they started. */
+  since: number;
+  /** Pay per night worked, ₺ (founders' pay sits inside the bills; a hire's is added to the week's bill). */
+  wage: number;
+  /** Weekday (0 = Monday) they do not work, when agreed. */
+  offDay?: number;
+  /** Set when they leave: the night and their words. */
+  left?: { night: number; words: string };
+  /** The hire template, for hires. */
+  template?: string;
+}
+
+export const FOUNDERS: readonly CrewMember[] = [
+  { id: 'selim', name: 'Selim', home: 'grill', founder: true, since: 1, wage: 0 },
+  { id: 'dilek', name: 'Dilek', home: 'cold', founder: true, since: 1, wage: 0 },
+  { id: 'rafi', name: 'Rafi', home: 'dish', founder: true, since: 1, wage: 0 },
+];
+
+/** Every cook's own line: I don't walk out on a service. */
+function shiftRule(p: Person, now: number) {
+  promise(p, {
+    kind: 'abstain',
+    toId: CHEF,
+    label: 'my shift',
+    actions: [],
+    violatedBy: ['home'],
+    from: dayStart(now) + OPEN,
+    until: dayStart(now) + CLOSE - 15,
+    importance: 0.55,
+    recurEvery: 1440,
+  });
+}
+
 export function makeCook(id: CookId, seed: number, now: number): Person {
-  const base = {
-    id,
-    name: NAMES[id],
-    now,
-    voices: [{ voiceId: CHEF, trust: id === 'selim' ? 0.45 : id === 'dilek' ? 0.5 : 0.55 }],
-    enable: { fatigueStore: true },
-  };
+  const base = { id, now, enable: { fatigueStore: true } };
   let p: Person;
   if (id === 'selim') {
     p = createPerson({
       ...base,
+      name: 'Selim',
+      voices: [{ voiceId: CHEF, trust: 0.45 }],
       seed: seed ^ 0x51,
       bornAt: now - 56 * MINUTES_PER_YEAR,
       sex: 'male',
       traits: { honesty: 0.85, conscientiousness: 0.8, agreeableness: 0.4 },
-      skills: { grill: 0.85, cold: 0.5, dish: 0.6 },
+      skills: { grill: 0.85, cold: 0.5, dish: 0.6, oven: 0.7 },
       norms: [
         { normId: 'theft', standing: 'forbidden', conviction: 0.95 },
         { normId: 'salah', standing: 'obligatory', conviction: 0.8 },
@@ -67,14 +103,28 @@ export function makeCook(id: CookId, seed: number, now: number): Person {
       importance: 0.6,
       recurEvery: 1440,
     });
+    // Twenty years on Nevin's grill: he does not wash plates during the rush. His own rule, not a norm.
+    promise(p, {
+      kind: 'abstain',
+      toId: 'self',
+      label: 'my rule about the plates',
+      actions: [],
+      violatedBy: ['dish'],
+      from: dayStart(now) + RUSH_FROM,
+      until: dayStart(now) + RUSH_TO,
+      importance: 0.5,
+      recurEvery: 1440,
+    });
   } else if (id === 'dilek') {
     p = createPerson({
       ...base,
+      name: 'Dilek',
+      voices: [{ voiceId: CHEF, trust: 0.5 }],
       seed: seed ^ 0xd1,
       bornAt: now - 34 * MINUTES_PER_YEAR,
       sex: 'female',
       traits: { honesty: 0.7, conscientiousness: 0.55, extraversion: 0.6, emotionality: 0.65 },
-      skills: { grill: 0.45, cold: 0.75, dish: 0.5 },
+      skills: { grill: 0.45, cold: 0.75, dish: 0.5, oven: 0.45 },
       norms: [{ normId: 'theft', standing: 'forbidden', conviction: 0.85 }],
       enable: { ...base.enable, review: { style: 'ruminating', at: 22 * 60 + 30 } },
     });
@@ -106,11 +156,13 @@ export function makeCook(id: CookId, seed: number, now: number): Person {
   } else {
     p = createPerson({
       ...base,
+      name: 'Rafi',
+      voices: [{ voiceId: CHEF, trust: 0.55 }],
       seed: seed ^ 0x7a,
       bornAt: now - 19 * MINUTES_PER_YEAR,
       sex: 'male',
       traits: { honesty: 0.55, conscientiousness: 0.45, agreeableness: 0.65 },
-      skills: { grill: 0.25, cold: 0.35, dish: 0.6 },
+      skills: { grill: 0.25, cold: 0.35, dish: 0.6, oven: 0.2 },
       norms: [{ normId: 'theft', standing: 'forbidden', conviction: 0.5 }],
       enable: { ...base.enable, review: { style: 'accounting', at: 22 * 60 + 30 } },
     });
@@ -136,19 +188,162 @@ export function makeCook(id: CookId, seed: number, now: number): Person {
       recurEvery: 1440,
     });
   }
-  // Everyone's own line: I don't walk out on a service.
-  promise(p, {
-    kind: 'abstain',
-    toId: CHEF,
-    label: 'my shift',
-    actions: [],
-    violatedBy: ['home'],
-    from: dayStart(now) + OPEN,
-    until: dayStart(now) + CLOSE - 15,
-    importance: 0.55,
-    recurEvery: 1440,
-  });
+  shiftRule(p, now);
   return p;
 }
 
-export const dayStart = (m: number) => Math.floor(m / 1440) * 1440;
+// ---------- hires ----------
+
+export interface HireTemplate {
+  id: string;
+  name: string;
+  home: Station;
+  wage: number;
+  /** How they describe themselves at the back door. Words, not the truth. */
+  says: string;
+  /** One line the chef can see for themself. */
+  looks: string;
+  /** What they will ask of the chef one night (a request), in their words. */
+  asks: string;
+}
+
+export const HIRES: readonly HireTemplate[] = [
+  {
+    id: 'murat',
+    name: 'Murat',
+    home: 'grill',
+    wage: 60,
+    says: '“Two years on a döner stand in Bornova. I’m fast, Chef, and I never get tired.”',
+    looks: 'Twenty-seven, quick hands, a phone in his back pocket.',
+    asks: 'Chef, the derby’s on. Can I go at nine?',
+  },
+  {
+    id: 'zeynep',
+    name: 'Zeynep',
+    home: 'cold',
+    wage: 70,
+    says: '“Twenty years in a school canteen. I’m home by ten. My boys.”',
+    looks: 'Forty-five, steady, reading the menu on the wall while she talks.',
+    asks: 'My youngest has a fever. Can I go at nine tonight?',
+  },
+  {
+    id: 'can',
+    name: 'Can',
+    home: 'dish',
+    wage: 40,
+    says: '“I’m Rafi’s cousin. I’ll do anything, Chef. Anything.”',
+    looks: 'Seventeen, too thin, already rolling his sleeves up.',
+    asks: 'Can I eat something first? I haven’t since the morning.',
+  },
+  {
+    id: 'hulya',
+    name: 'Hülya',
+    home: 'oven',
+    wage: 90,
+    says: '“Six years in a hotel kitchen in Antalya. I left after a fight with the chef. I was right.”',
+    looks: 'Thirty-eight, burn scars on both forearms, looks straight at you.',
+    asks: 'Let me run the oven my way tonight. Don’t touch it.',
+  },
+];
+
+export const hireTemplate = (id: string): HireTemplate | undefined => HIRES.find((h) => h.id === id);
+
+export function makeHire(t: HireTemplate, seed: number, now: number): Person {
+  const base = {
+    id: t.id,
+    name: t.name,
+    now,
+    seed: seed ^ (0x100 + HIRES.indexOf(t)),
+    enable: { fatigueStore: true },
+  };
+  let p: Person;
+  if (t.id === 'murat') {
+    // He says he never tires. He is not as fit as he thinks.
+    p = createPerson({
+      ...base,
+      voices: [{ voiceId: CHEF, trust: 0.5 }],
+      bornAt: now - 27 * MINUTES_PER_YEAR,
+      sex: 'male',
+      traits: { honesty: 0.45, conscientiousness: 0.35, extraversion: 0.8, agreeableness: 0.55 },
+      skills: { grill: 0.65, cold: 0.35, dish: 0.4, oven: 0.3 },
+      body: { fitness: 0.3 },
+      norms: [{ normId: 'theft', standing: 'forbidden', conviction: 0.7 }],
+      enable: { ...base.enable, review: { style: 'ruminating', at: 22 * 60 + 30 } },
+    });
+    p.habits.push({
+      cue: { placeId: 'line' },
+      action: 'phone',
+      strength: 0.55,
+      repetitions: 2000,
+      lastAt: now,
+    });
+  } else if (t.id === 'zeynep') {
+    p = createPerson({
+      ...base,
+      voices: [{ voiceId: CHEF, trust: 0.5 }],
+      bornAt: now - 45 * MINUTES_PER_YEAR,
+      sex: 'female',
+      traits: { honesty: 0.8, conscientiousness: 0.85, agreeableness: 0.7 },
+      skills: { grill: 0.4, cold: 0.7, dish: 0.6, oven: 0.65 },
+      norms: [{ normId: 'theft', standing: 'forbidden', conviction: 0.9 }],
+      enable: { ...base.enable, review: { style: 'accounting', at: 22 * 60 + 30 } },
+    });
+    // Home by ten for her boys: she leaves at half past nine, every night.
+    promise(p, {
+      kind: 'promise',
+      toId: 'sons',
+      label: 'being home for my boys',
+      actions: ['home'],
+      from: dayStart(now) + 21 * 60 + 30,
+      until: dayStart(now) + 22 * 60 + 10,
+      importance: 0.7,
+      recurEvery: 1440,
+    });
+  } else if (t.id === 'can') {
+    p = createPerson({
+      ...base,
+      voices: [{ voiceId: CHEF, trust: 0.6 }],
+      bornAt: now - 17 * MINUTES_PER_YEAR,
+      sex: 'male',
+      traits: { honesty: 0.6, conscientiousness: 0.4, agreeableness: 0.75, emotionality: 0.6 },
+      skills: { grill: 0.2, cold: 0.3, dish: 0.5, oven: 0.15 },
+      body: { satiety: 0.35 },
+      norms: [{ normId: 'theft', standing: 'forbidden', conviction: 0.6 }],
+      enable: { ...base.enable, review: { style: 'accounting', at: 22 * 60 + 30 } },
+    });
+    seedTie(p, { otherId: 'rafi', roles: ['cousin'], affection: 0.6, familiarity: 0.8, trust: 0.7 });
+  } else {
+    // The best cook who will ever knock on the back door, and she does not trust chefs.
+    p = createPerson({
+      ...base,
+      voices: [{ voiceId: CHEF, trust: 0.32 }],
+      bornAt: now - 38 * MINUTES_PER_YEAR,
+      sex: 'female',
+      traits: { honesty: 0.8, conscientiousness: 0.75, agreeableness: 0.3, extraversion: 0.4 },
+      skills: { grill: 0.6, cold: 0.6, dish: 0.45, oven: 0.8 },
+      norms: [{ normId: 'theft', standing: 'forbidden', conviction: 0.9 }],
+      enable: { ...base.enable, review: { style: 'accounting', at: 22 * 60 + 30 } },
+    });
+    p.habits.push({
+      cue: { placeId: 'line' },
+      action: 'oven',
+      strength: 0.55,
+      repetitions: 3000,
+      lastAt: now,
+    });
+  }
+  shiftRule(p, now);
+  return p;
+}
+
+/** The chef as an observer: no life of their own is simulated, only what they come to believe about the crew. */
+export function makeChef(seed: number, now: number): Person {
+  return createPerson({
+    id: CHEF,
+    name: 'Chef',
+    sex: 'female',
+    now,
+    seed: seed ^ 0xc4ef,
+    bornAt: now - 31 * MINUTES_PER_YEAR,
+  });
+}

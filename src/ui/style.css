@@ -128,7 +128,7 @@ button:disabled {
   line-height: 1.7;
 }
 .footer a {
-  margin: 0 6px;
+  margin: 0;
   color: var(--ink-soft);
 }
 .cookline {
@@ -190,6 +190,7 @@ button:disabled {
   gap: 6px;
   overflow: hidden;
   max-height: 210px;
+  flex-shrink: 0;
   padding: 4px 12px 8px;
   min-height: 74px;
   scrollbar-width: none;
@@ -363,4 +364,55 @@ button:disabled {
 }
 .crew button .soft {
   font-size: 13px;
+}
+
+/* pass@2: the caption at the pass, regulars, the wedding, pencil guesses, stamps, Sunday candidates. */
+.caption {
+  min-height: 0;
+  padding: 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+.caption:empty {
+  display: none;
+}
+.caption button {
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 15px;
+  border-color: var(--rope);
+  color: var(--rope);
+}
+.slip.regular .t {
+  font-family: var(--hand);
+  font-size: 18px;
+}
+.slip.wedding {
+  border-color: var(--rope);
+}
+.verbs button .h.guess {
+  font-style: italic;
+  opacity: 0.75;
+}
+.stamps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 12px;
+}
+.stamps div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.cand {
+  margin: 8px 0;
+}
+.cand .hand {
+  font-size: 19px;
 }
