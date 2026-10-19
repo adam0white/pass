@@ -20,6 +20,7 @@ import {
   newGame,
   openAt,
   PLANS,
+  PRICE,
   personOf,
   queueInput,
   replay,
@@ -29,9 +30,9 @@ import {
 } from '../sim/kitchen.ts';
 
 const SAVE = 'pass-save-v1';
-const SPEEDS = [0.6, 2, 5] as const;
+const SPEEDS = [0.5, 1.5, 3.5] as const;
 const SPEED_NAMES = ['slow', 'steady', 'fast'];
-const SLOWDOWN = 0.6;
+const SLOWDOWN = 0.5;
 
 interface Save {
   seed: number;
@@ -48,7 +49,7 @@ let raf = 0;
 let last = 0;
 let carry = 0;
 let shownSaid = 0;
-const bubbles: Record<string, { text: string; until: number }> = {};
+const bubbles: Record<string, { text: string; until: number; minute: number }> = {};
 let wake: { release(): Promise<void> } | null = null;
 const seenHint = { tap: false, job: false };
 
@@ -233,7 +234,8 @@ function frame(t: number) {
 function collectSaid() {
   if (!s) return;
   for (const x of s.said.slice(shownSaid)) {
-    if (x.who !== 'narrator') bubbles[x.who] = { text: x.text, until: performance.now() + 5200 };
+    if (x.who !== 'narrator')
+      bubbles[x.who] = { text: x.text, until: performance.now() + 4000, minute: x.at };
   }
 }
 
@@ -267,8 +269,10 @@ function drawRail() {
   rail.innerHTML = open
     .map((t) => {
       const wait = s ? s.minute - t.at : 0;
-      const dish = `${'▲'.repeat(t.doneGrill)}${'△'.repeat(t.grill - t.doneGrill)} ${'●'.repeat(t.doneCold)}${'○'.repeat(t.cold - t.doneCold)}`;
-      return `<div class="slip ${wait > 24 ? 'late' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">T${t.table}</div><div class="d">${dish}</div><div class="soft" style="font-size:11px">${wait < 10 ? 'new' : wait < 24 ? 'waiting' : 'restless'}</div></div>`;
+      const row = (name: string, done: number, n: number) =>
+        n === 0 ? '' : `<div class="d">${name} ${'●'.repeat(done)}${'○'.repeat(n - done)}</div>`;
+      const dish = row('grill', t.doneGrill, t.grill) + row('cold', t.doneCold, t.cold);
+      return `<div class="slip ${wait > 24 ? 'late' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">table ${t.table}</div>${dish}<div class="st">${wait < 10 ? 'new' : wait < 24 ? 'waiting' : 'restless'}</div></div>`;
     })
     .join('');
 }
@@ -435,7 +439,7 @@ function drawBubbles() {
   const out: string[] = [];
   for (const id of COOKS) {
     const b = bubbles[id];
-    if (!b || b.until < now) continue;
+    if (!b || b.until < now || s.minute - b.minute > 6) continue;
     const c = cookOf(s, id);
     if (!c.here) continue;
     const pl = placeOf(id);
@@ -497,7 +501,7 @@ function drawSheet() {
     sheetKey = key;
     const tip =
       s.night === 1 && !seenHint.tap
-        ? '<div class="hint">Tap a cook. On a ticket, △ is from the grill and ○ from the cold side; filled is ready.</div>'
+        ? '<div class="hint">Tap a cook. Each ticket lists what the grill and the cold side owe it; ● is ready.</div>'
         : s.night === 2 && s.minute < openAt(2) + 40
           ? '<div class="hint">Plates come back dirty. Someone has to wash them.</div>'
           : '';
@@ -520,7 +524,7 @@ function drawSheet() {
   if (sheetKey === key) return;
   sheetKey = key;
   const verbs = h.list;
-  el.innerHTML = `<div class="who"><b>${NAMES[selected]}</b><span class="soft" style="font-size:14px">${esc(doing)}</span><button class="x" id="close" aria-label="close">×</button></div>
+  el.innerHTML = `${crewRow()}<div class="who"><b>${NAMES[selected]}</b><span class="soft" style="font-size:14px">${esc(doing)}</span><button class="x" id="close" aria-label="close">×</button></div>
     ${h.forecast ? `<div class="hand">“${esc(h.forecast)}”</div>` : ''}
     <div class="verbs">${verbs
       .map(
@@ -530,6 +534,8 @@ function drawSheet() {
       .join('')}</div>
     <div class="hint">${seenHint.job ? (c.pending ? 'They heard you.' : 'Hold a job to insist.') : 'Tap a job to ask. Hold it to insist.'}</div>`;
   document.getElementById('close')?.addEventListener('click', () => select(null));
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-pick]'))
+    b.addEventListener('click', () => select(b.dataset.pick as CookId));
   for (const b of el.querySelectorAll<HTMLButtonElement>('.verbs button')) bindHold(b);
 }
 
@@ -642,6 +648,7 @@ function evening() {
     <h2>${esc(plan?.title ?? '')}, after close</h2>
     <div class="plates" aria-label="${r.served} tables served, ${r.walked} walked out">${plates}</div>
     <p>${r.served} of ${total} tables fed. ${lira(r.takings)} in the till tonight; ${lira(s.till)} of ${lira(BANK_TARGET)} so far.</p>
+    ${!ended ? `<p class="soft">${paceLine(s, r.night)}</p>` : ''}
     ${lightJar && r.night !== 3 ? '<p>The tip jar was lighter than it should have been.</p>' : ''}
     ${crit}
     ${reviews}
@@ -673,6 +680,15 @@ function evening() {
   document.getElementById('end')?.addEventListener('click', ending);
   document.getElementById('export')?.addEventListener('click', download);
   window.scrollTo(0, 0);
+}
+
+function paceLine(st: GameState, night: number): string {
+  const left = NIGHTS - night;
+  const need = BANK_TARGET - st.till;
+  if (need <= 0) return 'The bank’s money is already in the till. Everything now is ours.';
+  const full = PLANS.slice(night).reduce((a, p) => a + p.tables * PRICE, 0);
+  const per = Math.ceil(need / left / 10) * 10;
+  return `I need about ${lira(per)} a night for the ${left} nights left. A full house every night would bring ${lira(full)}.`;
 }
 
 function ending() {

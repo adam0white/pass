@@ -337,7 +337,7 @@ function startNight(s: GameState, night: number) {
     c.trustAtOpen = trustOf(p);
     tick(p, Math.max(p.now, s.minute));
   }
-  for (const line of plan.intro) say(s, 'narrator', line, 'journal');
+  for (const line of night === 1 ? plan.intro.slice(2) : plan.intro) say(s, 'narrator', line, 'journal');
   if (night === 5) {
     const dilek = personOf(s, 'dilek');
     // Dilek's mother lives alone; tonight she will call.
@@ -552,7 +552,12 @@ function apply(s: GameState, inp: Input) {
       if (s.phase !== 'evening') return;
       if (inp.choice === 'move') {
         s.jarPlace = 'pass';
-        say(s, 'narrator', 'I moved the jar to the pass, where I can see it.', 'journal');
+        say(
+          s,
+          'narrator',
+          'I moved the jar to the pass, where I can see it. Rafi watched me carry it and said nothing.',
+          'journal',
+        );
       } else if (inp.choice === 'talk') {
         s.talkedToRafi = true;
         const rafi = personOf(s, 'rafi');
@@ -574,6 +579,7 @@ function apply(s: GameState, inp: Input) {
           responses: [{ id: 'trays', kind: 'redirect', practice: 0.2 }],
         });
         say(s, 'narrator', 'I sat with Rafi on the back step. I did not say the word thief.', 'journal');
+        say(s, 'rafi', 'When I look at the jar, I go scrub the trays. Okay, Chef.', 'answer');
       } else say(s, 'narrator', 'I left the jar where it was.', 'journal');
       return;
     }
@@ -704,7 +710,8 @@ function cookMinute(s: GameState, c: CookState) {
       'journal',
     );
   }
-  if (aff.id === 'pray') say(s, 'narrator', 'Selim stepped into the storeroom for maghrib.', 'journal');
+  if (aff.id === 'pray' && !s.said.some((x) => x.at >= openAt(s.night) && x.text.includes('maghrib')))
+    say(s, 'narrator', 'Selim stepped into the storeroom for maghrib.', 'journal');
 }
 
 function notePrompt(s: GameState, id: CookId, p: Person) {
@@ -844,10 +851,33 @@ function aboutYou(s: GameState, c: CookState): string {
     return `You made me do it ${n.complied === 2 ? 'twice' : `${n.complied} times`}. I counted.`;
   if (n.complied === 1) return 'You pushed me once tonight. I’ll remember it.';
   if (n.refused >= 2 && dt < 0) return 'You kept asking for what I couldn’t give.';
-  if (n.asked === 0) return 'You left me to it. Nevin did that too.';
+  const pick = (xs: string[]) => xs[(s.night + COOKS.indexOf(c.id)) % xs.length] as string;
+  if (n.asked === 0)
+    return pick(
+      {
+        selim: [
+          'You left me to it. Nevin did that too.',
+          'You stood at the pass all night and let me cook. Fine.',
+        ],
+        dilek: [
+          'You never once asked me anything. Do you even know my station?',
+          'Quiet night from you. I liked it, mostly.',
+        ],
+        rafi: ['Nobody told me anything all night. I just washed.', 'You didn’t look at me once, Chef.'],
+      }[c.id],
+    );
   if (dt > 0.01) return 'You asked, and you listened. That’s new.';
   if (n.refused >= 1) return 'I said no once. You took it. Good.';
-  return 'A long night. You were there for it.';
+  return pick(
+    {
+      selim: ['A long night. You were there for it.', 'Nevin used to call it the same way. Almost.'],
+      dilek: [
+        'You called it right tonight. Don’t let it go to your head.',
+        'My feet are gone. Good service, though.',
+      ],
+      rafi: ['Is it always like this? Don’t answer.', 'I kept up tonight. Did you see?'],
+    }[c.id],
+  );
 }
 
 function closeNight(s: GameState) {

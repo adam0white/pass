@@ -41,3 +41,5 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 - A seventh night onward (a second week) and hiring.
 - Waiters and front-of-house as HF people.
 - Workers AI voice for the evening (not needed; HF lines carry it).
+- Refusals voiced at the pass, out loud, instead of in a bubble (Mehmet playtest).
+- Three cooks out back at once is legal; a host rule or a crew-level norm could answer it (Mehmet playtest).

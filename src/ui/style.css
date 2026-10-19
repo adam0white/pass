@@ -196,8 +196,8 @@ button:disabled {
 }
 .slip {
   flex: 0 0 auto;
-  width: 58px;
-  height: 64px;
+  width: 78px;
+  min-height: 64px;
   border: 1.5px solid var(--ink);
   border-radius: 3px 5px 4px 2px;
   background: var(--paper-2);
@@ -220,8 +220,13 @@ button:disabled {
   font-weight: 600;
 }
 .slip .d {
-  font-size: 15px;
-  letter-spacing: 1px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.slip .st {
+  font-size: 12px;
+  color: var(--ink);
+  font-style: italic;
 }
 .scene {
   flex: 1;
@@ -286,7 +291,8 @@ button:disabled {
   position: absolute;
   left: 0;
   bottom: 0;
-  height: 4px;
+  height: 100%;
+  opacity: 0.25;
   width: 0;
   background: var(--rope);
 }
