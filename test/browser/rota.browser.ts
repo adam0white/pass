@@ -49,13 +49,15 @@ test('board chips use 24-hour slots and answers precede the actions', async ({ p
   await expect(page.locator('#open-service')).toHaveText('Open the doors');
   await expect(page.locator('#ask-board')).toHaveCount(0);
   await expect(page.locator('[data-board-cook="selim"] .board-gap')).toHaveText(
-    'No one to cover; the grill waits while Selim eats.',
+    'No cover chosen; the grill waits while Selim eats. Dilek could cover; the cold side would wait.',
   );
   const dilek = page.locator('[data-board-cook="dilek"]');
+  await dilek.getByRole('button', { name: 'Change', exact: true }).click();
   await dilek.getByRole('button', { name: '21:00 after the rush', exact: true }).click();
   await dilek.getByRole('button', { name: '18:35 during the rush', exact: true }).click();
   await expect(page.locator('#ask-board')).toHaveCount(0);
   const selim = page.locator('[data-board-cook="selim"]');
+  await selim.getByRole('button', { name: 'Change', exact: true }).click();
   await selim.getByRole('button', { name: '19:45 during the rush', exact: true }).click();
   await expect(selim.getByRole('button', { name: '19:45 during the rush', exact: true })).toHaveAttribute(
     'aria-pressed',
@@ -96,6 +98,7 @@ test('board chips use 24-hour slots and answers precede the actions', async ({ p
 test('station chips ask for a fresh answer and retain a refusal before opening', async ({ page }) => {
   await start(page);
   const selim = page.locator('[data-board-cook="selim"]');
+  await selim.getByRole('button', { name: 'Change', exact: true }).click();
   await selim.getByRole('button', { name: 'Cold side', exact: true }).click();
   await expect(page.locator('#open-service')).toBeDisabled();
   await expect(page.locator('#board-form > .actions .primary')).toHaveCount(2);
@@ -113,10 +116,19 @@ for (const width of [360, 1280]) {
     await start(page);
     const shots = process.env.PASS_SHOTS ?? testInfo.outputPath('renders');
     await mkdir(shots, { recursive: true });
-    await page.screenshot({ path: `${shots}/final-agreements-${width}-b.png`, fullPage: true });
-    await page.screenshot({ path: `${shots}/final-board-viewport-${width}-b.png` });
+    await page.screenshot({ path: `${shots}/final-agreements-${width}-c.png`, fullPage: true });
+    await page.screenshot({ path: `${shots}/final-board-viewport-${width}-c.png` });
+    const defaultActions = await page.locator('#board-form > .actions').boundingBox();
+    const defaultCards = await page.locator('.board-rows').boundingBox();
+    if (width === 360) {
+      expect((defaultCards?.y ?? 0) + (defaultCards?.height ?? 0)).toBeLessThanOrEqual(
+        defaultActions?.y ?? 0,
+      );
+      await expect(page.locator('#open-service')).toBeInViewport({ ratio: 1 });
+    }
     const boxes = [];
-    for (const chip of await page.locator('.board-chips button').all()) {
+    if (width === 360) await page.locator('[data-board-cook="selim"] .board-change').click();
+    for (const chip of await page.locator('.board-chips button:visible').all()) {
       const box = await chip.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
       expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -138,14 +150,19 @@ for (const width of [360, 1280]) {
     }
     const card = await page.locator('.board-row').last().boundingBox();
     const actions = await page.locator('#board-form > .actions').boundingBox();
-    expect(actions?.y).toBeGreaterThanOrEqual((card?.y ?? 0) + (card?.height ?? 0));
+    if (width === 1280) expect(actions?.y).toBeGreaterThanOrEqual((card?.y ?? 0) + (card?.height ?? 0));
+    else expect((actions?.y ?? 0) + (actions?.height ?? 0)).toBeLessThanOrEqual(690);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     await writeFile(
-      `${shots}/final-metrics-${width}-b.json`,
-      JSON.stringify({ width, height: width === 360 ? 690 : 800, boxes, actions, card }, null, 2),
+      `${shots}/final-metrics-${width}-c.json`,
+      JSON.stringify(
+        { width, height: width === 360 ? 690 : 800, defaultActions, defaultCards, boxes, actions, card },
+        null,
+        2,
+      ),
     );
     await page.locator('#open-service').scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `${shots}/final-actions-${width}-b.png` });
+    await page.screenshot({ path: `${shots}/final-actions-${width}-c.png` });
     await page.locator('#open-service').click();
     await page.evaluate(async () => {
       const path = '/src/ui/app.ts';
@@ -157,17 +174,30 @@ for (const width of [360, 1280]) {
       ui._debug.refresh();
     });
     const selim = page.locator('[data-board-cook="selim"]');
+    if (width === 360) await selim.getByRole('button', { name: 'Change', exact: true }).click();
     await expect(selim.getByRole('button', { name: /Rafi/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(selim.locator('.board-answer')).toContainText('Rafi:');
     await expect(selim.locator('.board-gap')).toContainText('Rafi has not agreed to cover');
-    await page.screenshot({ path: `${shots}/final-tuesday-board-${width}-b.png`, fullPage: true });
+    await page.screenshot({ path: `${shots}/final-tuesday-board-${width}-c.png`, fullPage: true });
     await selim.getByRole('button', { name: 'Leave it', exact: true }).click();
     await expect(selim.getByRole('button', { name: 'Leave it', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     await expect(page.locator('#ask-board')).toBeVisible();
-    await page.screenshot({ path: `${shots}/final-changes-${width}-b.png`, fullPage: true });
+    await page.screenshot({ path: `${shots}/final-changes-${width}-c.png`, fullPage: true });
+    await page.screenshot({ path: `${shots}/final-changes-viewport-${width}-c.png` });
+    if (width === 360) {
+      await page.evaluate(() => document.documentElement.style.setProperty('--safe-b', '20px'));
+      await expect(page.locator('#same-board')).toBeInViewport({ ratio: 1 });
+      await expect(page.locator('#ask-board')).toBeInViewport({ ratio: 1 });
+      await page.screenshot({ path: `${shots}/final-safe-actions-${width}-c.png` });
+      await page.setViewportSize({ width: 320, height: 690 });
+      await page.addStyleTag({ content: 'html, body { font-size: 34px; }' });
+      await expect(page.locator('#same-board')).toBeInViewport({ ratio: 1 });
+      await expect(page.locator('#ask-board')).toBeInViewport({ ratio: 1 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+    }
   });
 }
 
@@ -277,4 +307,70 @@ test('the saved title counts opening the board separately from starting a new ni
   await open(page);
   await page.reload();
   await expect(page.locator('#cont')).toContainText('Monday, week 1');
+});
+
+test('phone board keeps default and edited actions reachable without covering the last answer', async ({
+  page,
+}) => {
+  await start(page);
+  await expect(page.locator('.board-fields:visible')).toHaveCount(0);
+  await expect(page.locator('[data-board-cook="selim"] .board-summary')).toHaveText(
+    'Grill · break 18:10 before the rush · grill waits',
+  );
+  const actions = page.locator('#board-form > .actions');
+  const bounds = async () => {
+    const box = await actions.boundingBox();
+    expect(box?.y).toBeGreaterThan(0);
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(690);
+    if (!box) throw new Error('Missing board action bar');
+    return box;
+  };
+  await bounds();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const selim = page.locator('[data-board-cook="selim"]');
+  const dilek = page.locator('[data-board-cook="dilek"]');
+  await selim.getByRole('button', { name: 'Change', exact: true }).click();
+  await expect(selim.locator('.board-fields')).toBeVisible();
+  await dilek.getByRole('button', { name: 'Change', exact: true }).click();
+  await expect(selim.locator('.board-fields')).toBeHidden();
+  await expect(dilek.locator('.board-fields')).toBeVisible();
+  await dilek.getByRole('button', { name: '21:00 after the rush', exact: true }).click();
+  await expect(page.locator('#ask-board')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('#open-service')).toBeDisabled();
+  await page.evaluate(() => document.documentElement.style.setProperty('--safe-b', '20px'));
+  await bounds();
+  const answer = dilek.locator('.board-answer');
+  await answer.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const last = await answer.boundingBox();
+  const bar = await bounds();
+  expect((last?.y ?? 0) + (last?.height ?? 0)).toBeLessThanOrEqual(bar.y);
+  const open = await page.locator('#open-service').boundingBox();
+  expect((open?.y ?? 0) + (open?.height ?? 0)).toBeLessThanOrEqual(670);
+  await page.locator('#ask-board').click();
+  await expect(page.locator('#open-service')).toBeEnabled();
+  await bounds();
+});
+
+test('switching cooks keeps the tapped control visible and preserves unanswered edits', async ({ page }) => {
+  await start(page);
+  const selim = page.locator('[data-board-cook="selim"]');
+  const dilek = page.locator('[data-board-cook="dilek"]');
+  await selim.getByRole('button', { name: 'Change', exact: true }).click();
+  await selim.getByRole('button', { name: '21:00 after the rush', exact: true }).click();
+  const change = dilek.getByRole('button', { name: 'Change', exact: true });
+  await change.evaluate((button) => window.scrollBy(0, button.getBoundingClientRect().top - 20));
+  await change.click();
+  await expect(dilek.getByRole('button', { name: 'Done', exact: true })).toBeInViewport({ ratio: 1 });
+  await selim.getByRole('button', { name: 'Change', exact: true }).click();
+  await expect(selim.getByRole('button', { name: '21:00 after the rush', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  for (const chip of await selim.locator('.board-chips button').all()) {
+    await chip.scrollIntoViewIfNeeded();
+    const rect = await chip.boundingBox();
+    const bar = await page.locator('#board-form > .actions').boundingBox();
+    expect((rect?.y ?? 0) + (rect?.height ?? 0)).toBeLessThanOrEqual(bar?.y ?? 0);
+  }
 });

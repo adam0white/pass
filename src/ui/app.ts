@@ -84,6 +84,7 @@ let shownSaid = 0;
 const bubbles: Record<string, { text: string; until: number; minute: number }> = {};
 let wake: { release(): Promise<void> } | null = null;
 const seenHint = { tap: false, job: false };
+let boardActionsObserver: ResizeObserver | null = null;
 
 // ---------- save ----------
 
@@ -271,6 +272,7 @@ function replayNight(sv: Save): number {
 
 function enter() {
   if (!s) return;
+  boardActionsObserver?.disconnect();
   shownSaid = s.said.length;
   if (s.phase === 'service') service();
   else if (s.phase === 'board') board();
@@ -281,8 +283,9 @@ function enter() {
 
 // ---------- the board ----------
 
-function board(draft?: BoardRow[]) {
+function board(draft?: BoardRow[], editing: string | null = null) {
   if (s?.phase !== 'board') return;
+  boardActionsObserver?.disconnect();
   const st = s;
   cancelAnimationFrame(raf);
   lab.screen(`night ${st.night}: board`);
@@ -311,20 +314,31 @@ function board(draft?: BoardRow[]) {
       const coverRow = rows.find((r) => r.cook === row.cover);
       const station = stationName[row.station];
       const tradeoff = coverRow ? `the ${stationName[coverRow.station]} waits` : '';
-      const gap = row.cover
-        ? revised
-          ? `Ask ${nameOf(st, row.cover)} to cover; ${tradeoff} for twenty minutes.`
-          : answer?.coverAccepted
-            ? `${nameOf(st, row.cover)} covers; ${tradeoff} for twenty minutes.`
-            : `${nameOf(st, row.cover)} has not agreed to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`
-        : `No one to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`;
       // Keep an imported choice visible even if another edit makes its interval conflict.
       const covers = rows.filter(
         (other) =>
           other.cook !== row.cook &&
           (other.cook === row.cover || Math.abs(other.breakAt - row.breakAt) >= 20),
       );
-      return `<fieldset class="board-row" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><div class="board-fields">${chips(
+      const alternatives = covers.map(
+        (other) => `${nameOf(st, other.cook)} could cover; the ${stationName[other.station]} would wait.`,
+      );
+      const gap = row.cover
+        ? revised
+          ? `Ask ${nameOf(st, row.cover)} to cover; ${tradeoff} for twenty minutes.`
+          : answer?.coverAccepted
+            ? `${nameOf(st, row.cover)} covers; ${tradeoff} for twenty minutes.`
+            : `${nameOf(st, row.cover)} has not agreed to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`
+        : `${covers.length ? 'No cover chosen' : 'No one to cover'}; the ${station} waits while ${nameOf(st, row.cook)} eats.${alternatives.length ? ` ${alternatives.join(' ')}` : ''}`;
+      const coverSummary = row.cover
+        ? revised
+          ? `ask ${nameOf(st, row.cover)} to cover`
+          : answer?.coverAccepted
+            ? `${nameOf(st, row.cover)} covers`
+            : `${nameOf(st, row.cover)} not agreed; ${station} waits`
+        : `${station} waits`;
+      const summary = `${VERB_LABEL[row.station]} · break ${breakSlots(row.breakAt).find((slot) => slot.minute === row.breakAt)?.label} · ${coverSummary}`;
+      return `<fieldset class="board-row${editing === row.cook ? ' is-editing' : ''}" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">${editing === row.cook ? 'Done' : 'Change'}</button><div class="board-editor" id="board-fields-${esc(row.cook)}"><div class="board-fields">${chips(
         row,
         'station',
         'Station',
@@ -339,11 +353,29 @@ function board(draft?: BoardRow[]) {
           label: slot.label,
         })),
         String(row.breakAt),
-      )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
+      )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
     })
     .join(
       '',
     )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form><details><summary>About the board</summary><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></details>${footer()}</div>`;
+  const actions = app.querySelector<HTMLElement>('#board-form > .actions');
+  if (actions) {
+    const measure = () =>
+      document.documentElement.style.setProperty('--board-actions-height', `${actions.offsetHeight}px`);
+    measure();
+    boardActionsObserver = new ResizeObserver(measure);
+    boardActionsObserver.observe(actions);
+  }
+  for (const button of app.querySelectorAll<HTMLButtonElement>('.board-change')) {
+    button.addEventListener('click', () => {
+      const cook = button.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook ?? null;
+      const top = button.getBoundingClientRect().top;
+      board(rows, editing === cook ? null : cook);
+      const replacement = app.querySelector<HTMLButtonElement>(`[data-board-cook="${cook}"] .board-change`);
+      replacement?.focus({ preventScroll: true });
+      if (replacement) window.scrollBy(0, replacement.getBoundingClientRect().top - top);
+    });
+  }
   const submit = (next: BoardRow[]) => {
     queueInput(st, { kind: 'board', rows: next });
     writeSave();
@@ -369,7 +401,7 @@ function board(draft?: BoardRow[]) {
             },
       );
       const scroll = window.scrollY;
-      board(next);
+      board(next, editing);
       const replacement = Array.from(app.querySelectorAll<HTMLButtonElement>('[data-field]')).find(
         (el) =>
           el.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook === cook &&

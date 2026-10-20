@@ -120,3 +120,14 @@ The lead's taste review of `final-agreements-360.png` found a native 12-hour pic
 The default names available dish relief when the crew changes. Actual HF answers, including refusals, appear beside that choice. Monday plainly says “No one to cover; the grill waits while Selim eats.” Borrowing another cook names the station that waits. Reading a board previews the unchanged HF decision on a copy; opening records that existing board input before the open input. Viewing/resuming a notebook adds no input. An already agreed board is shown exactly as saved.
 
 **Costs and risks:** the board is longer and scrolls on a phone; actions follow all cards. A named relief cook may refuse. The lead retains taste and fresh source-unread acceptance. This follow-up changes UI input suggestions only; simulation source and the exact HF 2.8.0 pin are unchanged. Existing pass@5 exports retain their edition and exact replay/continuation hashes captured from 87f5701. Revert the follow-up UI with `git restore --source=87f5701 -- src/ui/app.ts src/ui/style.css`; the extra UI helper then has no callers. No work is deferred.
+
+
+### Follow-up c (2026-10-20)
+
+The lead's review of `final-agreements-360-b.png` found that the roughly 1500px phone board put “Open the doors” beyond the first screen (DL-22, DL-6). On phones, each cook now shows a station/break/cover summary and the actual answer. “Change” expands that cook's chips; switching cooks retains unanswered edits. “Done” collapses the chips. Desktop keeps the chips inline. The phone action group sticks to the bottom with safe-area padding. Its measured height reserves scroll clearance, so focused chips and answers can be brought above it. The group retains its own space below the cards. “Same as last night” remains one tap.
+
+An unchosen cover says “No cover chosen” and names the available cook and the station borrowing them would leave waiting. A refusal still says that the named cook has not agreed. No simulation, edition, HF pin, replay fixture, or input schema changes.
+
+**Costs and risks:** editing now takes one extra tap; long replies and larger crews still scroll. The default Monday cards and opening response fit the first 360×690 viewport. Renders and browser checks establish reachability, not a first-time player's actual thirty-second decision time; the lead retains taste and source-unread acceptance.
+
+**Revert:** restore `src/ui/app.ts`, `src/ui/style.css`, and `test/browser/rota.browser.ts` from `640188f0153032e12112133c370a21935eb4c785`. Existing pass@5 notebooks remain on their unchanged rules.
