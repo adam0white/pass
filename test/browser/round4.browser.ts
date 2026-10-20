@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 async function fresh(page: Page, minutes = 0) {
   const { newGame, step } = await import('../../src/sim/kitchen.ts');
-  const s = newGame(42);
+  const s = newGame(42, 'pass@4');
   for (let minute = 0; minute < minutes; minute++) step(s);
   await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
     game: s.version,

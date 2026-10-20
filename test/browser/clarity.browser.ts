@@ -47,7 +47,7 @@ async function onScreen(page: Page, selector: string) {
 }
 
 test('DL-5 shows what is waiting before and immediately after a job request', async ({ page }) => {
-  await start(page);
+  await start(page, newGame(42));
   await expect(page.locator('#status')).toContainText('next ticket');
   await page.locator('[data-pick="selim"]').click();
   await page.locator('[data-v="grill"]').click();
@@ -197,28 +197,18 @@ test('DL-23 gives disclosures, links, speed and counteroffers 44px targets', asy
   await targets(page, '.speed button, a, #caption button, #sheet button');
 });
 
-test('DL-6 counts journal and first job choice separately from optional opening notes', async ({ page }) => {
-  const time = new Date('2026-10-20T12:00:00Z');
-  await page.clock.install({ time });
-  await page.clock.pauseAt(new Date(time.getTime() + 60000));
+test('DL-6 offers a default board and the first currency gloss before service', async ({ page }) => {
   await page.goto('/');
-  const words = (text: string) => (text.trim() ? text.trim().split(/\s+/u).length : 0);
-  const opening = await page.locator('.page > h1, .page > p').allTextContents();
-  const story = await page.locator('.page > p:not(.soft)').allTextContents();
+  await expect(page.locator('.page')).toContainText('₺5,200 (Turkish lira)');
   await page.getByText('More about the kitchen', { exact: true }).click();
-  await expect(page.locator('details')).toContainText('Hold the job to insist.');
-  await expect(page.locator('details')).toContainText('● is ready.');
-  await page.getByText('More about the kitchen', { exact: true }).click();
+  await expect(page.locator('details')).toContainText('Turkish lira');
   await page.getByRole('button', { name: 'Open the doors', exact: true }).click();
-  const journal = (await page.locator('.journal').innerText()).replace('Opening notes', '');
-  const service = await page.locator('#status, #sheet > .hint').allTextContents();
-  await page.getByText('Opening notes', { exact: true }).click();
-  await expect(page.locator('.journal')).toContainText(story[0] ?? '');
-  await page.getByText('Opening notes', { exact: true }).click();
-  await page.locator('[data-pick="selim"]').click();
-  const choice = await page.locator('#sheet > .hint').allTextContents();
-  expect(words(story.join(' '))).toBe(23);
-  expect(words([...opening, ...service, journal, ...choice].join(' '))).toBeLessThanOrEqual(50);
+  await expect(page.locator('.board-row')).toHaveCount(2);
+  await expect(
+    page.getByRole('button', { name: 'Ask the crew about this board', exact: true }),
+  ).toBeEnabled();
+  await expect(page.locator('#open-service')).toBeDisabled();
+  await expect(page.locator('.service')).toHaveCount(0);
 });
 
 test('DL-15 shows actual rates and inspection alone does not slow the clock', async ({ page }) => {

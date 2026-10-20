@@ -15,8 +15,8 @@ const hash = (s: ReturnType<typeof newGame>) =>
     .digest('hex');
 
 describe('game editions', () => {
-  it('starts new runs on pass@4 and retains explicit pass@3 creation', () => {
-    expect(newGame(42).version).toBe('pass@4');
+  it('starts new runs on pass@5 and retains explicit pass@3 creation', () => {
+    expect(newGame(42).version).toBe('pass@5');
     expect(newGame(42, 'pass@3').version).toBe('pass@3');
   });
   for (const row of legacy) {
@@ -47,7 +47,7 @@ import {
 
 describe('pass@4 kitchen work', () => {
   it('keeps an accepted station through batch ends and reviews until its spoken end', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@4');
     queueInput(s, { kind: 'ask', cook: 'selim', verb: 'grill' });
     step(s);
     expect(cookOf(s, 'selim').cover?.station).toBe('grill');
@@ -63,7 +63,7 @@ describe('pass@4 kitchen work', () => {
     expect(cookOf(s, 'selim').cover).toBeNull();
   });
   it('offers three early tables with seeded dishes and chefs can finish one portion', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@4');
     expect(s.tickets.slice(0, 3).map((t) => t.at - openAt(1))).toEqual([1, 9, 17]);
     while (s.minute <= openAt(1) + 1) step(s);
     const option = required(helpOptions(s)[0]);
@@ -82,12 +82,12 @@ describe('pass@4 kitchen work', () => {
     expect(s.said.some((x) => x.text.includes('I finished'))).toBe(true);
   });
   it('replays and restores a chef task exactly while it is in progress', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@4');
     while (s.minute <= openAt(1) + 1) step(s);
     const o = required(helpOptions(s)[0]);
     queueInput(s, { kind: 'help', ticket: o.ticket, station: o.station });
     step(s);
-    const r = replay(s.seed, s.inputs, s.minute);
+    const r = replay(s.seed, s.inputs, s.minute, 'pass@4');
     expect(hash(r)).toBe(hash(s));
     const restored = restoreState(JSON.parse(JSON.stringify(cloneState(s))));
     for (let k = 0; k < 10; k++) {
@@ -100,7 +100,7 @@ describe('pass@4 kitchen work', () => {
 
 describe('pass@4 request and food boundaries', () => {
   it('replaces cover with an accepted explicit request, without moving the other cook', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@4');
     queueInput(s, { kind: 'ask', cook: 'selim', verb: 'grill' });
     step(s);
     expect(cookOf(s, 'selim').cover).toBeTruthy();
@@ -110,7 +110,7 @@ describe('pass@4 request and food boundaries', () => {
     expect(cookOf(s, 'selim').cover?.station).toBe('cold');
   });
   it('ignores invalid or overlapping chef tasks and cancels a task when its table leaves', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@4');
     while (s.minute <= openAt(1) + 1) step(s);
     queueInput(s, { kind: 'help', ticket: -1, station: 'cold' });
     step(s);
@@ -141,7 +141,7 @@ describe('station request forecasts', () => {
   it('predicts the same requested duration and answer that the cook receives', () => {
     for (const seed of [7, 42, 1001]) {
       for (const verb of ['grill', 'cold'] as const) {
-        const s = newGame(seed);
+        const s = newGame(seed, 'pass@4');
         const expected = required(hints(s, 'selim').find((h) => h.verb === verb));
         const offer = required(offersFor(s, 'selim', verb).find((a) => a.id === verb));
         expect(offer.duration).toBe(1230 - s.minute);
@@ -154,7 +154,7 @@ describe('station request forecasts', () => {
     }
   });
   it('keeps bodily costs running during accepted cover', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@4');
     const before = { ...personOf(s, 'selim').body };
     queueInput(s, { kind: 'ask', cook: 'selim', verb: 'grill' });
     step(s);

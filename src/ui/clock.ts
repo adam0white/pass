@@ -11,11 +11,13 @@ export function clockPlayback(s: GameState, speed: number) {
   let rate: number = chosen;
   let label: string = SPEED_NAMES[speed] ?? SPEED_NAMES[1];
   let reason = 'Your chosen speed.';
-  if (s.request?.state === 'asking' || status.needsResponse) {
+  const staffing = s.staffing?.find((decision) => decision.state === 'asking');
+  if (staffing || s.request?.state === 'asking' || status.needsResponse) {
     rate = 0.1;
     label = 'Slow';
-    reason =
-      s.request?.state === 'asking'
+    reason = staffing
+      ? `${nameOf(s, staffing.who)} needs a cover decision.`
+      : s.request?.state === 'asking'
         ? `${nameOf(s, s.request.who)} needs an answer.`
         : 'A station needs a cook.';
   } else if (

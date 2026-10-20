@@ -19,6 +19,16 @@ export interface ServiceStatus {
 export function serviceStatus(s: GameState): ServiceStatus {
   const status = (text: string, needsResponse = false): ServiceStatus => ({ text, needsResponse });
   const queued = s.inputs.slice(s.applied).filter((input) => input.at <= s.minute);
+  const staffing = s.staffing?.find((decision) => decision.state === 'asking');
+  if (staffing) {
+    if (queued.some((input) => input.kind === 'staff' && input.id === staffing.id))
+      return status('Waiting for the cover answer.');
+    return status(
+      `${nameOf(s, staffing.who)} is leaving ${staffing.station}; choose cover or leave it uncovered.`,
+      true,
+    );
+  }
+
   if (s.request?.state === 'asking') {
     if (queued.some((input) => input.kind === 'answer'))
       return status(`Waiting for ${nameOf(s, s.request.who)} to respond.`);
@@ -48,7 +58,12 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (s.plates.clean <= 0 && waitingForPlate) {
     if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
       return status('Food is waiting for clean plates.');
-    return status('Food needs clean plates; select a cook for dish.', true);
+    return status(
+      s.version === 'pass@5'
+        ? 'Food needs clean plates; dish is uncovered.'
+        : 'Food needs clean plates; select a cook for dish.',
+      s.version !== 'pass@5',
+    );
   }
   const remaining = owed(s);
   const needed = (['grill', 'cold', 'oven'] as const).filter((st) => remaining[st] > 0);
@@ -57,8 +72,10 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (missing.length) {
     const names = missing.length === 3 ? 'grill, cold and oven' : missing.join(' and ');
     return status(
-      `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'needs' : 'need'} a cook; select a cook.`,
-      true,
+      s.version === 'pass@5'
+        ? `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'is' : 'are'} uncovered under tonight’s board.`
+        : `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'needs' : 'need'} a cook; select a cook.`,
+      s.version !== 'pass@5',
     );
   }
 

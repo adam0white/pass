@@ -6,7 +6,7 @@ import { cookOf, newGame, personOf, queueInput, type Ticket } from '../src/sim/k
 import { serviceStatus } from '../src/ui/status.ts';
 
 function setup() {
-  const s = newGame(42);
+  const s = newGame(42, 'pass@4');
   s.tickets = [];
   for (const c of s.cooks) {
     c.here = true;

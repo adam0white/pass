@@ -17,6 +17,8 @@ import {
 import { type CookId, hireTemplate, STATIONS, type Station } from '../sim/cooks.ts';
 import {
   activeCrew,
+  type BoardRow,
+  boardDefaults,
   canReplay,
   closeAt,
   cookOf,
@@ -38,10 +40,13 @@ import {
   onShift,
   openAt,
   owed,
+  pendingCoverLine,
   personOf,
   queueInput,
   replay,
   requestText,
+  staffingOptions,
+  stationOf,
   stationRequestLine,
   stationsTonight,
   step,
@@ -51,7 +56,7 @@ import {
 import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { lab } from './lab.ts';
 import { serviceStatus } from './status.ts';
-import { gloss } from './words.ts';
+import { gloss, lira } from './words.ts';
 
 const SAVE = 'pass-save-v3';
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
@@ -121,7 +126,6 @@ function clearSave() {
 
 const esc = (x: string) =>
   x.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
-const lira = (n: number) => `₺${n.toLocaleString('en-GB')}`;
 const clock = (m: number) => {
   const d = ((m % 1440) + 1440) % 1440;
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
@@ -173,8 +177,8 @@ function title() {
     ${markLink}
     <h1>The Pass</h1>
     <p class="soft">a kitchen, four weeks of dinner services</p>
-    <p>${esc(w1.intro[0] ?? '')}</p>
-    <p>${esc(w1.intro[1] ?? '')}</p>
+    <p>${esc(gloss(w1.intro[0] ?? '', true))}</p>
+    <p>The bank wants ${lira(w1.bill)} (Turkish lira) by Saturday close.</p>
     ${old ? '<p class="soft">The kitchen has been rebuilt since your last visit, and last week’s notebook can’t be reopened. Start a fresh one.</p>' : ''}
     <div class="actions">
       ${save ? `<button class="primary" id="cont">Back to the kitchen <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button>` : ''}
@@ -184,8 +188,8 @@ function title() {
       <input type="file" id="file" accept="application/json" hidden />
     </div>
     <details><summary>More about the kitchen</summary>
-      <p>Tap a cook, then a job. Hold the job to insist. They can say no.</p>
-      <p>Each ticket lists what the grill and the cold side owe it; ● is ready.</p>
+      <p>Tap a cook, then a job. Hold the job to insist. They can say no. The job dot marks their current station.</p>
+      <p>Each ticket lists what the grill and the cold side owe it; ● is ready. Money is in Turkish lira (${lira(1)}).</p>
     </details>
     ${footer()}
   </div>`;
@@ -247,12 +251,18 @@ function title() {
 function replayNight(sv: Save): number {
   let n = 1;
   let sunday = false;
+  let atBoard = sv.game === 'pass@5';
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
+    if (atBoard) {
+      atBoard = false;
+      continue;
+    }
     if (isLastOfWeek(n) && !sunday) sunday = true;
     else {
       sunday = false;
       n = Math.min(LAST_NIGHT, n + 1);
+      atBoard = sv.game === 'pass@5';
     }
   }
   return n;
@@ -262,9 +272,76 @@ function enter() {
   if (!s) return;
   shownSaid = s.said.length;
   if (s.phase === 'service') service();
+  else if (s.phase === 'board') board();
   else if (s.phase === 'sunday') sunday();
   else if (s.phase === 'end') ending();
   else evening();
+}
+
+// ---------- the board ----------
+
+function board() {
+  if (s?.phase !== 'board') return;
+  const st = s;
+  cancelAnimationFrame(raf);
+  lab.screen(`night ${st.night}: board`);
+  const rows = st.board?.rows.length ? st.board.rows : boardDefaults(st);
+  const crew = activeCrew(st);
+  app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p><p>Set stations and breaks. Each cook answers before you open.</p><form id="board-form"><div class="actions"><button class="primary" type="submit">${st.board?.agreed ? 'Ask about the revised board' : 'Ask the crew about this board'}</button>${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}<button class="primary" type="button" id="open-service" ${st.board?.agreed ? '' : 'disabled'}>Open service</button></div><div class="board-rows">${rows
+    .map(
+      (row) =>
+        `<fieldset class="board-row" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><div class="board-fields"><label>Station<select name="station" aria-label="${esc(nameOf(st, row.cook))} station">${stationsTonight(
+          st,
+        )
+          .map(
+            (station) =>
+              `<option value="${station}" ${station === row.station ? 'selected' : ''}>${esc(VERB_LABEL[station])}</option>`,
+          )
+          .join(
+            '',
+          )}</select></label><label>Break<input name="break" aria-label="${esc(nameOf(st, row.cook))} break time" type="time" value="${clock(row.breakAt)}" /></label><label class="board-cover">Cover<select name="cover" aria-label="${esc(nameOf(st, row.cook))} break cover"><option value="">Leave uncovered</option>${crew
+          .filter((m) => m.id !== row.cook)
+          .map(
+            (m) =>
+              `<option value="${esc(m.id)}" ${row.cover === m.id ? 'selected' : ''}>${esc(m.name)}</option>`,
+          )
+          .join(
+            '',
+          )}</select></label></div>${row.answer ? `<div class="board-answer hand"><b>${row.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(row.answer))}”</div>` : ''}</fieldset>`,
+    )
+    .join(
+      '',
+    )}</div></form><details><summary>About the board</summary><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></details>${footer()}</div>`;
+  const submit = (next: BoardRow[]) => {
+    queueInput(st, { kind: 'board', rows: next });
+    writeSave();
+    board();
+  };
+  document.getElementById('board-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submit(
+      Array.from(app.querySelectorAll<HTMLElement>('[data-board-cook]')).map((el) => {
+        const time = (el.querySelector('[name="break"]') as HTMLInputElement).value.split(':').map(Number);
+        return {
+          cook: el.dataset.boardCook as CookId,
+          station: (el.querySelector('[name="station"]') as HTMLSelectElement).value as Station,
+          breakAt: (time[0] ?? 19) * 60 + (time[1] ?? 0),
+          cover: (el.querySelector('[name="cover"]') as HTMLSelectElement).value || null,
+        };
+      }),
+    );
+  });
+  document.getElementById('same-board')?.addEventListener('click', () => submit(boardDefaults(st)));
+  document.getElementById('open-service')?.addEventListener('click', () => {
+    queueInput(st, { kind: 'open' });
+    writeSave();
+    enter();
+  });
+  // An edit needs a fresh answer, so opening cannot silently use stale agreements.
+  document.getElementById('board-form')?.addEventListener('input', () => {
+    (document.getElementById('open-service') as HTMLButtonElement).disabled = true;
+  });
+  window.scrollTo(0, 0);
 }
 
 // ---------- service ----------
@@ -278,7 +355,7 @@ function service() {
   cachedHints = null;
   shownSaid = Math.max(0, s.said.length - 3);
   requestWake();
-  app.innerHTML = `<div class="service" style="--sheet-height:${stationsTonight(s).length === 4 ? 342 : 276}px">
+  app.innerHTML = `<div class="service" style="--sheet-height:${s.version === 'pass@5' || stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
@@ -678,7 +755,7 @@ function drawCaption() {
   }
   const taken = s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
   const canTake = a.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
-  el.innerHTML = `<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(a.text)}”</span>${canTake ? `<button data-counter="${a.counter}">Take it: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
+  el.innerHTML = `<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(gloss(a.text))}”</span>${canTake ? `<button data-counter="${a.counter}">Take it: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
 }
 
 function select(id: CookId | null) {
@@ -710,7 +787,7 @@ const VERB_LABEL: Record<Verb, string> = {
 
 const ANSWERS: Record<string, [string, string]> = {
   mother: ['Go. Now.', 'Can you stay till nine?'],
-  advance: ['Give him ₺50 from the till', 'Not this week'],
+  advance: [`Give him ${lira(50)} from the till`, 'Not this week'],
   phone: ['Go on, five minutes', 'After close'],
   'leave-early': ['Go at nine', 'I need you till close'],
   'eat-first': ['Eat first', 'After the rush'],
@@ -723,7 +800,7 @@ function renderPanel(el: HTMLElement, html: string) {
   template.innerHTML = html;
   const key = (node: Node): string =>
     node instanceof HTMLElement
-      ? `${node.tagName}:${node.id}:${node.dataset.pick ?? ''}:${node.dataset.v ?? ''}:${node.dataset.help ?? ''}:${node.dataset.station ?? ''}`
+      ? `${node.tagName}:${node.id}:${node.dataset.pick ?? ''}:${node.dataset.v ?? ''}:${node.dataset.help ?? ''}:${node.dataset.station ?? ''}:${node.dataset.cover ?? 'no-cover-control'}`
       : node.nodeName;
   const sync = (target: Node, source: Node) => {
     for (let index = 0; index < source.childNodes.length; index++) {
@@ -755,6 +832,35 @@ function drawSheet() {
   const st = s;
   const el = document.getElementById('sheet') as HTMLElement;
   const rq = st.request;
+  const staffing = st.staffing?.find((decision) => decision.state === 'asking');
+  if (staffing) {
+    const queued = st.inputs
+      .slice(st.applied)
+      .some((input) => input.kind === 'staff' && input.id === staffing.id);
+    sheetKey = `staff${staffing.id}${st.inputs.length}`;
+    renderPanel(
+      el,
+      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>${esc(VERB_LABEL[staffing.station])} uncovered for about ${Math.max(1, staffing.until - st.minute)} min, until ${clock(staffing.until)}.</div><div class="staffing-options">${staffingOptions(
+        st,
+        staffing,
+      )
+        .map(
+          (id) =>
+            `<button data-cover="${esc(id)}" ${queued ? 'disabled' : ''}>Ask ${esc(nameOf(st, id))} to cover${stationOf(st, id) ? `<span class="cover-tradeoff">${esc(VERB_LABEL[stationOf(st, id) as Station])} waits</span>` : '<span class="cover-tradeoff">Free at present</span>'}</button>`,
+        )
+        .join(
+          '',
+        )}<button data-cover="" ${queued ? 'disabled' : ''}>Leave it uncovered</button></div>${queued ? '<div class="soft">They heard you. Waiting for the cover answer.</div>' : ''}</div>`,
+    );
+    bindCrew(el);
+    for (const button of el.querySelectorAll<HTMLButtonElement>('[data-cover]'))
+      button.onclick = () => {
+        queueInput(st, { kind: 'staff', id: staffing.id, cover: button.dataset.cover || null });
+        writeSave();
+        drawAll();
+      };
+    return;
+  }
   document.querySelector('.service')?.classList.toggle('choosing', !!selected || rq?.state === 'asking');
   if (rq?.state === 'asking') {
     const key = `rq${rq.kind}${rq.at}`;
@@ -763,7 +869,7 @@ function drawSheet() {
     const [yes, no] = ANSWERS[rq.kind] ?? ['Yes', 'No'];
     renderPanel(
       el,
-      `${crewHeader()}<div class="card ink-in"><div class="hand">${esc(nameOf(st, rq.who))}: “${esc(requestText(st, rq))}”</div>
+      `${crewHeader()}<div class="card ink-in"><div class="hand">${esc(nameOf(st, rq.who))}: “${esc(gloss(requestText(st, rq)))}”</div>
       <div class="row"><button class="primary" id="yes">${esc(yes)}</button><button class="primary" id="no">${esc(no)}</button></div></div>`,
     );
     const answer = (choice: 'yes' | 'no') => {
@@ -780,7 +886,7 @@ function drawSheet() {
     return;
   }
   if (!selected) {
-    const lines = st.said.slice(-3);
+    const lines = st.said.filter((line) => line.at >= openAt(st.night) - 5).slice(-3);
     const key = `j${st.minute}${st.inputs.length}${st.said.length}${seenHint.tap}${onShift(st)
       .map((id) => placeOf(id))
       .join()}${st.crew.map((m) => cookOf(st, m.id).gone).join()}`;
@@ -815,11 +921,11 @@ function drawSheet() {
   renderPanel(
     el,
     `${crewHeader()}
-    <div class="station-duration">${esc(absent ? `${m.name} has left. Ask again next service.` : (coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''))}</div>
+    <div class="station-duration">${esc(absent ? `${m.name} has left. Ask again next service.` : (pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''))}</div>
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
-          `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === m.home ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(v.short)}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
+          `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(v.short)}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
     <div class="hint">${

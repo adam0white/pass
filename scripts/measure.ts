@@ -3,6 +3,7 @@
 import { weekOf } from '../src/sim/campaign.ts';
 import {
   activeCrew,
+  boardDefaults,
   cookOf,
   type GameState,
   hints,
@@ -12,6 +13,7 @@ import {
   owed,
   personOf,
   queueInput,
+  staffingOptions,
   stationOf,
   stationsTonight,
   step,
@@ -82,6 +84,19 @@ export function run(seed: number, policy: Policy) {
   const s = newGame(seed);
   const t0 = performance.now();
   while (s.phase !== 'end') {
+    if (s.phase === 'board') {
+      queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+      queueInput(s, { kind: 'open' });
+      continue;
+    }
+    for (const d of s.staffing ?? []) {
+      if (d.state !== 'asking') continue;
+      queueInput(s, {
+        kind: 'staff',
+        id: d.id,
+        cover: policy === 'none' ? null : (staffingOptions(s, d)[0] ?? null),
+      });
+    }
     if (s.phase === 'evening') {
       if (s.night === 3) queueInput(s, { kind: 'jar', choice: 'leave' });
       queueInput(s, { kind: 'open' });

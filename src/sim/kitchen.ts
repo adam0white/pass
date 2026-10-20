@@ -83,7 +83,8 @@ import {
 } from './lines.ts';
 import { hashUnit } from './rng.ts';
 
-export const GAME_VERSION = 'pass@4';
+export const GAME_VERSION = 'pass@5';
+const hasCover = (s: GameState) => s.version === 'pass@4' || s.version === 'pass@5';
 export const PRICE = 40;
 export const PIDE_PRICE = 15;
 const ASK = 0.5;
@@ -106,7 +107,28 @@ const REST_WORD: Record<string, string> = {
 
 export type Verb = Station | 'break' | 'eat' | 'home';
 export const VERBS: readonly Verb[] = ['grill', 'cold', 'dish', 'oven', 'break', 'eat', 'home'];
+export interface BoardRow {
+  cook: CookId;
+  station: Station;
+  /** Local kitchen minute, carried unchanged between nights. */
+  breakAt: number;
+  cover: CookId | null;
+  accepted?: boolean;
+  answer?: string;
+  coverAccepted?: boolean;
+}
+export interface StaffingDecision {
+  id: number;
+  who: CookId;
+  station: Station;
+  until: number;
+  reason: string;
+  state: 'asking' | 'covered' | 'left';
+  cover?: CookId;
+}
 export type Input =
+  | { at: number; kind: 'board'; rows: BoardRow[] }
+  | { at: number; kind: 'staff'; id: number; cover: CookId | null }
   | { at: number; kind: 'ask'; cook: CookId; verb: Verb; insist?: boolean; counter?: boolean }
   | { at: number; kind: 'help'; ticket: number; station: 'grill' | 'cold' }
   | { at: number; kind: 'jar'; choice: 'move' | 'talk' | 'leave' }
@@ -250,7 +272,10 @@ export interface GameState {
   version: string;
   seed: number;
   night: number;
-  phase: 'service' | 'evening' | 'sunday' | 'end';
+  phase: 'board' | 'service' | 'evening' | 'sunday' | 'end';
+  board?: { rows: BoardRow[]; agreed: boolean };
+  previousBoard?: BoardRow[];
+  staffing?: StaffingDecision[];
   minute: number;
   people: Person[];
   chef: Person;
@@ -530,10 +555,16 @@ function startNight(s: GameState, n: number) {
   s.myWay = null;
   s.lastAnswer = null;
   s.sunday = null;
+  if (s.version === 'pass@5') {
+    if (s.board?.agreed) s.previousBoard = structuredClone(s.board.rows);
+    s.board = { rows: [], agreed: false };
+    s.staffing = [];
+    s.phase = 'board';
+  }
   const firstId = (s.tickets.at(-1)?.id ?? 0) + 1;
   const count = Math.max(8, pl.tables - s.raises) + (pl.anniversary ? anniversaryGuests(s) : 0);
   s.tickets = rollTickets(s.seed, n, firstId, count, s.price);
-  if (s.version === 'pass@4') {
+  if (hasCover(s)) {
     s.help = null;
     if (n === 1) {
       for (const [i, t] of s.tickets.slice(0, 3).entries()) t.at = openAt(n) + 1 + i * 8;
@@ -570,7 +601,7 @@ function startNight(s: GameState, n: number) {
     c.here = !m.left && m.since <= pl.week && m.offDay !== pl.weekday && !(pl.n === 1 && m.id === 'rafi');
     c.gone = false;
     c.pending = null;
-    if (s.version === 'pass@4') c.cover = null;
+    if (hasCover(s)) c.cover = null;
     c.deferred = null;
     c.breakDeferred = null;
     c.idleUntil = s.minute;
@@ -701,9 +732,7 @@ export function offersFor(s: GameState, id: CookId, requested?: Verb): Affordanc
     const a = offer(st, {
       label: LABEL[st],
       duration:
-        s.version === 'pass@4' && (requested ?? cookOf(s, id).pending?.verb) === st
-          ? coverUntil(s) - s.minute
-          : 25,
+        hasCover(s) && (requested ?? cookOf(s, id).pending?.verb) === st ? coverUntil(s) - s.minute : 25,
       effort,
       focus: 0.5,
       placeId: 'line',
@@ -720,7 +749,7 @@ export function offersFor(s: GameState, id: CookId, requested?: Verb): Affordanc
       // Paid by the hour: a stretch on the line is a stretch of wages.
       material: HF_WAGE,
     });
-    if (left > 45 && (s.version !== 'pass@4' || a.duration === 25))
+    if (left > 45 && (!hasCover(s) || a.duration === 25))
       a.followedBy = [{ label: 'the rest of the rush', duration: left - 25, effort: effort * 0.9 }];
     list.push(a);
   }
@@ -931,13 +960,31 @@ function applyPending(s: GameState) {
 
 function apply(s: GameState, inp: Input) {
   switch (inp.kind) {
+    case 'board':
+      if (s.version === 'pass@5' && s.phase === 'board') agreeBoard(s, inp.rows);
+      return;
+    case 'staff': {
+      if (s.version !== 'pass@5' || s.phase !== 'service') return;
+      const decision = s.staffing?.find((d) => d.id === inp.id && d.state === 'asking');
+      if (!decision) return;
+      if (inp.cover === null) decision.state = 'left';
+      else if (staffingOptions(s, decision).includes(inp.cover)) {
+        const cover = cookOf(s, inp.cover);
+        const accepted = takeStation(s, cover, decision.station, decision.until, false);
+        if (accepted.accepted) {
+          decision.state = 'covered';
+          decision.cover = inp.cover;
+        } else say(s, inp.cover, 'I cannot cover that. You will need another arrangement.', 'answer');
+      }
+      return;
+    }
     case 'ask': {
       if (s.phase !== 'service') return;
       const c = s.cooks.find((x) => x.id === inp.cook);
       if (!c?.here || c.gone) return;
       const p = personOf(s, inp.cook);
       if (
-        s.version !== 'pass@4' &&
+        !hasCover(s) &&
         !inp.insist &&
         !c.pending &&
         p.activity?.affordanceId === inp.verb &&
@@ -957,7 +1004,7 @@ function apply(s: GameState, inp: Input) {
       return;
     }
     case 'help': {
-      if (s.version !== 'pass@4' || s.phase !== 'service' || s.help) return;
+      if (!hasCover(s) || s.phase !== 'service' || s.help) return;
       if (!helpOptions(s).some((o) => o.ticket === inp.ticket && o.station === inp.station)) return;
       s.help = { ticket: inp.ticket, station: inp.station, until: s.minute + 5 };
       say(
@@ -985,6 +1032,10 @@ function apply(s: GameState, inp: Input) {
       return;
     }
     case 'open': {
+      if (s.phase === 'board' && s.board?.agreed) {
+        s.phase = 'service';
+        return;
+      }
       if (s.phase === 'evening') {
         if (s.lost) {
           s.phase = 'end';
@@ -1164,7 +1215,8 @@ export function step(s: GameState): void {
     cookMinute(s, c);
   }
   produce(s);
-  if (s.version === 'pass@4') chefMinute(s);
+  if (hasCover(s)) chefMinute(s);
+  if (s.version === 'pass@5') detectBoardGaps(s);
   pass(s);
   for (const t of s.tickets) {
     if (t.status !== 'open') continue;
@@ -1252,8 +1304,9 @@ export const gasOut = (s: GameState): boolean => {
 function cookMinute(s: GameState, c: CookState) {
   const p = personOf(s, c.id);
   tick(p, s.minute);
+  if (s.version === 'pass@5' && rotaMinute(s, c)) return;
   let a = p.activity;
-  if (s.version === 'pass@4' && c.cover) {
+  if (hasCover(s) && c.cover) {
     if (s.minute >= c.cover.until || a?.affordanceId !== c.cover.station) c.cover = null;
     else if (!c.pending) return;
   }
@@ -1266,7 +1319,7 @@ function cookMinute(s: GameState, c: CookState) {
   const due = c.pending !== null || (a ? s.minute >= a.reviewAt : s.minute >= c.idleUntil);
   if (!due) return;
   const offers = offersFor(s, c.id).filter(
-    (o) => !a || o.id !== a.affordanceId || (s.version === 'pass@4' && c.pending?.verb === o.id),
+    (o) => !a || o.id !== a.affordanceId || (hasCover(s) && c.pending?.verb === o.id),
   );
   const voice = c.pending ?? (!a && c.deferred && s.minute <= c.deferred.until ? c.deferred : null);
   // Before deciding: which other stations this cook would take now (pure), in case a break turns one down.
@@ -1291,7 +1344,7 @@ function cookMinute(s: GameState, c: CookState) {
   noteResolve(s, c, p, rec);
   if (a && rec.chosenAffordanceId === a.affordanceId) {
     if (
-      s.version === 'pass@4' &&
+      hasCover(s) &&
       voice &&
       isStation(voice.verb) &&
       ['assented', 'complied'].includes(rec.suggestion?.verdict ?? '')
@@ -1317,7 +1370,7 @@ function cookMinute(s: GameState, c: CookState) {
     return;
   }
   c.made = 0;
-  if (s.version === 'pass@4') {
+  if (hasCover(s)) {
     c.cover =
       voice &&
       isStation(aff.id) &&
@@ -1453,12 +1506,14 @@ function answered(
   )
     counter = r.counterOffer.affordanceId as Verb;
   if (
-    s.version === 'pass@4' &&
+    hasCover(s) &&
     isStation(verb) &&
     rec.chosenAffordanceId === verb &&
     ['assented', 'complied'].includes(r.verdict)
   )
     text = `${text} ${stationPromise(s, verb)}`;
+  if (s.version === 'pass@5' && isStation(verb) && ['deferred', 'modified'].includes(r.verdict))
+    text += ' That is not promised cover. Please arrange someone else, or ask again later.';
   const verdict = voice.counter && r.verdict === 'assented' ? 'countered' : r.verdict;
   c.night.events.push({ at: s.minute, verb, verdict, insisted: !!voice.s.insist, crewRule });
   if (voice.quiet) return;
@@ -1466,7 +1521,8 @@ function answered(
     say(s, c.id, text, 'answer');
     s.lastAnswer = { at: s.minute, who: c.id, verb, verdict, text, counter, insisted: !!voice.s.insist };
   }
-  if (r.verdict === 'deferred' && !wasDeferred) c.deferred = { s: voice.s, verb, until: s.minute + 30 };
+  if (s.version !== 'pass@5' && r.verdict === 'deferred' && !wasDeferred)
+    c.deferred = { s: voice.s, verb, until: s.minute + 30 };
 }
 
 const listOf = (xs: string[]) =>
@@ -1754,7 +1810,7 @@ function evening(s: GameState, c: CookState): string {
     founder: memberOf(s, c.id).founder,
     events: c.night.events,
     worked: c.night.worked,
-    asked: c.night.asked,
+    asked: c.night.asked + (s.version === 'pass@5' && s.board?.rows.some((row) => row.cook === c.id) ? 1 : 0),
     trustDelta: trustOf(personOf(s, c.id)) - c.trustAtOpen,
     used,
     clock,
@@ -2143,7 +2199,8 @@ export function replay(
 }
 
 /** Whether an export or save can be replayed by this edition of the game. */
-export const canReplay = (game: string | undefined): boolean => game === GAME_VERSION || game === 'pass@3';
+export const canReplay = (game: string | undefined): boolean =>
+  game === 'pass@5' || game === 'pass@4' || game === 'pass@3';
 
 /** A compact fingerprint of everything that matters, for replay checks. */
 export function fingerprint(s: GameState): string {
@@ -2164,6 +2221,7 @@ export function fingerprint(s: GameState): string {
 export { CLOSE, dayStart, OPEN, RUSH_FROM, RUSH_TO };
 
 function coverUntil(s: GameState): number {
+  if (s.version === 'pass@5') return closeAt(s.night);
   return Math.min(closeAt(s.night), Math.max(s.minute + 45, nightStart(s.night) + RUSH_TO));
 }
 
@@ -2176,20 +2234,20 @@ function stationPromise(s: GameState, station: Station): string {
 }
 
 export function stationRequestLine(s: GameState, _id: CookId): string | null {
-  return s.version === 'pass@4'
+  return hasCover(s)
     ? `Ask for station cover until ${clock(coverUntil(s))}. Another request can change it.`
     : 'A station request covers one 25-minute stretch. Then the cook chooses again.';
 }
 
 export function coverLine(s: GameState, id: CookId): string | null {
   const cover = cookOf(s, id).cover;
-  return s.version === 'pass@4' && cover && s.minute < cover.until
+  return hasCover(s) && cover && s.minute < cover.until
     ? `I’m holding ${VERB_WORD[cover.station]} until ${clock(cover.until)}.`
     : null;
 }
 
 export function helpOptions(s: GameState): { ticket: number; station: 'grill' | 'cold'; text: string }[] {
-  if (s.version !== 'pass@4' || s.phase !== 'service' || s.help) return [];
+  if (!hasCover(s) || s.phase !== 'service' || s.help) return [];
   return s.tickets
     .filter((t) => t.status === 'open')
     .flatMap((t) =>
@@ -2235,4 +2293,327 @@ function chefMinute(s: GameState) {
     'journal',
   );
   s.help = null;
+}
+
+// ---------- pass@5: agreed board over the station-cover machinery ----------
+
+export function boardDefaults(s: GameState): BoardRow[] {
+  const ids = onShift(s);
+  const previous = s.previousBoard ?? [];
+  return ids.map((id, i) => {
+    const old = previous.find((r) => r.cook === id);
+    const home = memberOf(s, id).home;
+    const fallback = stationsTonight(s)[i % stationsTonight(s).length] ?? 'cold';
+    return {
+      cook: id,
+      station:
+        old && stationsTonight(s).includes(old.station)
+          ? old.station
+          : stationsTonight(s).includes(home)
+            ? home
+            : fallback,
+      breakAt: old?.breakAt ?? 18 * 60 + 10 + i * 25,
+      cover: old
+        ? old.cover && ids.includes(old.cover)
+          ? old.cover
+          : null
+        : (ids.find((x) => x !== id && memberOf(s, x).home === 'dish') ?? null),
+    };
+  });
+}
+
+/** Match ad-hoc requests: a request to change jobs reviews the current activity rather than offering it anew. */
+function coverOffers(s: GameState, id: CookId, station: Station, duration: number): Affordance[] {
+  const current = personOf(s, id).activity?.affordanceId;
+  return offersFor(s, id, station)
+    .filter((a) => !current || a.id !== current || a.id === station)
+    .map((a) => (a.id === station ? { ...a, duration, followedBy: undefined } : a));
+}
+
+/** HF decides the requested station for the agreed interval; cover is the existing cover state. */
+function takeStation(
+  s: GameState,
+  c: CookState,
+  station: Station,
+  until: number,
+  quiet: boolean,
+): { accepted: boolean; says: string } {
+  const p = personOf(s, c.id);
+  if (p.activity) interrupt(p, s.minute, 'voice:chef');
+  const offers = coverOffers(
+    s,
+    c.id,
+    station,
+    Math.max(1, s.phase === 'board' ? closeAt(s.night) - s.minute - 20 : until - s.minute),
+  ).map((a) =>
+    a.id === station
+      ? {
+          ...a,
+          // HF weighs the whole night's work. Execution ends the first span at the agreed meal break.
+          duration: Math.max(1, s.phase === 'board' ? closeAt(s.night) - s.minute - 20 : until - s.minute),
+          followedBy: undefined,
+        }
+      : a,
+  );
+  const rec = decide(p, offers, { suggestion: suggestion(station) });
+  const r = rec.suggestion;
+  const aff = offers.find((a) => a.id === station);
+  const accepted = !!aff && rec.chosenAffordanceId === station && r?.verdict === 'assented';
+  if (!quiet)
+    say(
+      s,
+      c.id,
+      accepted
+        ? `${r?.says} I’ll hold ${VERB_WORD[station]} until ${clock(until)}.`
+        : `${r?.says ?? 'No, Chef.'} That part is not agreed.`,
+      'answer',
+    );
+  if (!accepted || !aff) return { accepted: false, says: r?.says ?? 'No, Chef.' };
+  if (p.activity) endActivity(p, 'interrupted', s.minute, s, c);
+  if (!begin(p, aff, rec)) return { accepted: false, says: 'I cannot start that stretch.' };
+  c.cover = { station, until };
+  if (p.activity) p.activity.endsAt = until;
+  if (!c.night.worked.includes(station)) c.night.worked.push(station);
+  return { accepted: true, says: r?.says ?? 'Yes.' };
+}
+
+function agreeBoard(s: GameState, rows: BoardRow[]) {
+  const result: BoardRow[] = [];
+  // A revision replaces the proposal. A refused revision must not leave an invisible old yes running.
+  for (const id of onShift(s)) {
+    const c = cookOf(s, id);
+    const p = personOf(s, id);
+    if (c.cover && p.activity) endActivity(p, 'interrupted', s.minute, s, c);
+    c.cover = null;
+  }
+  // One row per present cook; malformed or absent rows cannot create commitments.
+  for (const id of onShift(s)) {
+    const raw = rows.find((r) => r.cook === id);
+    if (!raw || !stationsTonight(s).includes(raw.station) || !Number.isFinite(raw.breakAt)) continue;
+    const breakAt = Math.round(Math.max(17 * 60 + 30, Math.min(CLOSE - 25, raw.breakAt)));
+    const row: BoardRow = {
+      cook: id,
+      station: raw.station,
+      breakAt,
+      cover: raw.cover !== id && onShift(s).includes(raw.cover ?? '') ? raw.cover : null,
+    };
+    const c = cookOf(s, id);
+    const until = nightStart(s.night) + breakAt;
+    const reply = takeStation(s, c, row.station, until, true);
+    row.accepted = reply.accepted;
+    row.answer = row.accepted
+      ? `${reply.says} ${capital(VERB_WORD[row.station] ?? row.station)} until ${clock(until)}. Then twenty minutes for a plate; back on ${VERB_WORD[row.station]} until close.`
+      : `${reply.says} That station is not agreed. Try another station, or open with this gap.`;
+    // Keep the actual HF answer rather than replacing a no with a generic yes.
+    say(s, id, row.answer, 'answer');
+
+    result.push(row);
+  }
+  // A named relief cook gets their own HF answer, separately from their home station.
+  for (const row of result) {
+    if (!row.accepted || !row.cover) continue;
+    const p = personOf(s, row.cover);
+    const own = result.find((r) => r.cook === row.cover);
+    const collision = result.some(
+      (other) =>
+        other !== row &&
+        other.cover === row.cover &&
+        other.coverAccepted &&
+        Math.abs(other.breakAt - row.breakAt) < 20,
+    );
+    if ((own && Math.abs(own.breakAt - row.breakAt) < 20) || collision) {
+      row.coverAccepted = false;
+      const line = 'That overlaps my other break or cover. I cannot promise both.';
+      row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
+      say(s, row.cover, line, 'answer');
+      continue;
+    }
+    const affs = coverOffers(s, row.cover, row.station, 20);
+    if (p.activity) interrupt(p, s.minute, 'voice:chef');
+    const rec = decide(p, affs, { suggestion: suggestion(row.station) });
+    reviewed(p);
+    row.coverAccepted = rec.chosenAffordanceId === row.station && rec.suggestion?.verdict === 'assented';
+    const line = row.coverAccepted
+      ? `${rec.suggestion?.says} I’ll cover ${nameOf(s, row.cook)} on ${VERB_WORD[row.station]} at ${clock(row.breakAt)}, for twenty minutes.`
+      : `${rec.suggestion?.says ?? 'No.'} I haven’t agreed to that cover.`;
+    row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
+    say(s, row.cover, line, 'answer');
+  }
+  s.board = { rows: result, agreed: true };
+}
+
+/** A deferred answer is deliberately a no in this edition, never an invisible queue. */
+export function pendingCoverLine(s: GameState, id: CookId): string | null {
+  if (s.version !== 'pass@5') return null;
+  const a = s.lastAnswer;
+  return a?.who === id && ['deferred', 'modified'].includes(a.verdict)
+    ? 'No cover is promised. Arrange another cook, or ask again later.'
+    : null;
+}
+
+export function staffingOptions(s: GameState, d: StaffingDecision): CookId[] {
+  return onShift(s).filter((id) => {
+    if (id === d.who || !inKitchen(s, id) || cookOf(s, id).pending || stationOf(s, id) === d.station)
+      return false;
+    const offers = coverOffers(s, id, d.station, Math.max(1, d.until - s.minute));
+    const preview = restore(snapshot(personOf(s, id)));
+    if (preview.activity) interrupt(preview, s.minute, 'voice:chef');
+    return predict(preview, offers, suggestion(d.station)).verdict === 'assented';
+  });
+}
+
+function raiseStaffing(s: GameState, who: CookId, station: Station, until: number, reason: string) {
+  s.staffing ??= [];
+  const list = s.staffing;
+  if (list.some((d) => d.who === who && d.station === station && d.until > s.minute)) return;
+  const d: StaffingDecision = { id: list.length, who, station, until, reason, state: 'asking' };
+  list.push(d);
+  say(
+    s,
+    who,
+    `${reason} ${capital(VERB_WORD[station] ?? station)} needs cover until ${clock(until)}.`,
+    'call',
+  );
+}
+
+/** Schedule only agreed parts. Ordinary autonomous decisions still handle refusals and emergencies. */
+function rotaMinute(s: GameState, c: CookState): boolean {
+  if (c.pending) return false;
+  const row = s.board?.rows.find((r) => r.cook === c.id && r.accepted);
+  if (!row) return false;
+  const p = personOf(s, c.id);
+  const start = nightStart(s.night) + row.breakAt;
+  const end = start + 20;
+  const activity = p.activity;
+  // Complete planned meals and relief, then restore the agreed home stations without another ask.
+  if (s.minute === end) {
+    if (activity) endActivity(p, 'completed', s.minute, s, c);
+    resumeBoardStation(s, c, row.station);
+    if (row.cover && row.coverAccepted) {
+      const relief = cookOf(s, row.cover);
+      const own = s.board?.rows.find((r) => r.cook === row.cover && r.accepted);
+      if (!relief.gone && own && relief.cover?.station === row.station)
+        resumeBoardStation(s, relief, own.station);
+    }
+    return true;
+  }
+  if (s.minute === start) {
+    if (activity) endActivity(p, 'completed', s.minute, s, c);
+    beginBoardBreak(s, c, end);
+    c.cover = null;
+    say(s, c.id, `My board break. Back on ${VERB_WORD[row.station]} at ${clock(end)}.`, 'journal');
+    if (row.cover && row.coverAccepted && inKitchen(s, row.cover)) {
+      const relief = cookOf(s, row.cover);
+      resumeBoardStation(s, relief, row.station, end);
+    }
+    return true;
+  }
+  if (s.minute > start && s.minute < end) {
+    // A private moment can happen during the agreed break, then the cook eats before returning.
+    if (activity && s.minute >= activity.endsAt) {
+      endActivity(p, 'completed', s.minute, s, c);
+      beginBoardBreak(s, c, end, false);
+    }
+    return true;
+  }
+  if (c.cover && c.cover.until <= s.minute) {
+    resumeBoardStation(s, c, row.station);
+    return true;
+  }
+  // Bodies can break the agreement. Let HF choose a rest/meal; the visible gap gets one decision.
+  if (c.cover && (p.body.satiety < 0.12 || p.body.hydration < 0.12 || p.body.exertion > 0.92)) {
+    const st = c.cover.station;
+    if (activity) endActivity(p, 'interrupted', s.minute, s, c);
+    const meal = offer('eat', {
+      label: 'eat and catch my breath',
+      duration: 20,
+      effort: 0,
+      advertises: { food: 0.6, water: 0.6, rest: 0.5 },
+    });
+    begin(p, meal, decide(p, [meal]));
+    c.cover = null;
+    raiseStaffing(s, c.id, st, s.minute + 20, 'I need a plate and a sit down, Chef.');
+    return true;
+  }
+  // A bodily/emergency break ends: return to the agreed station, unless sent home.
+  if (!c.cover && activity && s.minute >= activity.endsAt && OFF_LINE.includes(activity.affordanceId)) {
+    endActivity(p, 'completed', s.minute, s, c);
+    resumeBoardStation(s, c, row.station);
+    return true;
+  }
+  return false;
+}
+
+/** The break stays twenty minutes; the cook still has their own quiet life inside it. */
+function beginBoardBreak(s: GameState, c: CookState, end: number, personal = true) {
+  const p = personOf(s, c.id);
+  const meal = offer('eat', {
+    label: 'take my agreed meal break',
+    duration: Math.max(1, end - s.minute),
+    effort: 0,
+    advertises: { food: 0.5, water: 0.5, rest: 0.35 },
+  });
+  const quiet = personal
+    ? offersFor(s, c.id).filter((a) => ['skim', 'pray', 'smoke', 'phone'].includes(a.id))
+    : [];
+  const rec = decide(p, [meal, ...quiet]);
+  const chosen = [meal, ...quiet].find((a) => a.id === rec.chosenAffordanceId);
+  if (chosen) begin(p, chosen, rec);
+  notePrompt(s, c.id, p);
+  noteResolve(s, c, p, rec);
+  // Quiet acts have no staffing alert, objective, or reward. Return time is unchanged.
+  if (chosen?.id === 'pray') say(s, 'narrator', 'Selim stepped into the storeroom for maghrib.', 'journal');
+  if (chosen?.id === 'phone' && s.request?.kind === 'phone' && s.request.who === c.id) s.request.rang = true;
+}
+
+/** Execute an agreement already accepted through HF, using the same cover and activity as an ad-hoc yes. */
+function resumeBoardStation(s: GameState, c: CookState, station: Station, until = closeAt(s.night)) {
+  const p = personOf(s, c.id);
+  if (p.activity) endActivity(p, 'interrupted', s.minute, s, c);
+  const aff = offersFor(s, c.id, station).find((a) => a.id === station);
+  if (!aff) return;
+  const agreed = { ...aff, duration: Math.max(1, until - s.minute), followedBy: undefined };
+  // No new suggestion: this is carrying out the prior agreement, not asking again.
+  const rec = decide(p, [agreed]);
+  if (begin(p, agreed, rec)) {
+    c.cover = { station, until };
+    if (p.activity) p.activity.endsAt = until;
+  }
+}
+
+function detectBoardGaps(s: GameState) {
+  for (const decision of s.staffing ?? [])
+    if (
+      decision.state === 'asking' &&
+      (s.minute >= decision.until || onShift(s).some((id) => stationOf(s, id) === decision.station))
+    )
+      decision.state = 'covered';
+  for (const row of s.board?.rows ?? []) {
+    if (!row.accepted) continue;
+    const c = cookOf(s, row.cook);
+    const local = s.minute - nightStart(s.night);
+    if (local >= row.breakAt && local < row.breakAt + 20) continue;
+    if (
+      s.board?.rows.some(
+        (other) =>
+          other.cover === row.cook &&
+          other.coverAccepted &&
+          local >= other.breakAt &&
+          local < other.breakAt + 20,
+      )
+    )
+      continue;
+    if (c.cover && c.cover.station !== row.station && c.cover.until < closeAt(s.night)) continue;
+    if (stationOf(s, row.cook) === row.station || onShift(s).some((id) => stationOf(s, id) === row.station))
+      continue;
+    const a = personOf(s, row.cook).activity;
+    const until = c.gone ? closeAt(s.night) : Math.min(closeAt(s.night), a?.endsAt ?? s.minute + 20);
+    raiseStaffing(
+      s,
+      row.cook,
+      row.station,
+      Math.max(s.minute + 1, until),
+      c.gone ? 'I have to leave the kitchen.' : 'I’m off my agreed station, Chef.',
+    );
+  }
 }

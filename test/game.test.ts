@@ -66,16 +66,16 @@ const copy = (s: GameState) => restoreState(JSON.parse(JSON.stringify(cloneState
 
 describe('The Pass', () => {
   it('replays a run exactly from seed and input log', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@4');
     play(s, { nights: 2 });
-    const r = replay(42, s.inputs, s.minute);
+    const r = replay(42, s.inputs, s.minute, 'pass@4');
     expect(fingerprint(r)).toBe(fingerprint(s));
     expect(s.inputs.length).toBeGreaterThan(5);
   });
 
   it('pre-rolls tables from the seed alone, whatever the player does', () => {
-    const a = newGame(7);
-    const b = newGame(7);
+    const a = newGame(7, 'pass@4');
+    const b = newGame(7, 'pass@4');
     play(a, { nights: 1 });
     play(b, { nights: 1, insist: true });
     queueInput(a, { kind: 'open' });
@@ -86,7 +86,7 @@ describe('The Pass', () => {
   });
 
   it('the telegraph is pure: reading hints changes nothing', () => {
-    const s = newGame(9);
+    const s = newGame(9, 'pass@4');
     for (let i = 0; i < 40; i++) step(s);
     const before = fingerprint(s);
     const rng = JSON.stringify(s.people.map((p) => p.rng));
@@ -96,7 +96,7 @@ describe('The Pass', () => {
   });
 
   it('the telegraph for a new hire, the chef’s guess, is pure too', () => {
-    const s = newGame(9);
+    const s = newGame(9, 'pass@4');
     play(s, { nights: 11, rich: true });
     queueInput(s, { kind: 'open' });
     for (let i = 0; i < 60; i++) step(s);
@@ -111,7 +111,7 @@ describe('The Pass', () => {
   });
 
   it('insisting never turns a cannot or will-not into a yes', () => {
-    const s = newGame(3);
+    const s = newGame(3, 'pass@4');
     for (let i = 0; i < 60; i++) step(s);
     const v = personOf(s, 'selim').will.voices[0];
     if (v) {
@@ -125,8 +125,8 @@ describe('The Pass', () => {
   });
 
   it('insisting all week costs trust; asking does not', () => {
-    const a = newGame(5);
-    const b = newGame(5);
+    const a = newGame(5, 'pass@4');
+    const b = newGame(5, 'pass@4');
     play(a, { nights: 3 });
     play(b, { nights: 3, insist: true });
     for (const id of ['selim', 'dilek', 'rafi'])
@@ -134,7 +134,7 @@ describe('The Pass', () => {
   });
 
   it('asking Dilek to stay through her mother’s fall comes back in her evening', () => {
-    const s = newGame(11);
+    const s = newGame(11, 'pass@4');
     play(s, { nights: 5, answer: 'no' });
     const dilek = s.reports[4]?.reviews.find((x) => x.id === 'dilek');
     expect(dilek?.line).toMatch(/mother/);
@@ -142,7 +142,7 @@ describe('The Pass', () => {
   });
 
   it('letting Dilek go keeps her promise to her mother', () => {
-    const s = newGame(11);
+    const s = newGame(11, 'pass@4');
     play(s, { nights: 5, answer: 'yes' });
     const c = personOf(s, 'dilek').agenda.commitments.find((x) => x.label === 'going to my mother');
     expect(c?.status).not.toBe('broken');
@@ -150,7 +150,7 @@ describe('The Pass', () => {
   });
 
   it('a save restores and continues identically', () => {
-    const s = newGame(13);
+    const s = newGame(13, 'pass@4');
     for (let i = 0; i < 120; i++) step(s);
     const c = copy(s);
     for (let i = 0; i < 60; i++) {
@@ -164,7 +164,7 @@ describe('The Pass', () => {
     // The owner's report: a cook on a break turned down one job, took another, then took the first after all.
     // Now the first answer says what is different about that job, the deferral is remembered for the rest of the
     // break, and the third answer is either taking it with a reason or the same no, said as the same no.
-    const s = newGame(1);
+    const s = newGame(1, 'pass@4');
     const thirds: string[] = [];
     while (s.phase === 'service' && thirds.length < 6) {
       step(s);
@@ -202,7 +202,7 @@ describe('The Pass', () => {
   });
 
   it('somebody stays on the line: the last cook in the kitchen is not offered a break', () => {
-    const s = newGame(2);
+    const s = newGame(2, 'pass@4');
     for (let i = 0; i < 30; i++) step(s);
     const [a, b] = onShift(s);
     expect(a && b).toBeTruthy();
@@ -221,7 +221,7 @@ describe('The Pass', () => {
   });
 
   it('the oven bakes nothing until it is hot', () => {
-    const s = newGame(4);
+    const s = newGame(4, 'pass@4');
     play(s, { nights: 6 });
     queueInput(s, { kind: 'open' });
     queueInput(s, { kind: 'open' });
@@ -243,11 +243,11 @@ describe('The Pass', () => {
   });
 
   it('doing nothing loses the lokanta; a plain player reaches the end of the campaign', () => {
-    const idle = newGame(21);
+    const idle = newGame(21, 'pass@4');
     play(idle, { idle: true });
     expect(idle.phase).toBe('end');
     expect(idle.lost).toBe(true);
-    const s = newGame(21);
+    const s = newGame(21, 'pass@4');
     play(s);
     // Either the campaign ended (lost) or the last night was played.
     expect(s.phase === 'end' || s.night === LAST_NIGHT).toBe(true);
@@ -260,19 +260,19 @@ describe('The Pass', () => {
     expect(canReplay('pass@3')).toBe(true);
   });
   it('a Sunday page can be turned back to: the inputs up to that Sunday rebuild it', () => {
-    const s = newGame(31);
+    const s = newGame(31, 'pass@4');
     play(s, { nights: 6 });
     queueInput(s, { kind: 'open' });
     expect(s.phase).toBe('sunday');
     const k = s.inputs.length;
     queueInput(s, { kind: 'open' });
-    const back = replay(31, s.inputs.slice(0, k));
+    const back = replay(31, s.inputs.slice(0, k), undefined, 'pass@4');
     expect(back.phase).toBe('sunday');
     expect(back.sunday?.week).toBe(1);
   });
 
   it('a call left unanswered: Dilek goes to her mother anyway, and says so', () => {
-    const s = newGame(11);
+    const s = newGame(11, 'pass@4');
     play(s, { nights: 5, answer: 'ignore' });
     expect(s.request?.ignored).toBe(true);
     expect(s.said.some((x) => x.who === 'dilek' && /can’t wait for you/.test(x.text))).toBe(true);
@@ -280,7 +280,7 @@ describe('The Pass', () => {
   });
 
   it('a granted phone call is made once, not taken again and again', () => {
-    const s = newGame(5);
+    const s = newGame(5, 'pass@4');
     play(s, { nights: 8, rich: true });
     while (!(s.request?.kind === 'phone' && s.request.rang) && s.phase !== 'end') {
       if (s.phase !== 'service') queueInput(s, { kind: 'open' });
@@ -292,7 +292,7 @@ describe('The Pass', () => {
   });
 
   it('the jar is decided once, on Wednesday of week 1', () => {
-    const s = newGame(7);
+    const s = newGame(7, 'pass@4');
     play(s, { nights: 2 });
     queueInput(s, { kind: 'jar', choice: 'move' });
     expect(s.jarPlace).toBe('counter');
@@ -304,7 +304,7 @@ describe('The Pass', () => {
   });
 
   it('Selim keeps maghrib at home on days without service, so no review calls it missed', () => {
-    const s = newGame(9191);
+    const s = newGame(9191, 'pass@4');
     play(s, { nights: 12, rich: true });
     const missed = s.said.filter(
       (x) => x.who === 'selim' && /keep maghrib/.test(x.text) && /didn/.test(x.text),
