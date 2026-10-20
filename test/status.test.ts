@@ -144,6 +144,20 @@ describe('serviceStatus', () => {
     expect(serviceStatus(s)).toEqual({ text: 'Food is ready for the pass.', needsResponse: false });
   });
 
+  it('reports a ready ticket blocked on plates while another ticket still needs cooking', () => {
+    const s = setup();
+    s.night = 2;
+    s.tickets = [ticket({ doneGrill: 1 }), ticket({ id: 2 })];
+    s.plates = { clean: 0, pile: 1, dirty: [] };
+    expect(serviceStatus(s)).toEqual({
+      text: 'Food needs clean plates; select a cook for dish.',
+      needsResponse: true,
+    });
+    work(s, 'selim', 'grill');
+    work(s, 'rafi', 'dish');
+    expect(serviceStatus(s)).toEqual({ text: 'Food is waiting for clean plates.', needsResponse: false });
+  });
+
   it('distinguishes the next ticket from closing and ignores completed tickets', () => {
     const s = setup();
     s.tickets = [ticket({ status: 'served' }), ticket({ id: 2, status: 'waiting', at: s.minute + 10 })];

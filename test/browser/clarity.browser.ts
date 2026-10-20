@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
 import {
   cookOf,
@@ -145,15 +146,70 @@ test('DL-22 fits seven jobs and long ticket labels with three cooks', async ({ p
   expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(690);
 });
 
-test('DL-6 keeps the opening route within forty words and the full rules reachable', async ({ page }) => {
+const counterSave = JSON.parse(
+  readFileSync(new URL('../fixtures/clarity-counter-save.json', import.meta.url), 'utf8'),
+);
+
+test('DL-22 keeps a fresh counteroffer clickable above seven jobs with safe areas', async ({ page }) => {
+  await start(page, replay(counterSave.seed, counterSave.inputs, counterSave.minute));
+  await page.addStyleTag({ content: ':root { --safe-t: 20px; --safe-b: 20px; }' });
+  await page.locator('[data-pick="selim"]').click();
+  await expect(page.locator('.verbs button')).toHaveCount(7);
+  await expect(page.locator('#caption')).toContainText("I'll work the grill instead.");
+  await onScreen(page, '#status, #caption, #caption button, .who, .forecast, .verbs button, #sheet .hint');
+  const caption = await page.locator('#caption').boundingBox();
+  const sheet = await page.locator('#sheet').boundingBox();
+  expect((caption?.y ?? 0) + (caption?.height ?? 0)).toBeLessThanOrEqual(sheet?.y ?? 0);
+  const counter = page.locator('[data-counter="grill"]');
+  expect(
+    await counter.evaluate((b) => {
+      const r = b.getBoundingClientRect();
+      return b.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    }),
+  ).toBe(true);
+  await counter.click();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3') ?? '{}'));
+  expect(saved.inputs.at(-1)).toMatchObject({ kind: 'ask', cook: 'selim', verb: 'grill', counter: true });
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(690);
+});
+
+async function targets(page: Page, selector: string) {
+  for (const element of await page.locator(selector).all()) {
+    const box = await element.boundingBox();
+    expect(box?.height, (await element.textContent()) ?? selector).toBeGreaterThanOrEqual(44);
+    expect(box?.width, (await element.textContent()) ?? selector).toBeGreaterThanOrEqual(44);
+  }
+}
+
+test('DL-23 gives disclosures, links, speed and counteroffers 44px targets', async ({ page }) => {
   await page.goto('/');
+  await targets(page, 'summary, a, button');
+  await start(page, replay(counterSave.seed, counterSave.inputs, counterSave.minute));
+  await page.addStyleTag({ content: ':root { --safe-t: 20px; --safe-b: 20px; }' });
+  await page.locator('[data-pick="selim"]').click();
+  await targets(page, '.speed button, a, #caption button, #sheet button');
+});
+
+test('DL-6 counts journal and first job choice separately from optional opening notes', async ({ page }) => {
+  const time = new Date('2026-10-20T12:00:00Z');
+  await page.clock.install({ time });
+  await page.clock.pauseAt(time);
+  await page.goto('/');
+  const words = (text: string) => (text.trim() ? text.trim().split(/\s+/u).length : 0);
   const opening = await page.locator('.page > h1, .page > p').allTextContents();
-  const words = (text: string) => text.trim().split(/\s+/u).length;
+  const story = await page.locator('.page > p:not(.soft)').allTextContents();
   await page.getByText('More about the kitchen', { exact: true }).click();
   await expect(page.locator('details')).toContainText('Hold the job to insist.');
   await expect(page.locator('details')).toContainText('● is ready.');
   await page.getByText('More about the kitchen', { exact: true }).click();
   await page.getByRole('button', { name: 'Open the doors', exact: true }).click();
+  const journal = (await page.locator('.journal').innerText()).replace('Opening notes', '');
   const service = await page.locator('#status, #sheet > .hint').allTextContents();
-  expect(words([...opening, ...service].join(' '))).toBeLessThanOrEqual(40);
+  await page.getByText('Opening notes', { exact: true }).click();
+  await expect(page.locator('.journal')).toContainText(story[0] ?? '');
+  await page.getByText('Opening notes', { exact: true }).click();
+  await page.locator('[data-pick="selim"]').click();
+  const choice = await page.locator('#sheet > .hint').allTextContents();
+  expect(words(story.join(' '))).toBe(23);
+  expect(words([...opening, ...service, journal, ...choice].join(' '))).toBeLessThanOrEqual(50);
 });

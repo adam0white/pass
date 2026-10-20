@@ -748,13 +748,14 @@ function drawSheet() {
       .join()}${st.crew.map((m) => cookOf(st, m.id).gone).join()}`;
     if (sheetKey === key) return;
     sheetKey = key;
-    el.innerHTML = `${tipLine(st)}${crewRow()}<div class="journal">${lines
+    const openingNotes = st.night === 1 && lines.every((x) => x.at === openAt(1) - 5);
+    el.innerHTML = `${tipLine(st)}${crewRow()}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
       .map((x) =>
         x.who === 'narrator'
           ? `<div>${esc(x.text)}</div>`
           : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(x.text)}”</div>`,
       )
-      .join('')}</div>`;
+      .join('')}${openingNotes ? '</details>' : ''}</div>`;
     for (const b of el.querySelectorAll<HTMLButtonElement>('[data-pick]'))
       b.addEventListener('click', () => select(b.dataset.pick as CookId));
     return;

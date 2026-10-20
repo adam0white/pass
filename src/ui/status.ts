@@ -42,6 +42,14 @@ export function serviceStatus(s: GameState): ServiceStatus {
     );
 
   const staffed = new Set<Station | null>(onShift(s).map((id) => stationOf(s, id)));
+  const waitingForPlate = open.some(
+    (t) => t.due === undefined && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven,
+  );
+  if (s.plates.clean <= 0 && waitingForPlate) {
+    if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
+      return status('Food is waiting for clean plates.');
+    return status('Food needs clean plates; select a cook for dish.', true);
+  }
   const remaining = owed(s);
   const needed = (['grill', 'cold', 'oven'] as const).filter((st) => remaining[st] > 0);
   const dark = gasOut(s);
@@ -62,10 +70,5 @@ export function serviceStatus(s: GameState): ServiceStatus {
     );
   if (needed.length) return status('Waiting for cooking.');
 
-  if (s.plates.clean <= 0 && open.some((t) => t.due === undefined)) {
-    if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
-      return status('Food is waiting for clean plates.');
-    return status('Food needs clean plates; select a cook for dish.', true);
-  }
   return status('Food is ready for the pass.');
 }
