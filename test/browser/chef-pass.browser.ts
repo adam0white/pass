@@ -161,3 +161,15 @@ test('station limits name warming and lost gas when portions are waiting', async
   );
   await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText('Waiting for gas');
 });
+
+test('resuming from a scrolled title returns service and Game menu to the top', async ({ page }) => {
+  await start(page);
+  await page.reload();
+  const resume = page.getByRole('button', { name: /Back to the kitchen/ });
+  await resume.evaluate((button) => button.scrollIntoView({ block: 'start' }));
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await resume.tap();
+  await expect(page.locator('.service')).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await onScreen(page, '#game-menu, #clock');
+});

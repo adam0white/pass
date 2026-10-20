@@ -531,6 +531,7 @@ function service() {
     drawCaption();
   });
   drawAll();
+  window.scrollTo(0, 0);
   last = performance.now();
   carry = 0;
   cancelAnimationFrame(raf);
