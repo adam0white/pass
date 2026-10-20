@@ -19,3 +19,20 @@ describe('hands-on playback', () => {
     expect(JSON.stringify(s)).toBe(before);
   });
 });
+
+it('keeps an edition-eight cooking act readable and restores the room speed on delegation', () => {
+  const s = newGame(42, 'pass@8');
+  queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+  queueInput(s, { kind: 'open' });
+  while (!helpOptions(s).length) step(s);
+  const option = helpOptions(s)[0];
+  if (!option) throw new Error('Expected a portion');
+  queueInput(s, { kind: 'help', ticket: option.ticket, station: option.station });
+  while (!cookingStep(s)?.ready && s.help) step(s);
+  s.passDecision = null;
+  s.request = null;
+  s.staffing = [];
+  expect(clockPlayback(s, 1).rate).toBe(0.1);
+  queueInput(s, { kind: 'finish-portion', ticket: option.ticket });
+  expect(clockPlayback(s, 1).rate).toBe(1.5);
+});

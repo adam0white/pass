@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { boardDefaults, newGame, queueInput, step } from '../../src/sim/kitchen.ts';
 
 async function start(page: import('@playwright/test').Page) {
-  const s = newGame(42);
+  const s = newGame(42, 'pass@7');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   while (s.minute < 1060) step(s);
@@ -91,7 +91,10 @@ async function visibleTargets(page: import('@playwright/test').Page, selector: s
     const box = await target.boundingBox();
     expect(box).not.toBeNull();
     if (!box) continue;
-    if (await target.evaluate((el) => el.tagName === 'BUTTON')) expect(box.height).toBeGreaterThanOrEqual(44);
+    if (await target.evaluate((el) => el.tagName === 'BUTTON')) {
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      buttonBoxes.push(box);
+    }
     expect(box.y).toBeGreaterThanOrEqual(0);
     expect(box.y + box.height).toBeLessThanOrEqual(690);
     expect(box.x).toBeGreaterThanOrEqual(0);

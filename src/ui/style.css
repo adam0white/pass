@@ -825,3 +825,178 @@ button.slip:disabled {
 .service.hands-on:has(.chef-work).responding .sheet {
   flex-basis: 260px;
 }
+
+/* Food is the chef's work surface. Its controls sit against the drawn food. */
+.active-portion {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 8px 12px 7px 10px;
+  padding: 7px;
+}
+.portion-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.food-surface {
+  position: relative;
+  min-height: 148px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 6px;
+  isolation: isolate;
+}
+.food-drawing {
+  position: absolute;
+  inset: 4px 18px 30px;
+  border: 2px solid var(--ink);
+  border-radius: 44% 42% 46% 39%;
+  background: var(--paper-2);
+  transform: rotate(-2deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  z-index: -1;
+}
+.food-drawing i {
+  width: 24px;
+  height: 47px;
+  border: 1.5px solid var(--ink);
+  border-radius: 36% 42% 30% 46%;
+  background: var(--paper);
+  transform: rotate(25deg);
+}
+.food-grill .food-drawing {
+  border-radius: 26% 30% 25% 33%;
+}
+.food-grill i {
+  background: repeating-linear-gradient(0deg, transparent 0 8px, var(--ink-soft) 9px 10px);
+}
+.food-cold i {
+  border-color: var(--moss);
+  height: 29px;
+  transform: rotate(-28deg);
+}
+.food-oven i {
+  width: 90px;
+  height: 42px;
+  border-radius: 50%;
+}
+.food-oven i + i {
+  display: none;
+}
+.food-acts {
+  width: 100%;
+}
+.hands-on .food-acts button,
+.finish-portion {
+  min-height: 44px;
+  width: 100%;
+  font-size: 14px;
+  padding: 6px;
+}
+.food-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.finish-portion {
+  margin-top: 5px;
+}
+.chef-next {
+  margin: 5px 0;
+}
+.hands-on .chef-stations {
+  margin-top: 5px;
+}
+.hands-on .chef-stations button {
+  min-height: 54px;
+}
+.service.hands-on.inspecting .chef-work {
+  display: block;
+}
+.hands-on.inspecting .chef-work:not(:has(.active-portion)) {
+  display: none;
+}
+.hands-on.inspecting .chef-stations,
+.hands-on.inspecting .pass-plates,
+.hands-on.inspecting .food-drawing,
+.hands-on.inspecting .portion-heading .work-duration {
+  display: none;
+}
+.hands-on.inspecting .food-surface {
+  min-height: 0;
+  padding: 0;
+}
+.hands-on.inspecting .active-portion {
+  padding: 4px;
+}
+.hands-on.inspecting .finish-portion {
+  margin-top: 3px;
+}
+.service.hands-on:has(.active-portion) .scene {
+  min-height: 0;
+}
+.service.hands-on:has(.chef-work):has(.active-portion) .sheet {
+  min-height: 70px;
+  flex-basis: 85px;
+}
+.service.hands-on:has(.active-portion).inspecting .sheet {
+  min-height: 200px;
+  flex-basis: 300px;
+}
+.hands-on:has(.active-portion) .chef-line {
+  display: none;
+}
+.service.hands-on:has(.active-portion) .service-status {
+  min-height: 44px;
+}
+.hands-on:has(.active-portion) .food-surface {
+  min-height: 140px;
+}
+.hands-on:has(.active-portion) .chef-stations button {
+  min-height: 44px;
+}
+.hands-on:has(.active-portion) .chef-stations .work-duration {
+  display: none;
+}
+.hands-on:has(.active-portion).inspecting .food-surface {
+  min-height: 0;
+}
+.hands-on:has(.active-portion) .rail {
+  padding-bottom: 2px;
+}
+.service.hands-on:has(.active-portion) .chef-work {
+  margin-bottom: 2px;
+  padding-top: 2px;
+}
+/* When plates fill the pass, retain the food decision and every service call. */
+.service.hands-on:has(.active-portion) .crowded-pass .food-surface {
+  min-height: 0;
+  padding: 0;
+}
+.hands-on .crowded-pass .food-drawing,
+.hands-on .crowded-pass .chef-stations {
+  display: none;
+}
+.service.hands-on.responding .chef-work:has(.active-portion) {
+  display: block;
+}
+.hands-on.responding:has(.active-portion) .rail,
+.hands-on.responding .food-drawing,
+.hands-on.responding .chef-stations,
+.hands-on.responding .pass-plates,
+.hands-on.responding .portion-heading .work-duration {
+  display: none;
+}
+.service.hands-on.responding:has(.active-portion) .food-surface {
+  min-height: 0;
+  padding: 0;
+}
+.service.hands-on.responding:has(.chef-work):has(.active-portion) .sheet {
+  min-height: 250px;
+  flex-basis: 300px;
+}

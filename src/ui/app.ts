@@ -22,6 +22,7 @@ import {
   canReplay,
   chefLine,
   closeAt,
+  cookingChoice,
   cookingStep,
   cookOf,
   coverLine,
@@ -501,14 +502,14 @@ function service() {
   cachedHints = null;
   shownSaid = Math.max(0, s.said.length - 3);
   requestWake();
-  app.innerHTML = `<div class="service ${s.version === 'pass@7' ? 'hands-on' : ''}" style="--sheet-height:${s.version === 'pass@5' || s.version === 'pass@6' || s.version === 'pass@7' || stationsTonight(s).length === 4 ? 342 : 276}px">
+  app.innerHTML = `<div class="service ${s.version === 'pass@7' || s.version === 'pass@8' ? 'hands-on' : ''}" style="--sheet-height:${s.version === 'pass@5' || s.version === 'pass@6' || s.version === 'pass@7' || s.version === 'pass@8' || stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
     <div class="service-status" id="status" role="status" aria-live="polite"></div>
-    ${s.version === 'pass@7' ? '<div class="rail" id="rail"></div>' : ''}
-    ${s.version === 'pass@6' || s.version === 'pass@7' ? '<div class="chef-work" id="chef-work" aria-live="polite"></div>' : ''}
-    ${s.version !== 'pass@7' ? '<div class="rail" id="rail"></div>' : ''}
+    ${s.version === 'pass@7' || s.version === 'pass@8' ? '<div class="rail" id="rail"></div>' : ''}
+    ${s.version === 'pass@6' || (s.version === 'pass@7' || s.version === 'pass@8') ? '<div class="chef-work" id="chef-work" aria-live="polite"></div>' : ''}
+    ${s.version !== 'pass@7' && s.version !== 'pass@8' ? '<div class="rail" id="rail"></div>' : ''}
     <div class="scene" id="scene"></div>
     <div class="caption" id="caption"></div>
     <div class="sheet" id="sheet"></div>
@@ -540,12 +541,12 @@ function service() {
   const rail = document.getElementById('rail');
   for (const surface of [rail, document.getElementById('chef-work')])
     surface?.addEventListener('pointerdown', () => {
-      if (s?.version === 'pass@7') railHeld = true;
+      if (s?.version === 'pass@7' || s?.version === 'pass@8') railHeld = true;
     });
   const releaseRail = () => {
     railHeld = false;
     railGraceUntil = performance.now() + 700;
-    window.setTimeout(drawAll, 710);
+    window.setTimeout(() => drawAll(), 710);
   };
   document.addEventListener('pointerup', () => {
     if (railHeld) releaseRail();
@@ -579,9 +580,10 @@ function frame(t: number) {
       carry -= 1;
       const act = cookingStep(s);
       if (
-        s.version === 'pass@7' &&
+        (s.version === 'pass@7' || s.version === 'pass@8') &&
         speed > 1 &&
         act &&
+        !(s.version === 'pass@8' && cookingChoice(s)) &&
         !s.inputs.slice(s.applied).some((input) => input.kind === 'cook-step')
       )
         queueInput(s, { kind: 'cook-step', ticket: act.ticket, instinct: true });
@@ -612,8 +614,8 @@ function collectSaid() {
   shownSaid = s.said.length;
 }
 
-function drawAll() {
-  if (railHeld || performance.now() < railGraceUntil) return;
+function drawAll(force = false) {
+  if (!force && (railHeld || performance.now() < railGraceUntil)) return;
   drawStatus();
   drawTop();
   drawRail();
@@ -674,7 +676,7 @@ function drawRail() {
         const row = (name: string, done: number, n: number) =>
           n === 0
             ? ''
-            : `<div class="d">${name} ${st.version === 'pass@7' && n > 5 ? `${done}/${n}` : '●'.repeat(done) + '○'.repeat(n - done)}</div>`;
+            : `<div class="d">${name} ${(st.version === 'pass@7' || st.version === 'pass@8') && n > 5 ? `${done}/${n}` : '●'.repeat(done) + '○'.repeat(n - done)}</div>`;
         const dish =
           row('grill', t.doneGrill, t.grill) +
           row('cold', t.doneCold, t.cold) +
@@ -687,12 +689,12 @@ function drawRail() {
         const who = reg ? (t.friend ? `${reg.name}’s friend` : reg.name) : `table ${t.table}`;
         const patience = t.patience;
         const option =
-          (st.version === 'pass@6' || st.version === 'pass@7') &&
+          (st.version === 'pass@6' || st.version === 'pass@7' || st.version === 'pass@8') &&
           helpOptions(st).find((o) => o.ticket === t.id);
         const priority =
           st.passDecision?.ticket === t.id ? '<div class="priority-mark">First on the pass</div>' : '';
-        if (st.version === 'pass@6' || st.version === 'pass@7')
-          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Work ${esc(who)}" ${st.version === 'pass@6' && !option ? 'disabled' : ''}><div class="t">${esc(who)}</div>${dish}<div class="st">${option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
+        if (st.version === 'pass@6' || st.version === 'pass@7' || st.version === 'pass@8')
+          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Work ${esc(who)}" ${(st.version === 'pass@6' && !option) || (st.version === 'pass@8' && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}</div>${dish}<div class="st">${option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
         return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}</div>${dish}<div class="st">${wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
       })
       .join(''),
@@ -701,7 +703,7 @@ function drawRail() {
     ticket.onclick = () => {
       const option = helpOptions(st).find((o) => o.ticket === Number(ticket.dataset.ticket));
       if (option) reservePortion(option.ticket, option.station);
-      else if (st.version === 'pass@7')
+      else if (st.version === 'pass@7' || st.version === 'pass@8')
         reservePortion(
           Number(ticket.dataset.ticket),
           ticket.dataset.portionStation as 'grill' | 'cold' | 'oven',
@@ -940,7 +942,9 @@ function drawBubbles() {
     const n = (stack[pl] ?? -1) + 1;
     stack[pl] = n;
     const y = (pos[pl] !== undefined ? 82 : pl === 'idle' ? 160 : 96) - n * 18;
-    const text = b.text.length > 34 ? `${b.text.slice(0, 33)}…` : b.text;
+    // Longer speech is already recorded in full in the journal.
+    if (b.text.length > 34) continue;
+    const text = b.text;
     const x = Math.max(70, Math.min(290, bx));
     out.push(
       `<text x="${x}" y="${y}" text-anchor="middle" font-family="Caveat, cursive" font-size="17" fill="var(--ink)" stroke="var(--paper)" stroke-width="4" paint-order="stroke">${esc(text)}</text>`,
@@ -1011,7 +1015,7 @@ function renderPanel(el: HTMLElement, html: string) {
   template.innerHTML = html;
   const key = (node: Node): string =>
     node instanceof HTMLElement
-      ? `${node.tagName}:${node.id}:${node.dataset.pick ?? ''}:${node.dataset.v ?? ''}:${node.dataset.help ?? ''}:${node.dataset.ticket ?? ''}:${node.dataset.callPlate ?? ''}:${node.dataset.cookStep ?? ''}:${node.dataset.priority ?? ''}:${node.dataset.chefStation ?? ''}:${node.dataset.station ?? ''}:${node.dataset.cover ?? 'no-cover-control'}`
+      ? `${node.tagName}:${node.id}:${node.dataset.pick ?? ''}:${node.dataset.v ?? ''}:${node.dataset.help ?? ''}:${node.dataset.ticket ?? ''}:${node.dataset.callPlate ?? ''}:${node.dataset.cookStep ?? ''}:${node.dataset.cookChoice ?? ''}:${node.dataset.finishPortion ?? ''}:${node.dataset.priority ?? ''}:${node.dataset.chefStation ?? ''}:${node.dataset.station ?? ''}:${node.dataset.cover ?? 'no-cover-control'}`
       : node.nodeName;
   const sync = (target: Node, source: Node) => {
     for (let index = 0; index < source.childNodes.length; index++) {
@@ -1043,28 +1047,25 @@ function drawSheet() {
   const st = s;
   const el = document.getElementById('sheet') as HTMLElement;
   const rq = st.request;
+  const staffing = st.staffing?.find((decision) => decision.state === 'asking');
+  const priorityWaiting =
+    st.passDecision?.state === 'asking' &&
+    (!st.help || st.version === 'pass@6') &&
+    !staffing &&
+    rq?.state !== 'asking';
   document
     .querySelector('.service')
     ?.classList.toggle(
       'responding',
-      !st.help &&
-        (st.passDecision?.state === 'asking' ||
-          rq?.state === 'asking' ||
-          !!st.staffing?.some((d) => d.state === 'asking')),
+      priorityWaiting || rq?.state === 'asking' || !!st.staffing?.some((d) => d.state === 'asking'),
     );
   document
     .querySelector('.service')
-    ?.classList.toggle(
-      'choosing',
-      (!!selected && st.passDecision?.state !== 'asking') || rq?.state === 'asking',
-    );
+    ?.classList.toggle('choosing', (!!selected && !priorityWaiting) || rq?.state === 'asking');
   document
     .querySelector('.service')
-    ?.classList.toggle(
-      'inspecting',
-      !!selected && st.passDecision?.state !== 'asking' && rq?.state !== 'asking',
-    );
-  if (st.passDecision?.state === 'asking') {
+    ?.classList.toggle('inspecting', !!selected && !priorityWaiting && !staffing && rq?.state !== 'asking');
+  if (priorityWaiting) {
     renderPanel(
       el,
       `${crewHeader()}<div class="card priority-card"><b>Call a table first</b><div>${st.help ? 'Your hands are full. Finish this portion before calling a table first.' : 'The other tables wait.'}</div><div class="priority-options">${priorityOptions(
@@ -1082,7 +1083,6 @@ function drawSheet() {
       };
     return;
   }
-  const staffing = st.staffing?.find((decision) => decision.state === 'asking');
   if (staffing) {
     const queued = st.inputs
       .slice(st.applied)
@@ -1145,7 +1145,7 @@ function drawSheet() {
     const openingNotes = st.night === 1 && lines.every((x) => x.at === openAt(1) - 5);
     renderPanel(
       el,
-      `${crewHeader()}${tipLine(st)}${st.version === 'pass@6' || st.version === 'pass@7' ? '' : foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
+      `${crewHeader()}${tipLine(st)}${st.version === 'pass@6' || (st.version === 'pass@7' || st.version === 'pass@8') ? '' : foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
         .map((x) =>
           x.who === 'narrator'
             ? `<div>${esc(gloss(x.text))}</div>`
@@ -1254,19 +1254,14 @@ function reservePortion(ticket: number, station: 'grill' | 'cold' | 'oven') {
   if (!s) return;
   const saidBefore = s.said.at(-1);
   queueInput(s, { kind: 'help', ticket, station });
-  immediateReply(
-    saidBefore,
-    s.help
-      ? `Table ${s.tickets.find((t) => t.id === s?.help?.ticket)?.table}: your portion is on the ${station === 'cold' ? 'cold side' : station}.`
-      : undefined,
-  );
   writeSave();
   sheetKey = '';
-  drawAll();
+  drawAll(true);
+  immediateReply(saidBefore);
 }
 
 function immediateReply(saidBefore: GameState['said'][number] | undefined, text?: string) {
-  if (s?.version !== 'pass@7' || s.said.at(-1) === saidBefore) return;
+  if ((s?.version !== 'pass@7' && s?.version !== 'pass@8') || s.said.at(-1) === saidBefore) return;
   const reply = s.said.at(-1);
   const caption = document.getElementById('caption');
   if (reply && caption) {
@@ -1280,47 +1275,64 @@ function handsInput(input: Parameters<typeof queueInput>[1]) {
   if (!s) return;
   const saidBefore = s.said.at(-1);
   queueInput(s, input);
-  immediateReply(saidBefore);
   writeSave();
   sheetKey = '';
-  drawAll();
+  drawAll(true);
+  immediateReply(
+    saidBefore,
+    input.kind === 'call-plate'
+      ? s.said
+          .slice(-2)
+          .map((line) => line.text)
+          .join(' ')
+      : undefined,
+  );
 }
 
 function drawChefWork() {
-  if (s?.version !== 'pass@6' && s?.version !== 'pass@7') return;
+  if (s?.version !== 'pass@6' && s?.version !== 'pass@7' && s?.version !== 'pass@8') return;
   const el = document.getElementById('chef-work');
   if (!el) return;
   const st = s;
   const options = helpOptions(st);
-  if (st.version === 'pass@7') {
+  if (st.version === 'pass@7' || st.version === 'pass@8') {
     const act = cookingStep(st);
     const plates = plateOptions(st);
+    el.classList.toggle('crowded-pass', plates.length > 2);
+    const active = act && st.help && !st.help.instinct;
+    const station = act?.station ?? st.help?.station;
+    const table = st.tickets.find((t) => t.id === st.help?.ticket)?.table;
+    const next = st.version === 'pass@8' ? st.chefNext : null;
+    const choice = st.version === 'pass@8' ? cookingChoice(st) : null;
+    const actControl = choice
+      ? `<div class="food-choices"><button class="primary" data-cook-choice="now" data-choice-ticket="${choice.ticket}">${esc(choice.plain)}<span class="work-duration">Plain. Ready sooner.</span></button><button class="primary" data-cook-choice="careful" data-choice-ticket="${choice.ticket}">${esc(choice.careful)}<span class="work-duration">${choice.minutes} more kitchen minutes. Other tables wait.</span></button></div>`
+      : act
+        ? `<button class="portion-act ${act.ready ? 'ready' : ''}" data-cook-step="${act.ticket}" aria-label="${esc(act.text)}">${esc(act.text)}</button>`
+        : '';
     renderPanel(
       el,
-      `<div class="chef-line">${esc(act ? (st.chef.body.exertion > 0.45 ? 'My arms are tired. Each act takes more work.' : 'My portion is on the station. Each act works my arms.') : chefLine(st))}</div><div class="chef-stations">${(
-        ['grill', 'cold', 'oven'] as const
-      )
-        .filter((station) => stationsTonight(st).includes(station))
-        .map((station) =>
-          act?.station === station
-            ? `<button class="portion-act ${act.ready ? 'ready' : ''}" data-cook-step="${act.ticket}" aria-label="${esc(act.text)}">${esc(act.text)}<span class="work-duration">${speed > 1 ? 'Fast: your hands work on instinct; a plain plate.' : act.ready ? 'Tap this portion.' : 'Your portion is on the station.'}</span></button>`
-            : `<button data-chef-station="${station}" data-portion-ticket="${options.find((o) => o.station === station)?.ticket ?? ''}" aria-label="Work ${station === 'cold' ? 'cold side' : station}" ${st.help ? 'disabled' : ''}>Work ${station === 'cold' ? 'cold side' : station}<span class="work-duration">${
-                (options.find((o) => o.station === station)
-                  ? `Table ${st.tickets.find((t) => t.id === options.find((o) => o.station === station)?.ticket)?.table}. ${station === 'grill' ? 'Sear, turn, rest, plate.' : station === 'cold' ? 'Cut, dress, plate.' : 'Shape, bake, plate.'} Tires my arms.`
-                  : undefined) ??
-                (st.help
-                  ? 'Hands full'
-                  : owed(st)[station] > 0 && station !== 'cold' && gasOut(st)
-                    ? 'Waiting for gas'
-                    : owed(st)[station] > 0 && station === 'oven' && st.oven.heat < OVEN_HOT
-                      ? 'Oven warming'
-                      : 'Nothing waiting')
-              }</span></button>`,
-        )
+      `${active ? `<section class="active-portion" aria-label="Your active portion"><div class="portion-heading"><b>Table ${table} · ${station === 'cold' ? 'cold side' : station}</b><span class="work-duration">${st.chef.body.exertion > 0.45 ? 'My arms are tired.' : 'Working my arms.'}</span></div><div class="food-surface food-${station}"><div class="food-drawing" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="food-acts">${actControl}</div></div>${st.version === 'pass@8' ? `<button class="finish-portion" data-finish-portion="${st.help?.ticket}">Finish on instinct<span class="work-duration">Plain food. Keep the room’s speed.</span></button>` : ''}</section>` : `<div class="chef-line">${esc(st.help?.instinct ? 'My hands finish this portion on instinct. Plain food.' : chefLine(st))}</div>`}
+      ${next ? `<div class="chef-next">Chef’s next: table ${st.tickets.find((t) => t.id === next.ticket)?.table} · ${next.station === 'cold' ? 'cold side' : next.station}</div>` : ''}
+      <div class="chef-stations">${(['grill', 'cold', 'oven'] as const)
+        .filter((place) => stationsTonight(st).includes(place))
+        .map((place) => {
+          const option = options.find((o) => o.station === place);
+          return `<button data-chef-station="${place}" data-portion-ticket="${option?.ticket ?? ''}" aria-label="Work ${place === 'cold' ? 'cold side' : place}" ${st.help && st.version !== 'pass@8' ? 'disabled' : ''}>${st.help && st.version === 'pass@8' ? 'Next: ' : 'Work '}${place === 'cold' ? 'cold side' : place}<span class="work-duration">${option ? `Table ${st.tickets.find((t) => t.id === option.ticket)?.table}${st.help ? '. Reserve it.' : '. Take a portion.'}` : st.help ? 'Hands full' : owed(st)[place] > 0 && place !== 'cold' && gasOut(st) ? 'Waiting for gas' : owed(st)[place] > 0 && place === 'oven' && st.oven.heat < OVEN_HOT ? 'Oven warming' : 'Nothing waiting'}</span></button>`;
+        })
         .join(
           '',
         )}</div><div class="pass-plates" aria-label="Plates at the pass">${plates.map((plate) => `<button data-call-plate="${plate.ticket}">${esc(plate.text.split('!')[0] ?? plate.text)}!<span class="work-duration">${plate.text.includes('cooling') ? 'Cooling.' : 'Out hot.'}</span></button>`).join('')}</div>`,
     );
+    for (const button of el.querySelectorAll<HTMLButtonElement>('[data-cook-choice]'))
+      button.onclick = () =>
+        handsInput({
+          kind: 'cook-choice',
+          ticket: Number(button.dataset.choiceTicket),
+          choice: button.dataset.cookChoice as 'now' | 'careful',
+        });
+    for (const button of el.querySelectorAll<HTMLButtonElement>('[data-finish-portion]'))
+      button.onclick = () =>
+        handsInput({ kind: 'finish-portion', ticket: Number(button.dataset.finishPortion) });
     for (const button of el.querySelectorAll<HTMLButtonElement>('[data-cook-step]'))
       button.onclick = () => handsInput({ kind: 'cook-step', ticket: Number(button.dataset.cookStep) });
     for (const button of el.querySelectorAll<HTMLButtonElement>('[data-call-plate]'))
