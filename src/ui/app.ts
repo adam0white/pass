@@ -47,6 +47,7 @@ import {
   type Verb,
 } from '../sim/kitchen.ts';
 import { lab } from './lab.ts';
+import { serviceStatus } from './status.ts';
 
 const SAVE = 'pass-save-v3';
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
@@ -183,7 +184,10 @@ function title() {
       <button id="load">Load a playtest run</button>
       <input type="file" id="file" accept="application/json" hidden />
     </div>
-    <p class="soft" style="font-size:14px">Tap a cook, then a job. Hold the job to insist. They can say no.</p>
+    <details><summary>More about the kitchen</summary>
+      <p>Tap a cook, then a job. Hold the job to insist. They can say no.</p>
+      <p>Each ticket lists what the grill and the cold side owe it; ● is ready.</p>
+    </details>
     ${footer()}
   </div>`;
   document.getElementById('cont')?.addEventListener('click', () => {
@@ -276,6 +280,7 @@ function service() {
   app.innerHTML = `<div class="service">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
+    <div class="service-status" id="status" role="status" aria-live="polite"></div>
     <div class="rail" id="rail"></div>
     <div class="scene" id="scene"></div>
     <div class="caption" id="caption"></div>
@@ -300,6 +305,7 @@ function service() {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-counter]');
     if (!b || !s?.lastAnswer) return;
     queueInput(s, { kind: 'ask', cook: s.lastAnswer.who, verb: b.dataset.counter as Verb, counter: true });
+    drawStatus();
     writeSave();
     drawCaption();
   });
@@ -352,6 +358,7 @@ function collectSaid() {
 }
 
 function drawAll() {
+  drawStatus();
   drawTop();
   drawRail();
   drawScene();
@@ -371,15 +378,26 @@ function drawTop() {
   });
 }
 
+function drawStatus() {
+  if (!s) return;
+  const el = document.getElementById('status');
+  if (!el) return;
+  const status = serviceStatus(s);
+  if (el.textContent !== status.text) el.textContent = status.text;
+  el.classList.toggle('needs-response', status.needsResponse);
+}
+
 function drawRail() {
   if (!s) return;
   const st = s;
   const open = st.tickets.filter((t) => t.status === 'open');
   const rail = document.getElementById('rail') as HTMLElement;
   if (open.length === 0) {
-    rail.innerHTML = `<span class="soft hand" style="align-self:center">${st.minute < openAt(st.night) + 2 ? 'Doors open…' : 'The rail is clear.'}</span>`;
+    rail.innerHTML = '';
+    rail.classList.add('empty');
     return;
   }
+  rail.classList.remove('empty');
   rail.innerHTML = open
     .map((t) => {
       const wait = st.minute - t.at;
@@ -589,7 +607,7 @@ function figure(id: CookId, x: number, y: number): string {
   const a = p.activity;
   const protest = !!a?.protest;
   const sel = selected === id;
-  const ink = sel ? 'var(--rope)' : 'var(--ink)';
+  const ink = 'var(--ink)';
   const rad = (lean * Math.PI) / 180;
   const hx = x + Math.sin(rad) * 22;
   const hy = y - 30 + (tired > 0.7 ? 4 : 0);
@@ -600,7 +618,7 @@ function figure(id: CookId, x: number, y: number): string {
       : '';
   const apron =
     s.apron === id
-      ? `<path d="M${x - 6} ${y - 14} L${x + 6} ${y - 14} L${x + 7} ${y + 2} L${x - 7} ${y + 2} Z" stroke="var(--rope)" stroke-width="1.2" fill="none"/>`
+      ? `<path d="M${x - 6} ${y - 14} L${x + 6} ${y - 14} L${x + 7} ${y + 2} L${x - 7} ${y + 2} Z" stroke="var(--ink)" stroke-width="1.2" fill="none"/>`
       : '';
   const arms = protest
     ? `<path d="M${x - 8} ${y - 16} L${x + 8} ${y - 12} M${x + 8} ${y - 16} L${x - 8} ${y - 12}" stroke="${ink}" stroke-width="1.5"/>`
@@ -703,16 +721,18 @@ function drawSheet() {
   const st = s;
   const el = document.getElementById('sheet') as HTMLElement;
   const rq = st.request;
+  document.querySelector('.service')?.classList.toggle('choosing', !!selected || rq?.state === 'asking');
   if (rq?.state === 'asking') {
     const key = `rq${rq.kind}${rq.at}`;
     if (sheetKey === key) return;
     sheetKey = key;
     const [yes, no] = ANSWERS[rq.kind] ?? ['Yes', 'No'];
     el.innerHTML = `<div class="card ink-in"><div class="hand">${esc(nameOf(st, rq.who))}: “${esc(requestText(st, rq))}”</div>
-      <div class="row"><button class="primary" id="yes">${esc(yes)}</button><button id="no">${esc(no)}</button></div></div>`;
+      <div class="row"><button class="primary" id="yes">${esc(yes)}</button><button class="primary" id="no">${esc(no)}</button></div></div>`;
     const answer = (choice: 'yes' | 'no') => {
       for (const b of el.querySelectorAll<HTMLButtonElement>('button')) b.disabled = true;
       queueInput(st, { kind: 'answer', choice });
+      drawStatus();
       writeSave();
       el.querySelector('.card')?.insertAdjacentHTML('beforeend', '<div class="soft">They heard you.</div>');
       sheetKey = 'answered';
@@ -748,9 +768,9 @@ function drawSheet() {
   if (sheetKey === key) return;
   sheetKey = key;
   const guess = h.list.some((v) => v.guess);
-  el.innerHTML = `${crewRow()}<div class="who"><b>${esc(m.name)}</b><span class="soft" style="font-size:14px">${esc(doing)}</span><button class="x" id="close" aria-label="close">×</button></div>
-    ${h.forecast ? `<div class="hand">“${esc(h.forecast)}”</div>` : ''}
-    <div class="verbs">${h.list
+  el.innerHTML = `<div class="who">${crewRow()}<button class="x" id="close" aria-label="close">×</button></div>
+    ${h.forecast ? `<div class="hand forecast">“${esc(h.forecast)}”</div>` : ''}
+    <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
           `<button data-v="${v.verb}" ${c.pending ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === m.home ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${esc(v.short)}${v.guess ? '?' : ''}</span><span class="fill"></span></button>`,
@@ -776,8 +796,7 @@ function tipLine(st: GameState): string {
   const mm = st.minute - openAt(st.night);
   const pl = planOf(st.night);
   let t = '';
-  if (st.night === 1 && !seenHint.tap)
-    t = 'Tap a cook. Each ticket lists what the grill and the cold side owe it; ● is ready.';
+  if (st.night === 1 && !seenHint.tap) t = 'Tap a cook.';
   else if (st.night === 2 && mm < 40) t = 'Plates come back dirty. Someone has to wash them.';
   else if (pl.week === 2 && pl.weekday === 2 && mm < 50)
     t = 'Pide bakes only in a hot oven. Someone has to warm it before the rush, and it cools if left.';
@@ -806,7 +825,7 @@ function crewRow(): string {
     .filter((m) => !m.left && cookOf(st, m.id).here)
     .map((m) => {
       const c = cookOf(st, m.id);
-      return `<button data-pick="${m.id}" ${c.gone ? 'disabled' : ''}><b>${esc(m.name)}</b><span class="soft">${c.gone ? 'gone' : (WHERE[placeOf(m.id)] ?? '')}</span></button>`;
+      return `<button data-pick="${m.id}" aria-pressed="${selected === m.id}" ${c.gone ? 'disabled' : ''}><b>${esc(m.name)}</b><span class="soft">${c.gone ? 'gone' : (WHERE[placeOf(m.id)] ?? '')}</span></button>`;
     })
     .join('')}</div>`;
 }
@@ -841,6 +860,7 @@ function ask(verb: Verb, insist: boolean) {
   if (!s || !selected) return;
   queueInput(s, { kind: 'ask', cook: selected, verb, insist });
   seenHint.job = true;
+  drawStatus();
   writeSave();
   sheetKey = '';
   selected = null;

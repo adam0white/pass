@@ -8,6 +8,8 @@
       "!.wrangler",
       "!test/fixtures/*.json",
       "!scratch",
+      "!test-results",
+      "!playwright-report",
       "!docs/playtests/*.json",
       "!.claude"
     ]

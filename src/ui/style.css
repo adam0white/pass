@@ -180,19 +180,22 @@ button:disabled {
   border-color: var(--ink-soft);
 }
 .speed button.on {
-  border-color: var(--rope);
-  color: var(--rope);
+  border-color: var(--ink);
+  color: var(--ink);
+  outline: 1px solid var(--ink);
+  outline-offset: -4px;
+  font-weight: 600;
 }
 .rail {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-content: flex-start;
   gap: 6px;
-  overflow: hidden;
-  max-height: 210px;
+  overflow-x: auto;
+  align-items: flex-start;
   flex-shrink: 0;
   padding: 4px 12px 8px;
-  min-height: 74px;
+  min-height: 0;
   scrollbar-width: none;
 }
 .slip {
@@ -231,7 +234,7 @@ button:disabled {
 }
 .scene {
   flex: 1;
-  min-height: 250px;
+  min-height: 100px;
   position: relative;
 }
 .scene svg {
@@ -246,25 +249,26 @@ button:disabled {
   border-top: 1.5px solid var(--ink);
   background: var(--paper);
   padding: 10px 12px calc(12px + var(--safe-b));
-  min-height: 250px;
+  min-height: 0;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 .sheet .who {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-}
-.sheet .who b {
-  font-size: 19px;
 }
 .sheet .who .x {
   margin-left: auto;
-  min-height: 36px;
+  min-height: 44px;
+  min-width: 44px;
   padding: 2px 12px;
 }
 .verbs {
+  border-top: 2px solid var(--rope);
+  padding-top: 6px;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
@@ -311,7 +315,7 @@ button:disabled {
   font-size: 19px;
 }
 .hint {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-soft);
   font-style: italic;
 }
@@ -327,7 +331,7 @@ button:disabled {
   display: flex;
   gap: 8px;
 }
-.card .row button {
+.card :where(.row) button {
   flex: 1;
 }
 .ink-in {
@@ -359,6 +363,8 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   padding: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   min-height: 52px;
   font-size: 15px;
 }
@@ -415,4 +421,38 @@ button:disabled {
 }
 .cand .hand {
   font-size: 19px;
+}
+
+/* The rail's situation stays above both the kitchen and the response sheet. */
+.service-status {
+  flex-shrink: 0;
+  margin: 2px 12px 8px;
+  padding: 4px 0 4px 9px;
+  border-left: 3px solid var(--ink-soft);
+  font-size: 17px;
+}
+.service-status.needs-response {
+  border-color: var(--rope);
+  color: var(--rope);
+}
+.rail.empty {
+  display: none;
+}
+.service.choosing .scene {
+  min-height: 0;
+}
+.service.choosing .sheet {
+  margin-top: auto;
+}
+.crew button[aria-pressed="true"] {
+  outline: 1px solid var(--ink);
+  outline-offset: -4px;
+}
+.forecast {
+  font-size: 19px;
+}
+
+.sheet .who .crew {
+  flex: 1;
+  min-width: 0;
 }
