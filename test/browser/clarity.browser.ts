@@ -204,10 +204,10 @@ test('DL-6 offers a default board and the first currency gloss before service', 
   await expect(page.locator('details')).toContainText('Turkish lira');
   await page.getByRole('button', { name: 'Open the doors', exact: true }).click();
   await expect(page.locator('.board-row')).toHaveCount(2);
-  await expect(
-    page.getByRole('button', { name: 'Ask the crew about this board', exact: true }),
-  ).toBeEnabled();
-  await expect(page.locator('#open-service')).toBeDisabled();
+  await expect(page.locator('.board-answer')).toHaveCount(2);
+  await expect(page.locator('#ask-board')).toHaveCount(0);
+  await expect(page.locator('#open-service')).toHaveText('Open the doors');
+  await expect(page.locator('#open-service')).toBeEnabled();
   await expect(page.locator('.service')).toHaveCount(0);
 });
 

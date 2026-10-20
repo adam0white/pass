@@ -547,30 +547,36 @@ summary {
   font-weight: 600;
 }
 .board-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-}
-.board-fields label {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 10px;
+}
+.board-label {
+  display: block;
+  margin-bottom: 4px;
   font-size: 14px;
 }
-.board-cover {
-  grid-column: 1 / -1;
+.board-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
-.board-fields select,
-.board-fields input {
-  width: 100%;
-  min-width: 0;
+.board-chips button {
   min-height: 44px;
-  padding: 6px;
-  background: var(--paper-2);
-  color: var(--ink);
-  border: 1px solid var(--ink-soft);
-  border-radius: 5px;
-  font: inherit;
+  min-width: 44px;
+  padding: 7px 10px;
+  font-size: 15px;
+  border-color: var(--ink-soft);
+}
+.board-chips button[aria-pressed="true"] {
+  border-color: var(--ink);
+  outline: 1px solid var(--ink);
+  outline-offset: -3px;
+  font-weight: 600;
+}
+.board-row .board-gap {
+  margin-top: 10px;
+  font-size: 14px;
 }
 .board-answer {
   margin-top: 8px;
@@ -588,7 +594,7 @@ summary {
   margin-top: 4px;
 }
 .board-page form > .actions {
-  margin: 0 0 14px;
+  margin: 16px 0 0;
 }
 .staffing-options button {
   padding: 6px;

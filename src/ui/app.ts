@@ -53,6 +53,7 @@ import {
   trustOf,
   type Verb,
 } from '../sim/kitchen.ts';
+import { boardReplies, breakSlots, sameBoard } from './board.ts';
 import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { lab } from './lab.ts';
 import { serviceStatus } from './status.ts';
@@ -280,68 +281,118 @@ function enter() {
 
 // ---------- the board ----------
 
-function board() {
+function board(draft?: BoardRow[]) {
   if (s?.phase !== 'board') return;
   const st = s;
   cancelAnimationFrame(raf);
   lab.screen(`night ${st.night}: board`);
-  const rows = st.board?.rows.length ? st.board.rows : boardDefaults(st);
-  const crew = activeCrew(st);
-  app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p><p>Set stations and breaks. Each cook answers before you open.</p><form id="board-form"><div class="actions"><button class="primary" type="submit">${st.board?.agreed ? 'Ask about the revised board' : 'Ask the crew about this board'}</button>${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}<button class="primary" type="button" id="open-service" ${st.board?.agreed ? '' : 'disabled'}>Open service</button></div><div class="board-rows">${rows
-    .map(
-      (row) =>
-        `<fieldset class="board-row" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><div class="board-fields"><label>Station<select name="station" aria-label="${esc(nameOf(st, row.cook))} station">${stationsTonight(
-          st,
-        )
-          .map(
-            (station) =>
-              `<option value="${station}" ${station === row.station ? 'selected' : ''}>${esc(VERB_LABEL[station])}</option>`,
-          )
-          .join(
-            '',
-          )}</select></label><label>Break<input name="break" aria-label="${esc(nameOf(st, row.cook))} break time" type="time" value="${clock(row.breakAt)}" /></label><label class="board-cover">Cover<select name="cover" aria-label="${esc(nameOf(st, row.cook))} break cover"><option value="">Leave uncovered</option>${crew
-          .filter((m) => m.id !== row.cook)
-          .map(
-            (m) =>
-              `<option value="${esc(m.id)}" ${row.cover === m.id ? 'selected' : ''}>${esc(m.name)}</option>`,
-          )
-          .join(
-            '',
-          )}</select></label></div>${row.answer ? `<div class="board-answer hand"><b>${row.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(row.answer))}”</div>` : ''}</fieldset>`,
-    )
+  const agreed = boardReplies(st);
+  const rows =
+    draft ?? agreed.map(({ cook, station, breakAt, cover }) => ({ cook, station, breakAt, cover }));
+  const changed = !sameBoard(rows, agreed);
+  const stationName: Record<Station, string> = {
+    grill: 'grill',
+    cold: 'cold side',
+    dish: 'dish pit',
+    oven: 'oven',
+  };
+  const chips = (
+    row: BoardRow,
+    field: string,
+    label: string,
+    choices: { value: string; label: string }[],
+    value: string,
+  ) =>
+    `<div class="board-choice" role="group" aria-label="${esc(nameOf(st, row.cook))} ${label}"><span class="board-label">${label}</span><div class="board-chips">${choices.map((choice) => `<button type="button" data-field="${field}" data-value="${esc(choice.value)}" aria-pressed="${value === choice.value}">${esc(choice.label)}</button>`).join('')}</div></div>`;
+  app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p><form id="board-form"><div class="board-rows">${rows
+    .map((row) => {
+      const answer = agreed.find((r) => r.cook === row.cook);
+      const revised = changed;
+      const coverRow = rows.find((r) => r.cook === row.cover);
+      const station = stationName[row.station];
+      const tradeoff = coverRow ? `the ${stationName[coverRow.station]} waits` : '';
+      const gap = row.cover
+        ? revised
+          ? `Ask ${nameOf(st, row.cover)} to cover; ${tradeoff} for twenty minutes.`
+          : answer?.coverAccepted
+            ? `${nameOf(st, row.cover)} covers; ${tradeoff} for twenty minutes.`
+            : `${nameOf(st, row.cover)} has not agreed to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`
+        : `No one to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`;
+      // Keep an imported choice visible even if another edit makes its interval conflict.
+      const covers = rows.filter(
+        (other) =>
+          other.cook !== row.cook &&
+          (other.cook === row.cover || Math.abs(other.breakAt - row.breakAt) >= 20),
+      );
+      return `<fieldset class="board-row" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><div class="board-fields">${chips(
+        row,
+        'station',
+        'Station',
+        stationsTonight(st).map((station) => ({ value: station, label: VERB_LABEL[station] })),
+        row.station,
+      )}${chips(
+        row,
+        'break',
+        'Break · twenty minutes',
+        breakSlots(answer?.breakAt ?? row.breakAt).map((slot) => ({
+          value: String(slot.minute),
+          label: slot.label,
+        })),
+        String(row.breakAt),
+      )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
+    })
     .join(
       '',
-    )}</div></form><details><summary>About the board</summary><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></details>${footer()}</div>`;
+    )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form><details><summary>About the board</summary><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></details>${footer()}</div>`;
   const submit = (next: BoardRow[]) => {
     queueInput(st, { kind: 'board', rows: next });
     writeSave();
+    const scroll = window.scrollY;
     board();
+    document.getElementById('open-service')?.focus({ preventScroll: true });
+    window.scrollTo(0, scroll);
   };
+  for (const button of app.querySelectorAll<HTMLButtonElement>('[data-field]')) {
+    button.addEventListener('click', () => {
+      const cook = button.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook;
+      const { field, value = '' } = button.dataset;
+      const next = rows.map((row) =>
+        row.cook !== cook
+          ? row
+          : {
+              ...row,
+              ...(field === 'station'
+                ? { station: value as Station }
+                : field === 'break'
+                  ? { breakAt: Number(value) }
+                  : { cover: value || null }),
+            },
+      );
+      const scroll = window.scrollY;
+      board(next);
+      const replacement = Array.from(app.querySelectorAll<HTMLButtonElement>('[data-field]')).find(
+        (el) =>
+          el.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook === cook &&
+          el.dataset.field === field &&
+          el.dataset.value === value,
+      );
+      replacement?.focus({ preventScroll: true });
+      window.scrollTo(0, scroll);
+    });
+  }
   document.getElementById('board-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
-    submit(
-      Array.from(app.querySelectorAll<HTMLElement>('[data-board-cook]')).map((el) => {
-        const time = (el.querySelector('[name="break"]') as HTMLInputElement).value.split(':').map(Number);
-        return {
-          cook: el.dataset.boardCook as CookId,
-          station: (el.querySelector('[name="station"]') as HTMLSelectElement).value as Station,
-          breakAt: (time[0] ?? 19) * 60 + (time[1] ?? 0),
-          cover: (el.querySelector('[name="cover"]') as HTMLSelectElement).value || null,
-        };
-      }),
-    );
+    if (changed) submit(rows);
   });
   document.getElementById('same-board')?.addEventListener('click', () => submit(boardDefaults(st)));
   document.getElementById('open-service')?.addEventListener('click', () => {
+    if (changed) return;
+    if (!st.board?.agreed) queueInput(st, { kind: 'board', rows });
     queueInput(st, { kind: 'open' });
     writeSave();
     enter();
   });
-  // An edit needs a fresh answer, so opening cannot silently use stale agreements.
-  document.getElementById('board-form')?.addEventListener('input', () => {
-    (document.getElementById('open-service') as HTMLButtonElement).disabled = true;
-  });
-  window.scrollTo(0, 0);
+  if (!draft) window.scrollTo(0, 0);
 }
 
 // ---------- service ----------

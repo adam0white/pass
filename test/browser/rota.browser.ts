@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, type Page, test } from '@playwright/test';
 import { newGame } from '../../src/sim/kitchen.ts';
 
@@ -18,23 +19,69 @@ async function start(page: Page) {
 
 async function open(page: Page) {
   await start(page);
-  await page.getByRole('button', { name: 'Ask the crew about this board', exact: true }).click();
   await page.locator('#open-service').click();
 }
 
-test('board edits receive cook answers and opening needs a current agreement', async ({ page }) => {
+test('reading or resuming an unanswered baseline board leaves its notebook unchanged', async ({ page }) => {
+  await start(page);
+  const before = newGame(42);
+  const read = () =>
+    page.evaluate(async () => {
+      const path = '/src/ui/app.ts';
+      const simPath = '/src/sim/kitchen.ts';
+      return (await import(simPath)).cloneState((await import(path))._debug.state);
+    });
+  const { cloneState } = await import('../../src/sim/kitchen.ts');
+  expect(await read()).toEqual(cloneState(before));
+  await page.reload();
+  await page.locator('#cont').click();
+  expect(await read()).toEqual(cloneState(before));
+  await page.locator('#open-service').click();
+  const after = await read();
+  expect(after.inputs.map((input: { kind: string }) => input.kind)).toEqual(['board', 'open']);
+});
+
+test('board chips use 24-hour slots and answers precede the actions', async ({ page }) => {
   await start(page);
   await expect(page.locator('.board-row')).toHaveCount(2);
-  const actionBox = await page.locator('#board-form > .actions').boundingBox();
-  expect((actionBox?.y ?? 0) + (actionBox?.height ?? 0)).toBeLessThanOrEqual(690);
-  await page.getByLabel('Selim break time').fill('19:30');
-  await page.getByRole('button', { name: 'Ask the crew about this board', exact: true }).click();
   await expect(page.locator('.board-answer')).toHaveCount(2);
-  expect(await page.locator('#board-form > .actions').boundingBox()).toEqual(actionBox);
-  await expect(page.locator('#open-service')).toBeEnabled();
-  await page.getByLabel('Selim break time').fill('19:40');
+  await expect(page.locator('#board-form input, #board-form select')).toHaveCount(0);
+  await expect(page.locator('#open-service')).toHaveText('Open the doors');
+  await expect(page.locator('#ask-board')).toHaveCount(0);
+  await expect(page.locator('[data-board-cook="selim"] .board-gap')).toHaveText(
+    'No one to cover; the grill waits while Selim eats.',
+  );
+  const dilek = page.locator('[data-board-cook="dilek"]');
+  await dilek.getByRole('button', { name: '21:00 after the rush', exact: true }).click();
+  await dilek.getByRole('button', { name: '18:35 during the rush', exact: true }).click();
+  await expect(page.locator('#ask-board')).toHaveCount(0);
+  const selim = page.locator('[data-board-cook="selim"]');
+  await selim.getByRole('button', { name: '19:45 during the rush', exact: true }).click();
+  await expect(selim.getByRole('button', { name: '19:45 during the rush', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await expect(page.locator('#open-service')).toBeDisabled();
-  await page.getByRole('button', { name: 'Ask about the revised board', exact: true }).click();
+  await expect(page.locator('#ask-board')).toHaveText('Ask them about the changes');
+  await expect(selim.locator('.board-answer')).toContainText('Changes not answered');
+  await selim.getByRole('button', { name: '18:10 before the rush', exact: true }).click();
+  await expect(page.locator('#open-service')).toBeEnabled();
+  await expect(page.locator('#ask-board')).toHaveCount(0);
+  await selim.getByRole('button', { name: '21:00 after the rush', exact: true }).click();
+  await page.locator('#ask-board').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#open-service')).toBeFocused();
+  await expect(page.locator('#ask-board')).toHaveCount(0);
+  await expect(page.locator('#open-service')).toBeEnabled();
+  expect(
+    await page.locator('#board-form').evaluate((form) => {
+      const cards = form.querySelector('.board-rows');
+      const actions = form.querySelector('.actions');
+      return (
+        !!cards && !!actions && !!(cards.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING)
+      );
+    }),
+  ).toBe(true);
   await page.locator('#open-service').click();
   await expect(page.locator('.service')).toBeVisible();
   const state = await page.evaluate(async () => {
@@ -42,9 +89,87 @@ test('board edits receive cook answers and opening needs a current agreement', a
     return (await import(path))._debug.state;
   });
   expect(state.version).toBe('pass@5');
-  expect(state.board.rows.find((row: { cook: string }) => row.cook === 'selim').breakAt).toBe(1180);
+  expect(state.board.rows.find((row: { cook: string }) => row.cook === 'selim').breakAt).toBe(1260);
   expect(state.inputs.filter((input: { kind: string }) => input.kind === 'ask')).toHaveLength(0);
 });
+
+test('station chips ask for a fresh answer and retain a refusal before opening', async ({ page }) => {
+  await start(page);
+  const selim = page.locator('[data-board-cook="selim"]');
+  await selim.getByRole('button', { name: 'Cold side', exact: true }).click();
+  await expect(page.locator('#open-service')).toBeDisabled();
+  await expect(page.locator('#board-form > .actions .primary')).toHaveCount(2);
+  await page.locator('#ask-board').click();
+  await expect(selim.locator('.board-answer')).toContainText('Counter / no');
+  await expect(selim.locator('.board-answer')).toContainText('not agreed');
+  await expect(page.locator('#open-service')).toBeEnabled();
+});
+
+for (const width of [360, 1280]) {
+  test(`board renders at ${width} with 44px chips, no overlap and named Tuesday relief`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: width === 360 ? 690 : 800 });
+    await start(page);
+    const shots = process.env.PASS_SHOTS ?? testInfo.outputPath('renders');
+    await mkdir(shots, { recursive: true });
+    await page.screenshot({ path: `${shots}/final-agreements-${width}-b.png`, fullPage: true });
+    await page.screenshot({ path: `${shots}/final-board-viewport-${width}-b.png` });
+    const boxes = [];
+    for (const chip of await page.locator('.board-chips button').all()) {
+      const box = await chip.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      if (box) boxes.push(box);
+    }
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i];
+        const b = boxes[j];
+        expect(
+          a &&
+            b &&
+            a.x < b.x + b.width &&
+            b.x < a.x + a.width &&
+            a.y < b.y + b.height &&
+            b.y < a.y + a.height,
+        ).toBe(false);
+      }
+    }
+    const card = await page.locator('.board-row').last().boundingBox();
+    const actions = await page.locator('#board-form > .actions').boundingBox();
+    expect(actions?.y).toBeGreaterThanOrEqual((card?.y ?? 0) + (card?.height ?? 0));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await writeFile(
+      `${shots}/final-metrics-${width}-b.json`,
+      JSON.stringify({ width, height: width === 360 ? 690 : 800, boxes, actions, card }, null, 2),
+    );
+    await page.locator('#open-service').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${shots}/final-actions-${width}-b.png` });
+    await page.locator('#open-service').click();
+    await page.evaluate(async () => {
+      const path = '/src/ui/app.ts';
+      const simPath = '/src/sim/kitchen.ts';
+      const ui = await import(path);
+      const sim = await import(simPath);
+      while (ui._debug.state.phase === 'service') sim.step(ui._debug.state);
+      sim.queueInput(ui._debug.state, { kind: 'open' });
+      ui._debug.refresh();
+    });
+    const selim = page.locator('[data-board-cook="selim"]');
+    await expect(selim.getByRole('button', { name: /Rafi/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(selim.locator('.board-answer')).toContainText('Rafi:');
+    await expect(selim.locator('.board-gap')).toContainText('Rafi has not agreed to cover');
+    await page.screenshot({ path: `${shots}/final-tuesday-board-${width}-b.png`, fullPage: true });
+    await selim.getByRole('button', { name: 'Leave it', exact: true }).click();
+    await expect(selim.getByRole('button', { name: 'Leave it', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('#ask-board')).toBeVisible();
+    await page.screenshot({ path: `${shots}/final-changes-${width}-b.png`, fullPage: true });
+  });
+}
 
 test('a staffing break is one card with cover and leave choices and a slow clock', async ({ page }) => {
   await open(page);
@@ -122,6 +247,12 @@ test('same as last night asks the carried board in one tap', async ({ page }) =>
   await page.locator('#same-board').click();
   await expect(page.locator('.board-answer')).toHaveCount(2);
   await expect(page.locator('#open-service')).toBeEnabled();
+  const carried = await page.evaluate(async () => {
+    const path = '/src/ui/app.ts';
+    const state = (await import(path))._debug.state;
+    return state.board.rows.map((row: { cover: string | null }) => row.cover);
+  });
+  expect(carried).toEqual([null, null]);
 });
 
 test('the job dot matches the current station rather than the cook’s preference', async ({ page }) => {
