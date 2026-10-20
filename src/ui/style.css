@@ -470,9 +470,18 @@ summary {
 /* Reserve answers before allocating space to the scene on a short phone. */
 @media (max-height: 740px) {
   .service.choosing .sheet {
-    gap: 6px;
-    padding-top: 8px;
-    padding-bottom: calc(8px + var(--safe-b));
+    gap: 4px;
+    padding-top: 4px;
+    padding-bottom: calc(4px + var(--safe-b));
+  }
+  .service.choosing .service-status {
+    margin-bottom: 4px;
+  }
+  .service.choosing .rail {
+    padding-bottom: 4px;
+  }
+  .service.choosing .forecast {
+    font-size: 18px;
   }
   .service.choosing .verbs {
     gap: 4px;
@@ -481,4 +490,16 @@ summary {
     min-height: 52px;
     padding: 4px;
   }
+}
+
+/* Reserve both rate lines so automatic speed changes cannot move controls. */
+.clock-rate {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 16px;
+}
+.clock-rate span {
+  display: block;
 }

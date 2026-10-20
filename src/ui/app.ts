@@ -1,6 +1,6 @@
 /**
  * The Pass UI: plain DOM and inline SVG over the pure sim. The UI reads state and queues inputs; it never
- * changes the sim directly. Real time drives sim minutes (continuous, with slowdown while a cook's sheet or a
+ * changes the sim directly. Real time drives sim minutes (continuous, with slowdown while a consequential
  * request is open). The save is the chef's notebook: the seed, the input log, and the Sunday pages to turn back to.
  */
 import { FRAMEWORK_VERSION, readPerson } from '@adam0white/human-framework';
@@ -46,16 +46,13 @@ import {
   trustOf,
   type Verb,
 } from '../sim/kitchen.ts';
+import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { lab } from './lab.ts';
 import { serviceStatus } from './status.ts';
+import { gloss } from './words.ts';
 
 const SAVE = 'pass-save-v3';
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
-const SPEEDS = [0.5, 1.5, 3.5] as const;
-const SPEED_NAMES = ['slow', 'steady', 'fast'];
-const SLOWDOWN = 0.5;
-/** How much faster the clock runs while the kitchen is quiet. */
-const QUIET = 4;
 
 interface Save {
   game: string;
@@ -280,6 +277,7 @@ function service() {
   app.innerHTML = `<div class="service">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
+    <div class="clock-rate" id="clock-rate"></div>
     <div class="service-status" id="status" role="status" aria-live="polite"></div>
     <div class="rail" id="rail"></div>
     <div class="scene" id="scene"></div>
@@ -288,7 +286,7 @@ function service() {
   </div>`;
   const sp = document.getElementById('speed') as HTMLElement;
   sp.innerHTML = SPEED_NAMES.map(
-    (n, i) => `<button data-i="${i}" aria-label="${n}">${['▸', '▸▸', '▸▸▸'][i]}</button>`,
+    (n, i) => `<button data-i="${i}" aria-label="${n.toLowerCase()}">${['▸', '▸▸', '▸▸▸'][i]}</button>`,
   ).join(' ');
   sp.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest('button');
@@ -321,11 +319,7 @@ function frame(t: number) {
   const dt = Math.min(0.25, (t - last) / 1000);
   last = t;
   if (s.phase === 'service') {
-    const slow = selected || s.request?.state === 'asking';
-    // A quiet kitchen (nothing on the rail, nobody at the door for a while) runs the clock on faster.
-    const soon = s.minute + 10;
-    const quiet = !s.tickets.some((t) => t.status === 'open' || (t.status === 'waiting' && t.at <= soon));
-    const rate = slow ? Math.min(SPEEDS[speed] ?? 2, SLOWDOWN) : (SPEEDS[speed] ?? 2) * (quiet ? QUIET : 1);
+    const { rate } = clockPlayback(s, speed);
     carry += dt * rate;
     let stepped = false;
     while (carry >= 1 && s.phase === 'service') {
@@ -373,6 +367,9 @@ function drawTop() {
   (document.getElementById('clock') as HTMLElement).textContent = clock(s.minute);
   (document.getElementById('till') as HTMLElement).innerHTML =
     `till <b>${lira(s.till)}</b> <span class="soft">/ ${lira(billNow(s))} by Sat</span>`;
+  const playback = clockPlayback(s, speed);
+  const rate = document.getElementById('clock-rate') as HTMLElement;
+  rate.innerHTML = `<span>${esc(playback.label)}</span><span>${esc(playback.reason)}</span>`;
   document.querySelectorAll<HTMLButtonElement>('#speed button').forEach((b) => {
     b.classList.toggle('on', Number(b.dataset.i) === speed);
   });
@@ -385,6 +382,7 @@ function drawStatus() {
   const status = serviceStatus(s);
   if (el.textContent !== status.text) el.textContent = status.text;
   el.classList.toggle('needs-response', status.needsResponse);
+  drawTop();
 }
 
 function drawRail() {
@@ -752,8 +750,8 @@ function drawSheet() {
     el.innerHTML = `${tipLine(st)}${crewRow()}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
       .map((x) =>
         x.who === 'narrator'
-          ? `<div>${esc(x.text)}</div>`
-          : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(x.text)}”</div>`,
+          ? `<div>${esc(gloss(x.text))}</div>`
+          : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`,
       )
       .join('')}${openingNotes ? '</details>' : ''}</div>`;
     for (const b of el.querySelectorAll<HTMLButtonElement>('[data-pick]'))
@@ -916,7 +914,7 @@ function evening() {
   const reviews = r.reviews
     .map((x) => {
       const lapse = x.line && !x.line.startsWith('Today I kept');
-      return `<div class="cookline ink-in"><b>${esc(nameOf(st, x.id))}</b>${lapse ? `<div class="hand">“${esc(x.line)}”</div>` : ''}${x.aboutYou ? `<div class="hand">“${esc(x.aboutYou)}”</div>` : ''}</div>`;
+      return `<div class="cookline ink-in"><b>${esc(nameOf(st, x.id))}</b>${lapse ? `<div class="hand">“${esc(gloss(x.line))}”</div>` : ''}${x.aboutYou ? `<div class="hand">“${esc(gloss(x.aboutYou))}”</div>` : ''}</div>`;
     })
     .join('');
   const ended = st.phase === 'end';
@@ -1025,7 +1023,7 @@ function sunday() {
     );
   if (pg.changes.length > 0)
     parts.push(
-      `<p class="soft">What I noticed this week, writing it up:</p>${pg.changes.map((c) => `<p class="hand" style="font-size:20px">${esc(c.line)}</p>`).join('')}`,
+      `<p class="soft">What I noticed this week, writing it up:</p>${pg.changes.map((c) => `<p class="hand" style="font-size:20px">${esc(gloss(c.line))}</p>`).join('')}`,
     );
   if (pg.offday)
     parts.push(

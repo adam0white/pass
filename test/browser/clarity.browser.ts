@@ -16,7 +16,7 @@ import {
 async function start(page: Page, state?: GameState) {
   const time = new Date('2026-10-20T12:00:00Z');
   await page.clock.install({ time });
-  await page.clock.pauseAt(time);
+  await page.clock.pauseAt(new Date(time.getTime() + 60000));
   if (state !== undefined) {
     await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
       game: GAME_VERSION,
@@ -34,6 +34,7 @@ async function start(page: Page, state?: GameState) {
 }
 
 async function onScreen(page: Page, selector: string) {
+  await page.evaluate(() => document.fonts.ready);
   for (const element of await page.locator(selector).all()) {
     await expect(element).toBeVisible();
     const box = await element.boundingBox();
@@ -96,7 +97,7 @@ test('DL-22 gives a new request priority over an open cook sheet', async ({ page
   await start(page, replay(s.seed, s.inputs, s.minute - 2));
   await page.locator('[data-pick="selim"]').click();
   await expect(page.locator('.verbs button')).not.toHaveCount(0);
-  await page.clock.runFor(5000);
+  await page.clock.runFor(25000);
   await expect(page.locator('#status')).toContainText('Dilek');
   await expect(page.locator('.verbs button')).toHaveCount(0);
   await onScreen(page, '#status, #yes, #no, #sheet .card');
@@ -193,7 +194,7 @@ test('DL-23 gives disclosures, links, speed and counteroffers 44px targets', asy
 test('DL-6 counts journal and first job choice separately from optional opening notes', async ({ page }) => {
   const time = new Date('2026-10-20T12:00:00Z');
   await page.clock.install({ time });
-  await page.clock.pauseAt(time);
+  await page.clock.pauseAt(new Date(time.getTime() + 60000));
   await page.goto('/');
   const words = (text: string) => (text.trim() ? text.trim().split(/\s+/u).length : 0);
   const opening = await page.locator('.page > h1, .page > p').allTextContents();
@@ -212,4 +213,82 @@ test('DL-6 counts journal and first job choice separately from optional opening 
   const choice = await page.locator('#sheet > .hint').allTextContents();
   expect(words(story.join(' '))).toBe(23);
   expect(words([...opening, ...service, journal, ...choice].join(' '))).toBeLessThanOrEqual(50);
+});
+
+test('DL-15 shows actual rates and inspection alone does not slow the clock', async ({ page }) => {
+  await start(page, newGame(42));
+  await expect(page.locator('#clock-rate')).toContainText('Steady · 1.5 min/s');
+  await page.getByRole('button', { name: 'fast', exact: true }).click();
+  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
+  const rateBox = await page.locator('#clock-rate').boundingBox();
+  const speedBox = await page.locator('#speed').boundingBox();
+  await page.locator('[data-pick="selim"]').click();
+  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
+  await page.clock.runFor(40000);
+  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('A station needs a cook.');
+  expect(await page.locator('#clock-rate').boundingBox()).toEqual(rateBox);
+  expect(await page.locator('#speed').boundingBox()).toEqual(speedBox);
+  await page.locator('[data-v="grill"]').click();
+  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
+  await expect(page.getByRole('button', { name: 'fast', exact: true })).toHaveClass(/on/);
+});
+
+test('DL-20 quietly glosses maghrib in the journal without changing the saved simulation', async ({
+  page,
+}) => {
+  const s = newGame(5151);
+  while (!s.said.some((x) => x.text.includes('maghrib')) && s.phase === 'service') step(s);
+  // start() restores the same seed as the supplied state.
+  await page.clock.install({ time: new Date('2026-10-20T12:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-10-20T12:01:00Z'));
+  await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
+    game: GAME_VERSION,
+    seed: s.seed,
+    inputs: s.inputs,
+    minute: s.minute,
+    pages: [],
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await expect(page.locator('.journal')).toContainText('maghrib (sunset prayer)');
+});
+
+test('DL-15 leaves a fast-speed request open during five real seconds of reading', async ({ page }) => {
+  test.setTimeout(45000);
+  const s = newGame(42);
+  while (s.night < 5) {
+    if (s.phase === 'evening') queueInput(s, { kind: 'open' });
+    else step(s);
+  }
+  while (s.request?.state !== 'asking' && s.phase === 'service') step(s);
+  const beforeRequest = replay(s.seed, s.inputs, s.minute - 2);
+  await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
+    game: GAME_VERSION,
+    seed: s.seed,
+    inputs: beforeRequest.inputs,
+    minute: beforeRequest.minute,
+    pages: [],
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.getByRole('button', { name: 'fast', exact: true }).click();
+  await expect(page.locator('#yes')).toBeVisible({ timeout: 25000 });
+  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 min/s');
+  const minute = () =>
+    page.evaluate(async () => {
+      const path = '/src/ui/app.ts';
+      return (await import(path))._debug.state.minute as number;
+    });
+  const before = await minute();
+  const realStart = Date.now();
+  await page.waitForTimeout(5000);
+  expect(Date.now() - realStart).toBeGreaterThanOrEqual(5000);
+  expect((await minute()) - before).toBeLessThanOrEqual(1);
+  await expect(page.locator('#yes')).toBeEnabled();
+  await page.locator('#yes').click();
+  await expect(page.locator('#status')).toContainText('respond');
+  await expect(page.locator('#yes')).toHaveCount(0, { timeout: 12000 });
+  await expect(page.locator('#clock-rate')).not.toContainText('Dilek needs an answer.');
+  await expect(page.getByRole('button', { name: 'fast', exact: true })).toHaveClass(/on/);
 });

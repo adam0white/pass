@@ -14,7 +14,7 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 **Pick: A, The Pass.** Both consults chose it independently. It is fast (the rush paces it, so it is not another slow expedition sim), its choices are sharp (push a tired cook or fall behind), and every HF faculty that matters shows each night: refusals and counter-offers, trust and insisting, bodily forecasts ("I can do the rush, but I'll be spent for close"), a prompting at the tip jar that a cook can learn to let pass, and the evening review (muhasaba) whose resolve changes tomorrow.
 
 ## Rules taken from the consults
-1. A night is about 2½ real minutes at normal speed; the game slows while a cook's sheet is open (tactical slowdown, no pause).
+1. A night is about 2½ real minutes at normal speed; the clock slows for an unanswered request or a station needing a cook; inspecting a cook keeps the current rate. Every simulation step stays one minute.
 2. Verbs: tap a cook, then a job. Tap asks; press and hold insists. No menus during service, no meters for a person.
 3. Each job button carries the cook's likely answer in their hand (HF `predict`, pure). A refusal names its reason in their words.
 4. Insisting gets compliance under protest (slower work) and costs trust; it comes back in the evening line and in later answers.
@@ -62,7 +62,17 @@ The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, o
 - **Pushing is remembered** (pass@3). Sunday quits run from the first Sunday; earlier weeks' compliance carries over, halved each week. A quit after week 1 opens hiring early.
 - **A quiet kitchen runs the clock four times faster** (page only).
 
-## Deferred (target: after the owner plays pass@3)
+## Clarity follow-up (F-227, 2026-10-20)
+
+- The clock shows its actual game minutes per real second, including the fourfold clear-rail speedup. Unanswered cook requests and missing station coverage use 0.1 min/s until answered. Waiting for a cook to act runs at the chosen speed. Inspection alone does not slow time.
+- The rendered journal glosses maghrib as sunset prayer. Simulation text and state stay unchanged for replay.
+- Acceptance for this round: the common brief's tests, phone/desktop renders, exact current-edition replay/continuation, deployment and release receipt. The Opus driver retains taste and final review.
+
+## Deferred
+
+- **2026-11-03 — F-227 first-service problem frequency:** Monday has no scripted cook requests. Adding requests, increasing ticket pressure or preventing autonomous returns changes seed-plus-input replay outcomes. Defer to a versioned simulation round; UI pacing alone cannot provide more problems.
+
+## Earlier deferred work (target: after the owner plays pass@3)
 - Waiters and front-of-house as HF people.
 - Workers AI voice for the evening (not needed; HF lines carry it).
 - A cook quitting mid-service, not only on Sunday.
