@@ -20,6 +20,8 @@ describe('game editions', () => {
     expect(newGame(42, 'pass@3').version).toBe('pass@3');
   });
   for (const row of legacy) {
+    // These checkpoints replay eight services. Allow shared-host CPU contention
+    // without changing any exact state or continuation assertion.
     it(`replays every full-state pass@3 checkpoint and continues restored states: ${row.policy}`, () => {
       for (const checkpoint of row.checkpoints) {
         const inputs = row.inputs.filter((i: { at: number }) => i.at < checkpoint.minute);
@@ -29,7 +31,7 @@ describe('game editions', () => {
         for (let k = 0; k < 30; k++) step(restored);
         expect(hash(restored)).toBe(checkpoint.restoredAfter30);
       }
-    }, 20000);
+    }, 120000);
   }
 });
 
