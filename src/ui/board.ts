@@ -12,7 +12,7 @@ import {
 } from '../sim/kitchen.ts';
 
 export function breakSlots(current: number): { minute: number; label: string }[] {
-  return [...new Set([1090, 1185, 1260, current])]
+  return [...new Set([1090, 1115, 1185, 1260, current])]
     .sort((a, b) => a - b)
     .map((minute) => ({
       minute,

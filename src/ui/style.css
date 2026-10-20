@@ -651,3 +651,106 @@ summary {
     padding-bottom: 16px;
   }
 }
+
+/* One labelled route to the run controls, on every kitchen screen. */
+.menu-trigger {
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 14px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.game-menu-dialog {
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  padding: 18px;
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+}
+.game-menu-dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
+.game-menu-dialog h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.game-menu-dialog p {
+  font-size: 15px;
+}
+.game-menu-dialog :where(.actions) {
+  margin-top: 12px;
+}
+.chef-work {
+  flex-shrink: 0;
+  margin: 0 12px 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--ink-soft);
+  font-size: 14px;
+}
+.chef-line {
+  min-height: 60px;
+  line-height: 20px;
+}
+.chef-stations {
+  display: flex;
+  gap: 6px;
+}
+.chef-stations button {
+  flex: 1;
+  min-height: 44px;
+  padding: 5px;
+  font-size: 14px;
+}
+.chef-tradeoff {
+  min-height: 34px;
+  font-size: 13px;
+  line-height: 17px;
+  margin-top: 4px;
+}
+.priority-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.priority-options button {
+  flex: 1;
+  padding: 6px;
+  font-size: 15px;
+}
+.priority-mark {
+  color: var(--rope);
+  font-weight: 600;
+  font-size: 12px;
+}
+button.slip {
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  padding: 3px 4px;
+  min-height: 72px;
+}
+button.slip:disabled {
+  opacity: 0.8;
+}
+.service:has(.chef-work) .sheet {
+  height: calc(274px + var(--safe-b));
+}
+.service:has(.chef-work).choosing .sheet {
+  height: calc(342px + var(--safe-b));
+}
+
+.work-duration {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.service:has(.chef-work) .service-status {
+  min-height: 56px;
+}
+
+.service.inspecting .chef-work {
+  display: none;
+}

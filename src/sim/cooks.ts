@@ -336,7 +336,7 @@ export function makeHire(t: HireTemplate, seed: number, now: number): Person {
   return p;
 }
 
-/** The chef as an observer: no life of their own is simulated, only what they come to believe about the crew. */
+/** The chef observes the crew. From pass@6 the kitchen also lives their food work, meals and sleep. */
 export function makeChef(seed: number, now: number): Person {
   return createPerson({
     id: CHEF,

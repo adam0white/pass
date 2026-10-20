@@ -20,6 +20,7 @@ import {
   type BoardRow,
   boardDefaults,
   canReplay,
+  chefLine,
   closeAt,
   cookOf,
   coverLine,
@@ -42,6 +43,7 @@ import {
   owed,
   pendingCoverLine,
   personOf,
+  priorityOptions,
   queueInput,
   replay,
   requestText,
@@ -56,6 +58,7 @@ import {
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
 import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { lab } from './lab.ts';
+import { compactRun } from './run.ts';
 import { serviceStatus } from './status.ts';
 import { gloss, lira } from './words.ts';
 
@@ -84,6 +87,8 @@ let shownSaid = 0;
 const bubbles: Record<string, { text: string; until: number; minute: number }> = {};
 let wake: { release(): Promise<void> } | null = null;
 const seenHint = { tap: false, job: false };
+let menuOpen = false;
+let menuOrigin: HTMLElement | null = null;
 let boardActionsObserver: ResizeObserver | null = null;
 
 // ---------- save ----------
@@ -114,7 +119,10 @@ function writeSave() {
   try {
     const sv: Save = { game: s.version, seed: s.seed, inputs: s.inputs, minute: s.minute, pages };
     localStorage.setItem(SAVE, JSON.stringify(sv));
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 }
 function clearSave() {
   pages = [];
@@ -144,8 +152,58 @@ function wob(x1: number, y1: number, x2: number, y2: number, key: number, amp = 
   return d;
 }
 const footer = () =>
-  `<div class="footer"><a href="https://human.adamwhite.work/games/">◇ all notebooks</a><br/>People by the Human Framework ${FRAMEWORK_VERSION}. Everything they say comes from it.</div>`;
-const markLink = '<a class="mark" href="https://human.adamwhite.work">◇ human framework</a>';
+  `<div class="footer"><a href="https://human.adamwhite.work/games/">All games</a><br/>People by the Human Framework ${FRAMEWORK_VERSION}. Everything they say comes from it.</div>`;
+const markLink = '<button class="menu-trigger" id="game-menu" type="button">Game menu</button>';
+
+function openGameMenu() {
+  if (menuOpen) return;
+  menuOrigin = document.activeElement as HTMLElement;
+  menuOpen = true;
+  const dialog = document.createElement('dialog');
+  dialog.className = 'game-menu-dialog';
+  dialog.setAttribute('aria-label', 'Game menu');
+  dialog.innerHTML = `<h2>Game menu</h2><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><div class="actions"><button id="save-kitchen" ${s ? '' : 'disabled'}>Save this kitchen</button><button id="download-run" ${s ? '' : 'disabled'}>Download this run</button><button id="send-run" ${s ? '' : 'disabled'}>Send this run to the notebook</button><button id="menu-back">Back to the kitchen</button></div><p id="save-result" role="status">${s ? 'The kitchen waits while this menu is open.' : 'Open a kitchen to save or share a run.'}</p><a href="https://human.adamwhite.work/games/">All games</a>`;
+  let sendSheet = false;
+  const close = () => dialog.close();
+  dialog.addEventListener('close', () => {
+    if (sendSheet) return;
+    menuOpen = false;
+    last = performance.now();
+    dialog.remove();
+    menuOrigin?.focus({ preventScroll: true });
+  });
+  dialog.querySelector('#menu-back')?.addEventListener('click', close);
+  dialog.querySelector('#save-kitchen')?.addEventListener('click', () => {
+    const result = dialog.querySelector('#save-result');
+    if (result)
+      result.textContent = writeSave()
+        ? 'Kitchen saved on this device.'
+        : 'This device could not save the kitchen. Download this run to keep a copy.';
+  });
+  dialog.querySelector('#download-run')?.addEventListener('click', download);
+  dialog.querySelector('#send-run')?.addEventListener('click', () => {
+    // Replace the system menu with the lab sheet, then return here on cancel or completion.
+    sendSheet = true;
+    dialog.close();
+    dialog.remove();
+    sendRun();
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('.hflab-veil')) return;
+      observer.disconnect();
+      document.body.appendChild(dialog);
+      dialog.showModal();
+      sendSheet = false;
+      menuOpen = true;
+      dialog.querySelector<HTMLButtonElement>('#send-run')?.focus();
+    });
+    observer.observe(document.body, { childList: true });
+  });
+  document.body.appendChild(dialog);
+  dialog.showModal();
+}
+document.addEventListener('click', (event) => {
+  if ((event.target as Element).closest('#game-menu')) openGameMenu();
+});
 const weekTitle = (n: number) => `${planOf(n).title}, week ${planOf(n).week}`;
 /** What the week's bill comes to so far: the bill, anything carried over, and the new hands' wages. */
 /** Saturday's bill as it will stand: the week's bill, what was carried, and the hires' wages for the whole week. */
@@ -225,14 +283,14 @@ function title() {
     const f = file.files?.[0];
     if (!f) return;
     try {
-      const ex = JSON.parse(await f.text()) as Export;
+      const ex = JSON.parse(await f.text()) as Export & { minute?: number };
       if (!canReplay(ex.game)) {
         alert(
           `That run is from an earlier edition of The Pass (${ex.game ?? 'unknown'}). This kitchen (${GAME_VERSION}) cooks differently, so it can’t be replayed here.`,
         );
         return;
       }
-      const r = replay(ex.seed, ex.inputs, ex.state?.minute, ex.game);
+      const r = replay(ex.seed, ex.inputs, ex.state?.minute ?? ex.minute, ex.game);
       const same = ex.state ? fingerprint(r) === fingerprint(ex.state) : true;
       s = r;
       pages = [];
@@ -253,7 +311,7 @@ function title() {
 function replayNight(sv: Save): number {
   let n = 1;
   let sunday = false;
-  let atBoard = sv.game === 'pass@5';
+  let atBoard = sv.game === 'pass@5' || sv.game === 'pass@6';
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
     if (atBoard) {
@@ -264,7 +322,7 @@ function replayNight(sv: Save): number {
     else {
       sunday = false;
       n = Math.min(LAST_NIGHT, n + 1);
-      atBoard = sv.game === 'pass@5';
+      atBoard = sv.game === 'pass@5' || sv.game === 'pass@6';
     }
   }
   return n;
@@ -438,11 +496,12 @@ function service() {
   cachedHints = null;
   shownSaid = Math.max(0, s.said.length - 3);
   requestWake();
-  app.innerHTML = `<div class="service" style="--sheet-height:${s.version === 'pass@5' || stationsTonight(s).length === 4 ? 342 : 276}px">
+  app.innerHTML = `<div class="service" style="--sheet-height:${s.version === 'pass@5' || s.version === 'pass@6' || stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
     <div class="service-status" id="status" role="status" aria-live="polite"></div>
+    ${s.version === 'pass@6' ? '<div class="chef-work" id="chef-work" aria-live="polite"></div>' : ''}
     <div class="rail" id="rail"></div>
     <div class="scene" id="scene"></div>
     <div class="caption" id="caption"></div>
@@ -482,7 +541,7 @@ function frame(t: number) {
   if (!s) return;
   const dt = Math.min(0.25, (t - last) / 1000);
   last = t;
-  if (s.phase === 'service') {
+  if (s.phase === 'service' && !menuOpen && !document.querySelector('.hflab-veil')) {
     const { rate } = clockPlayback(s, speed);
     carry += dt * rate;
     let stepped = false;
@@ -519,6 +578,7 @@ function drawAll() {
   drawStatus();
   drawTop();
   drawRail();
+  drawChefWork();
   drawScene();
   drawCaption();
   drawSheet();
@@ -555,30 +615,43 @@ function drawRail() {
   const open = st.tickets.filter((t) => t.status === 'open');
   const rail = document.getElementById('rail') as HTMLElement;
   if (open.length === 0) {
-    rail.innerHTML = '';
+    renderPanel(rail, '');
     rail.classList.add('empty');
     return;
   }
   rail.classList.remove('empty');
-  rail.innerHTML = open
-    .map((t) => {
-      const wait = st.minute - t.at;
-      const row = (name: string, done: number, n: number) =>
-        n === 0 ? '' : `<div class="d">${name} ${'●'.repeat(done)}${'○'.repeat(n - done)}</div>`;
-      const dish =
-        row('grill', t.doneGrill, t.grill) +
-        row('cold', t.doneCold, t.cold) +
-        row('pide', t.doneOven, t.oven);
-      if (t.due !== undefined) {
-        const left = t.due - st.minute;
-        return `<div class="slip wedding ${left < 15 ? 'late' : ''}"><div class="t">wedding trays</div>${dish}<div class="st">${left > 0 ? `by ${clock(t.due)}` : 'late'}</div></div>`;
-      }
-      const reg = t.regular ? regularOf(t.regular) : undefined;
-      const who = reg ? (t.friend ? `${reg.name}’s friend` : reg.name) : `table ${t.table}`;
-      const patience = t.patience;
-      return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}</div>${dish}<div class="st">${wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
-    })
-    .join('');
+  renderPanel(
+    rail,
+    open
+      .map((t) => {
+        const wait = st.minute - t.at;
+        const row = (name: string, done: number, n: number) =>
+          n === 0 ? '' : `<div class="d">${name} ${'●'.repeat(done)}${'○'.repeat(n - done)}</div>`;
+        const dish =
+          row('grill', t.doneGrill, t.grill) +
+          row('cold', t.doneCold, t.cold) +
+          row('pide', t.doneOven, t.oven);
+        if (t.due !== undefined) {
+          const left = t.due - st.minute;
+          return `<div class="slip wedding ${left < 15 ? 'late' : ''}"><div class="t">wedding trays</div>${dish}<div class="st">${left > 0 ? `by ${clock(t.due)}` : 'late'}</div></div>`;
+        }
+        const reg = t.regular ? regularOf(t.regular) : undefined;
+        const who = reg ? (t.friend ? `${reg.name}’s friend` : reg.name) : `table ${t.table}`;
+        const patience = t.patience;
+        const option = st.version === 'pass@6' && helpOptions(st).find((o) => o.ticket === t.id);
+        const priority =
+          st.passDecision?.ticket === t.id ? '<div class="priority-mark">First on the pass</div>' : '';
+        if (st.version === 'pass@6')
+          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" data-ticket="${t.id}" aria-label="Work ${esc(who)}" ${option ? '' : 'disabled'}><div class="t">${esc(who)}</div>${dish}<div class="st">${option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
+        return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}</div>${dish}<div class="st">${wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
+      })
+      .join(''),
+  );
+  for (const ticket of rail.querySelectorAll<HTMLButtonElement>('[data-ticket]'))
+    ticket.onclick = () => {
+      const option = helpOptions(st).find((o) => o.ticket === Number(ticket.dataset.ticket));
+      if (option) reservePortion(option.ticket, option.station);
+    };
 }
 
 /** Where the stations stand tonight, left to right. */
@@ -883,7 +956,7 @@ function renderPanel(el: HTMLElement, html: string) {
   template.innerHTML = html;
   const key = (node: Node): string =>
     node instanceof HTMLElement
-      ? `${node.tagName}:${node.id}:${node.dataset.pick ?? ''}:${node.dataset.v ?? ''}:${node.dataset.help ?? ''}:${node.dataset.station ?? ''}:${node.dataset.cover ?? 'no-cover-control'}`
+      ? `${node.tagName}:${node.id}:${node.dataset.pick ?? ''}:${node.dataset.v ?? ''}:${node.dataset.help ?? ''}:${node.dataset.ticket ?? ''}:${node.dataset.priority ?? ''}:${node.dataset.chefStation ?? ''}:${node.dataset.station ?? ''}:${node.dataset.cover ?? 'no-cover-control'}`
       : node.nodeName;
   const sync = (target: Node, source: Node) => {
     for (let index = 0; index < source.childNodes.length; index++) {
@@ -915,6 +988,36 @@ function drawSheet() {
   const st = s;
   const el = document.getElementById('sheet') as HTMLElement;
   const rq = st.request;
+  document
+    .querySelector('.service')
+    ?.classList.toggle(
+      'choosing',
+      (!!selected && st.passDecision?.state !== 'asking') || rq?.state === 'asking',
+    );
+  document
+    .querySelector('.service')
+    ?.classList.toggle(
+      'inspecting',
+      !!selected && st.passDecision?.state !== 'asking' && rq?.state !== 'asking',
+    );
+  if (st.passDecision?.state === 'asking') {
+    renderPanel(
+      el,
+      `${crewHeader()}<div class="card priority-card"><b>Call a table first</b><div>${st.help ? 'Your hands are full. Finish this portion before calling a table first.' : 'The other tables wait.'}</div><div class="priority-options">${priorityOptions(
+        st,
+      )
+        .map((o) => `<button class="primary" data-priority="${o.ticket}">${esc(o.text)}</button>`)
+        .join('')}</div></div>`,
+    );
+    bindCrew(el);
+    for (const button of el.querySelectorAll<HTMLButtonElement>('[data-priority]'))
+      button.onclick = () => {
+        queueInput(st, { kind: 'pass-priority', ticket: Number(button.dataset.priority) });
+        writeSave();
+        drawAll();
+      };
+    return;
+  }
   const staffing = st.staffing?.find((decision) => decision.state === 'asking');
   if (staffing) {
     const queued = st.inputs
@@ -944,7 +1047,7 @@ function drawSheet() {
       };
     return;
   }
-  document.querySelector('.service')?.classList.toggle('choosing', !!selected || rq?.state === 'asking');
+
   if (rq?.state === 'asking') {
     const key = `rq${rq.kind}${rq.at}`;
     if (sheetKey === key) return;
@@ -978,7 +1081,7 @@ function drawSheet() {
     const openingNotes = st.night === 1 && lines.every((x) => x.at === openAt(1) - 5);
     renderPanel(
       el,
-      `${crewHeader()}${tipLine(st)}${foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
+      `${crewHeader()}${tipLine(st)}${st.version === 'pass@6' ? '' : foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
         .map((x) =>
           x.who === 'narrator'
             ? `<div>${esc(gloss(x.text))}</div>`
@@ -1081,6 +1184,53 @@ function foodWork(st: GameState): string {
     .slice(0, 2)
     .map((o) => `<button data-help="${o.ticket}" data-station="${o.station}">${esc(o.text)}</button>`)
     .join('')}</div>`;
+}
+
+function reservePortion(ticket: number, station: 'grill' | 'cold' | 'oven') {
+  if (!s) return;
+  queueInput(s, { kind: 'help', ticket, station });
+  writeSave();
+  sheetKey = '';
+  drawAll();
+}
+
+function drawChefWork() {
+  if (s?.version !== 'pass@6') return;
+  const el = document.getElementById('chef-work');
+  if (!el) return;
+  const st = s;
+  const options = helpOptions(st);
+  renderPanel(
+    el,
+    `<div class="chef-line">${esc(chefLine(st))}</div><div class="chef-stations">${(
+      ['grill', 'cold', 'oven'] as const
+    )
+      .filter((station) => stationsTonight(st).includes(station))
+      .map(
+        (station) =>
+          `<button data-chef-station="${station}" aria-label="Work ${station === 'cold' ? 'cold side' : station}" ${options.some((o) => o.station === station) ? '' : 'disabled'}>Work ${station === 'cold' ? 'cold side' : station}<span class="work-duration">${
+            options
+              .find((o) => o.station === station)
+              ?.text.split(' · ')
+              .at(-1) ??
+            (st.help
+              ? 'Hands full'
+              : owed(st)[station] > 0 && station !== 'cold' && gasOut(st)
+                ? 'Waiting for gas'
+                : owed(st)[station] > 0 && station === 'oven' && st.oven.heat < OVEN_HOT
+                  ? 'Oven warming'
+                  : 'Nothing waiting')
+          }</span></button>`,
+      )
+      .join(
+        '',
+      )}</div><div class="chef-tradeoff">${st.help ? 'Your hands are full. Finish this portion before calling a table first.' : options.length ? 'One portion takes your hands away from managing the pass.' : 'No portion is waiting. The cooks keep working.'}</div>`,
+  );
+  for (const button of el.querySelectorAll<HTMLButtonElement>('[data-chef-station]'))
+    button.onclick = () => {
+      const option = helpOptions(st).find((o) => o.station === button.dataset.chefStation);
+      if (option) reservePortion(option.ticket, option.station);
+    };
 }
 
 function bindCrew(el: HTMLElement) {
@@ -1236,8 +1386,6 @@ function evening() {
     <div class="actions">
       ${nextBtn}
       ${!ended && !toSunday && !st.lost && next ? `<p class="soft" style="font-size:15px">${esc(next.intro.at(-1) ?? '')}</p>` : ''}
-      <button id="export">Save a playtest file</button>
-      <button id="send">Send this run to the notebook</button>
     </div>
     ${footer()}
   </div>`;
@@ -1395,8 +1543,6 @@ function sunday() {
     ${nextWeek ? `<p>Next week: ${lira(nextWeek.bill)} for ${esc(nextWeek.owed)}${st.carry ? `, and ${lira(st.carry)} carried over` : ''}.</p>` : ''}
     <div class="actions">
       <button class="primary" id="open">${pg.week < 4 ? 'Open on Wednesday' : 'Close the notebook'}</button>
-      <button id="export">Save a playtest file</button>
-      <button id="send">Send this run to the notebook</button>
     </div>
     ${footer()}
   </div>`;
@@ -1463,8 +1609,6 @@ function ending() {
     ${lastLines.map((l) => `<div class="cookline"><b>${esc(nameOf(st, l.id))}</b><div class="hand">“${esc(l.t)}”</div></div>`).join('')}
     ${st.stamps.length ? `<p class="soft">The notebook:</p>${stampList(st.stamps.map((x) => x.id))}` : ''}
     <div class="actions">
-      <button id="export">Save a playtest file</button>
-      <button id="send">Send this run to the notebook</button>
       <button class="primary" id="again">A new notebook</button>
     </div>
     ${footer()}
@@ -1482,7 +1626,12 @@ function ending() {
 function sendRun() {
   if (!s) return;
   const st = s;
-  lab.openSendDialog({ getRun: () => exportRun(st, FRAMEWORK_VERSION) });
+  lab.openSendDialog({
+    getRun: () => exportRun(st, FRAMEWORK_VERSION),
+    compact: (run) => compactRun(run as Export),
+    compactNote:
+      'The seed, inputs, edition and elapsed minute are included; the redundant state snapshot is omitted.',
+  });
 }
 
 function download() {
@@ -1531,6 +1680,7 @@ export const _debug = {
     return s;
   },
   closeAt,
+  chefLine,
   LAST_NIGHT,
   WEEKDAYS,
   Station: null as Station | null,

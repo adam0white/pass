@@ -5,7 +5,7 @@ import { newGame } from '../../src/sim/kitchen.ts';
 async function start(page: Page) {
   await page.clock.install({ time: new Date('2026-10-20T12:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-20T12:01:00Z'));
-  const initial = newGame(42);
+  const initial = newGame(42, 'pass@5');
   await page.addInitScript(
     (save) => {
       if (!localStorage.getItem('pass-save-v3')) localStorage.setItem('pass-save-v3', JSON.stringify(save));
@@ -24,7 +24,7 @@ async function open(page: Page) {
 
 test('reading or resuming an unanswered baseline board leaves its notebook unchanged', async ({ page }) => {
   await start(page);
-  const before = newGame(42);
+  const before = newGame(42, 'pass@5');
   const read = () =>
     page.evaluate(async () => {
       const path = '/src/ui/app.ts';

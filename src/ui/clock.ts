@@ -12,14 +12,22 @@ export function clockPlayback(s: GameState, speed: number) {
   let label: string = SPEED_NAMES[speed] ?? SPEED_NAMES[1];
   let reason = 'Your chosen speed.';
   const staffing = s.staffing?.find((decision) => decision.state === 'asking');
-  if (staffing || s.request?.state === 'asking' || status.needsResponse) {
+  if (
+    (s.passDecision?.state === 'asking' && !s.help) ||
+    staffing ||
+    s.request?.state === 'asking' ||
+    status.needsResponse
+  ) {
     rate = 0.1;
     label = 'Slow';
-    reason = staffing
-      ? `${nameOf(s, staffing.who)} needs a cover decision.`
-      : s.request?.state === 'asking'
-        ? `${nameOf(s, s.request.who)} needs an answer.`
-        : 'A station needs a cook.';
+    reason =
+      s.passDecision?.state === 'asking' && !s.help
+        ? 'Choose which table the cooks put first.'
+        : staffing
+          ? `${nameOf(s, staffing.who)} needs a cover decision.`
+          : s.request?.state === 'asking'
+            ? `${nameOf(s, s.request.who)} needs an answer.`
+            : 'A station needs a cook.';
   } else if (
     !s.tickets.some((t) => t.status === 'open' || (t.status === 'waiting' && t.at <= s.minute + 10))
   ) {

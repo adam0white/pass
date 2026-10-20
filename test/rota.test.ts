@@ -14,14 +14,14 @@ import {
 const isServing = (s: ReturnType<typeof newGame>): boolean => s.phase === 'service';
 
 function open(seed = 42) {
-  const s = newGame(seed);
+  const s = newGame(seed, 'pass@5');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   return s;
 }
 describe('pass@5 standing rota', () => {
   it('starts at a playable default board and opens with spoken agreements', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@5');
     expect(s.version).toBe('pass@5');
     expect(s.phase).toBe('board');
     expect(boardDefaults(s).map((r) => r.station)).toEqual(['grill', 'cold']);
@@ -63,7 +63,7 @@ function tuesday() {
 
 describe('board exceptions and boundaries', () => {
   it('a refused revision removes the earlier agreement and its live cover', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@5');
     queueInput(s, { kind: 'board', rows: boardDefaults(s) });
     expect(cookOf(s, 'selim').cover?.station).toBe('grill');
     queueInput(s, {
@@ -85,7 +85,7 @@ describe('board exceptions and boundaries', () => {
     expect(stationOf(s, 'selim')).toBe('grill');
   });
   it('rejects overlapping relief instead of taking away an agreed meal', () => {
-    const s = newGame(42);
+    const s = newGame(42, 'pass@5');
     const rows = boardDefaults(s).map((r) => ({
       ...r,
       breakAt: 1100,
@@ -198,7 +198,7 @@ it('keeps the tip jar active inside agreed breaks', () => {
 });
 
 it('keeps prayer a quiet private choice inside the agreed break', () => {
-  const s = newGame(42);
+  const s = newGame(42, 'pass@5');
   queueInput(s, {
     kind: 'board',
     rows: boardDefaults(s).map((r) => ({ ...r, breakAt: r.cook === 'selim' ? 1125 : r.breakAt })),

@@ -19,6 +19,7 @@ describe('board presentation choices', () => {
       { minute: 1185, label: '19:45 during the rush' },
       { minute: 1260, label: '21:00 after the rush' },
     ]);
+    expect(breakSlots(1260).some((slot) => slot.minute === 1115)).toBe(true);
     for (const time of [1050, 1295]) {
       expect(breakSlots(time).some((slot) => slot.minute === time)).toBe(true);
       expect(breakSlots(time).every((slot) => slot.minute >= 1050 && slot.minute <= 1295)).toBe(true);

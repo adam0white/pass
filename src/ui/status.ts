@@ -18,6 +18,8 @@ export interface ServiceStatus {
 /** A visible reason for the current wait, without predicting a cook's decision. */
 export function serviceStatus(s: GameState): ServiceStatus {
   const status = (text: string, needsResponse = false): ServiceStatus => ({ text, needsResponse });
+  if (s.passDecision?.state === 'asking' && !s.help)
+    return status('The rush is backing up; choose which table the cooks put first.', true);
   const queued = s.inputs.slice(s.applied).filter((input) => input.at <= s.minute);
   const staffing = s.staffing?.find((decision) => decision.state === 'asking');
   if (staffing) {
@@ -59,10 +61,10 @@ export function serviceStatus(s: GameState): ServiceStatus {
     if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
       return status('Food is waiting for clean plates.');
     return status(
-      s.version === 'pass@5'
+      s.version === 'pass@5' || s.version === 'pass@6'
         ? 'Food needs clean plates; dish is uncovered.'
         : 'Food needs clean plates; select a cook for dish.',
-      s.version !== 'pass@5',
+      s.version !== 'pass@5' && s.version !== 'pass@6',
     );
   }
   const remaining = owed(s);
@@ -72,10 +74,10 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (missing.length) {
     const names = missing.length === 3 ? 'grill, cold and oven' : missing.join(' and ');
     return status(
-      s.version === 'pass@5'
+      s.version === 'pass@5' || s.version === 'pass@6'
         ? `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'is' : 'are'} uncovered under tonight’s board.`
         : `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'needs' : 'need'} a cook; select a cook.`,
-      s.version !== 'pass@5',
+      s.version !== 'pass@5' && s.version !== 'pass@6',
     );
   }
 
