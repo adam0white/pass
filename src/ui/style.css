@@ -442,12 +442,6 @@ button:disabled {
 .rail.empty {
   display: none;
 }
-.service.choosing .scene {
-  min-height: 0;
-}
-.service.choosing .sheet {
-  margin-top: auto;
-}
 .crew button[aria-pressed="true"] {
   outline: 1px solid var(--ink);
   outline-offset: -4px;
@@ -465,6 +459,37 @@ summary {
   min-height: 44px;
   padding: 10px 0;
   cursor: pointer;
+}
+
+/* The crew row stays at the same height through selection, answers and rail changes. */
+.service .scene {
+  min-height: 0;
+}
+.service .sheet {
+  height: calc(var(--sheet-height) + var(--safe-b));
+  overflow-y: auto;
+  margin-top: 0;
+  padding-top: 4px;
+  padding-bottom: calc(4px + var(--safe-b));
+  gap: 4px;
+}
+.sheet > .who {
+  flex-shrink: 0;
+}
+.station-duration {
+  min-height: 40px;
+  font-size: 14px;
+  line-height: 19px;
+}
+.food-work {
+  display: flex;
+  gap: 6px;
+  font-size: 14px;
+}
+.food-work button {
+  flex: 1;
+  padding: 6px;
+  font-size: 14px;
 }
 
 /* Reserve answers before allocating space to the scene on a short phone. */

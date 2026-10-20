@@ -313,11 +313,11 @@ describe('The Pass', () => {
   });
 
   it('a week of insisting on everything costs a cook at the first Sunday; asking costs none', () => {
-    const pushed = newGame(1001);
+    const pushed = newGame(1001, 'pass@3');
     play(pushed, { nights: 6, insist: true, rich: true });
     queueInput(pushed, { kind: 'open' });
     expect(pushed.sunday?.quits.length ?? 0).toBeGreaterThan(0);
-    const asked = newGame(1001);
+    const asked = newGame(1001, 'pass@3');
     play(asked, { nights: 6, rich: true });
     queueInput(asked, { kind: 'open' });
     expect(asked.sunday?.quits ?? []).toEqual([]);

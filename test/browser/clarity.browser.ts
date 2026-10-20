@@ -2,16 +2,19 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
 import {
   cookOf,
-  GAME_VERSION,
   type GameState,
   memberOf,
-  newGame,
+  newGame as newEditionGame,
   onShift,
   queueInput,
-  replay,
+  replay as replayEdition,
   stationOf,
   step,
 } from '../../src/sim/kitchen.ts';
+
+const newGame = (seed: number) => newEditionGame(seed, 'pass@3');
+const replay = (seed: number, inputs: Parameters<typeof replayEdition>[1], until?: number) =>
+  replayEdition(seed, inputs, until, 'pass@3');
 
 async function start(page: Page, state?: GameState) {
   const time = new Date('2026-10-20T12:00:00Z');
@@ -19,8 +22,8 @@ async function start(page: Page, state?: GameState) {
   await page.clock.pauseAt(new Date(time.getTime() + 60000));
   if (state !== undefined) {
     await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
-      game: GAME_VERSION,
-      seed: 42,
+      game: state.version,
+      seed: state.seed,
       inputs: state.inputs,
       minute: state.minute,
       pages: [],
@@ -80,11 +83,11 @@ test('DL-22 keeps every job, forecast and instruction on screen after choosing e
   await start(page, s);
   for (const id of ['selim', 'dilek']) {
     await page.locator(`[data-pick="${id}"]`).click();
-    await onScreen(page, '#status, .crew button, .who, .forecast, .verbs button, #sheet .hint');
+    await onScreen(page, '#status, .crew button, .who, .station-duration, .verbs button, #sheet .hint');
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(690);
   }
   await page.addStyleTag({ content: ':root { --safe-t: 20px; --safe-b: 20px; }' });
-  await onScreen(page, '#status, .crew button, .who, .forecast, .verbs button, #sheet .hint');
+  await onScreen(page, '#status, .crew button, .who, .station-duration, .verbs button, #sheet .hint');
 });
 
 test('DL-22 gives a new request priority over an open cook sheet', async ({ page }) => {
@@ -138,7 +141,7 @@ test('DL-22 fits seven jobs and long ticket labels with three cooks', async ({ p
       if (slip.querySelectorAll('.d').length < 3)
         slip.insertAdjacentHTML('beforeend', '<div class="d">pide ○○</div>');
     });
-  await onScreen(page, '#status, #rail, .who, .forecast, .verbs button, #sheet .hint');
+  await onScreen(page, '#status, #rail, .who, .station-duration, .verbs button, #sheet .hint');
   const rail = await page.locator('#rail').boundingBox();
   for (const part of await page.locator('.slip .t, .slip .d, .slip .st').all()) {
     const box = await part.boundingBox();
@@ -157,7 +160,10 @@ test('DL-22 keeps a fresh counteroffer clickable above seven jobs with safe area
   await page.locator('[data-pick="selim"]').click();
   await expect(page.locator('.verbs button')).toHaveCount(7);
   await expect(page.locator('#caption')).toContainText("I'll work the grill instead.");
-  await onScreen(page, '#status, #caption, #caption button, .who, .forecast, .verbs button, #sheet .hint');
+  await onScreen(
+    page,
+    '#status, #caption, #caption button, .who, .station-duration, .verbs button, #sheet .hint',
+  );
   const caption = await page.locator('#caption').boundingBox();
   const sheet = await page.locator('#sheet').boundingBox();
   expect((caption?.y ?? 0) + (caption?.height ?? 0)).toBeLessThanOrEqual(sheet?.y ?? 0);
@@ -243,7 +249,7 @@ test('DL-20 quietly glosses maghrib in the journal without changing the saved si
   await page.clock.install({ time: new Date('2026-10-20T12:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-20T12:01:00Z'));
   await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
-    game: GAME_VERSION,
+    game: s.version,
     seed: s.seed,
     inputs: s.inputs,
     minute: s.minute,
@@ -264,7 +270,7 @@ test('DL-15 leaves a fast-speed request open during five real seconds of reading
   while (s.request?.state !== 'asking' && s.phase === 'service') step(s);
   const beforeRequest = replay(s.seed, s.inputs, s.minute - 2);
   await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
-    game: GAME_VERSION,
+    game: s.version,
     seed: s.seed,
     inputs: beforeRequest.inputs,
     minute: beforeRequest.minute,

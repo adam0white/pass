@@ -20,14 +20,15 @@ import {
   canReplay,
   closeAt,
   cookOf,
+  coverLine,
   type Export,
   exportRun,
   fingerprint,
-  forecastLine,
   GAME_VERSION,
   type GameState,
   gasOut,
   type Hint,
+  helpOptions,
   hints,
   type Input,
   memberOf,
@@ -41,6 +42,7 @@ import {
   queueInput,
   replay,
   requestText,
+  stationRequestLine,
   stationsTonight,
   step,
   trustOf,
@@ -68,7 +70,7 @@ let s: GameState | null = null;
 let pages: { week: number; k: number }[] = [];
 let speed = 1;
 let selected: CookId | null = null;
-let cachedHints: { at: number; id: CookId; list: Hint[]; forecast: string | null } | null = null;
+let cachedHints: { at: number; id: CookId; list: Hint[] } | null = null;
 let raf = 0;
 let last = 0;
 let carry = 0;
@@ -103,7 +105,7 @@ function writeSave() {
     pages.push({ week: s.sunday.week, k });
   }
   try {
-    const sv: Save = { game: GAME_VERSION, seed: s.seed, inputs: s.inputs, minute: s.minute, pages };
+    const sv: Save = { game: s.version, seed: s.seed, inputs: s.inputs, minute: s.minute, pages };
     localStorage.setItem(SAVE, JSON.stringify(sv));
   } catch {}
 }
@@ -190,7 +192,7 @@ function title() {
   document.getElementById('cont')?.addEventListener('click', () => {
     if (!save) return;
     pages = save.pages ?? [];
-    s = replay(save.seed, save.inputs, save.minute);
+    s = replay(save.seed, save.inputs, save.minute, save.game);
     enter();
   });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-page]'))
@@ -201,7 +203,7 @@ function title() {
       if (!page) return;
       if (!confirm(`Turn back to Sunday of week ${week}? Everything after that page is torn out.`)) return;
       pages = save.pages.filter((p) => p.week <= week);
-      s = replay(save.seed, save.inputs.slice(0, page.k));
+      s = replay(save.seed, save.inputs.slice(0, page.k), undefined, save.game);
       writeSave();
       enter();
     });
@@ -224,7 +226,7 @@ function title() {
         );
         return;
       }
-      const r = replay(ex.seed, ex.inputs, ex.state?.minute);
+      const r = replay(ex.seed, ex.inputs, ex.state?.minute, ex.game);
       const same = ex.state ? fingerprint(r) === fingerprint(ex.state) : true;
       s = r;
       pages = [];
@@ -271,10 +273,12 @@ function service() {
   if (!s) return;
   lab.screen(`night ${s.night}: service`);
   selected = null;
+  sheetKey = '';
+  captionKey = '';
   cachedHints = null;
   shownSaid = Math.max(0, s.said.length - 3);
   requestWake();
-  app.innerHTML = `<div class="service">
+  app.innerHTML = `<div class="service" style="--sheet-height:${stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
@@ -689,8 +693,8 @@ function select(id: CookId | null) {
 
 function hintsFor(id: CookId) {
   if (!s) return null;
-  if (!cachedHints || cachedHints.id !== id || s.minute - cachedHints.at >= 3)
-    cachedHints = { at: s.minute, id, list: hints(s, id), forecast: forecastLine(s, id) };
+  if (!cachedHints || cachedHints.id !== id || s.minute !== cachedHints.at)
+    cachedHints = { at: s.minute, id, list: hints(s, id) };
   return cachedHints;
 }
 
@@ -713,9 +717,41 @@ const ANSWERS: Record<string, [string, string]> = {
   'my-way': ['Your oven, your way', 'My kitchen, my way'],
 };
 
+/** Update sheet text and attributes in place so clock ticks keep focused and pressed controls. */
+function renderPanel(el: HTMLElement, html: string) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const key = (node: Node): string =>
+    node instanceof HTMLElement
+      ? `${node.tagName}:${node.id}:${node.dataset.pick ?? ''}:${node.dataset.v ?? ''}:${node.dataset.help ?? ''}:${node.dataset.station ?? ''}`
+      : node.nodeName;
+  const sync = (target: Node, source: Node) => {
+    for (let index = 0; index < source.childNodes.length; index++) {
+      const fresh = source.childNodes[index] as Node;
+      const old = target.childNodes[index];
+      if (!old || key(old) !== key(fresh)) {
+        if (old) target.replaceChild(fresh.cloneNode(true), old);
+        else target.appendChild(fresh.cloneNode(true));
+      } else if (old instanceof HTMLElement && fresh instanceof HTMLElement) {
+        for (const attr of old.getAttributeNames())
+          if (!fresh.hasAttribute(attr) && !(attr === 'open' && old instanceof HTMLDetailsElement))
+            old.removeAttribute(attr);
+        for (const attr of fresh.getAttributeNames())
+          if (old.getAttribute(attr) !== fresh.getAttribute(attr))
+            old.setAttribute(attr, fresh.getAttribute(attr) ?? '');
+        sync(old, fresh);
+      } else if (old.nodeValue !== fresh.nodeValue) old.nodeValue = fresh.nodeValue;
+    }
+    while (target.childNodes.length > source.childNodes.length) target.lastChild?.remove();
+  };
+  sync(el, template.content);
+}
+
 let sheetKey = '';
+let pressingJob = false;
 function drawSheet() {
   if (!s) return;
+  if (pressingJob) return;
   const st = s;
   const el = document.getElementById('sheet') as HTMLElement;
   const rq = st.request;
@@ -725,8 +761,11 @@ function drawSheet() {
     if (sheetKey === key) return;
     sheetKey = key;
     const [yes, no] = ANSWERS[rq.kind] ?? ['Yes', 'No'];
-    el.innerHTML = `<div class="card ink-in"><div class="hand">${esc(nameOf(st, rq.who))}: “${esc(requestText(st, rq))}”</div>
-      <div class="row"><button class="primary" id="yes">${esc(yes)}</button><button class="primary" id="no">${esc(no)}</button></div></div>`;
+    renderPanel(
+      el,
+      `${crewHeader()}<div class="card ink-in"><div class="hand">${esc(nameOf(st, rq.who))}: “${esc(requestText(st, rq))}”</div>
+      <div class="row"><button class="primary" id="yes">${esc(yes)}</button><button class="primary" id="no">${esc(no)}</button></div></div>`,
+    );
     const answer = (choice: 'yes' | 'no') => {
       for (const b of el.querySelectorAll<HTMLButtonElement>('button')) b.disabled = true;
       queueInput(st, { kind: 'answer', choice });
@@ -735,27 +774,30 @@ function drawSheet() {
       el.querySelector('.card')?.insertAdjacentHTML('beforeend', '<div class="soft">They heard you.</div>');
       sheetKey = 'answered';
     };
-    document.getElementById('yes')?.addEventListener('click', () => answer('yes'));
-    document.getElementById('no')?.addEventListener('click', () => answer('no'));
+    bindCrew(el);
+    (document.getElementById('yes') as HTMLButtonElement).onclick = () => answer('yes');
+    (document.getElementById('no') as HTMLButtonElement).onclick = () => answer('no');
     return;
   }
   if (!selected) {
     const lines = st.said.slice(-3);
-    const key = `j${st.said.length}${seenHint.tap}${onShift(st)
+    const key = `j${st.minute}${st.inputs.length}${st.said.length}${seenHint.tap}${onShift(st)
       .map((id) => placeOf(id))
       .join()}${st.crew.map((m) => cookOf(st, m.id).gone).join()}`;
     if (sheetKey === key) return;
     sheetKey = key;
     const openingNotes = st.night === 1 && lines.every((x) => x.at === openAt(1) - 5);
-    el.innerHTML = `${tipLine(st)}${crewRow()}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
-      .map((x) =>
-        x.who === 'narrator'
-          ? `<div>${esc(gloss(x.text))}</div>`
-          : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`,
-      )
-      .join('')}${openingNotes ? '</details>' : ''}</div>`;
-    for (const b of el.querySelectorAll<HTMLButtonElement>('[data-pick]'))
-      b.addEventListener('click', () => select(b.dataset.pick as CookId));
+    renderPanel(
+      el,
+      `${crewHeader()}${tipLine(st)}${foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
+        .map((x) =>
+          x.who === 'narrator'
+            ? `<div>${esc(gloss(x.text))}</div>`
+            : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`,
+        )
+        .join('')}${openingNotes ? '</details>' : ''}</div>`,
+    );
+    bindCrew(el);
     return;
   }
   const h = hintsFor(selected);
@@ -763,30 +805,33 @@ function drawSheet() {
   const c = cookOf(st, selected);
   const m = memberOf(st, selected);
   const doing = personOf(st, selected).activity?.affordance.label ?? 'between jobs';
-  const key = `c${selected}${h.at}${c.pending ? 1 : 0}${doing}`;
+  const queued = st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected);
+  const waiting = !!c.pending || queued;
+  const key = `c${selected}${h.at}${waiting}${doing}${st.inputs.length}`;
   if (sheetKey === key) return;
   sheetKey = key;
   const guess = h.list.some((v) => v.guess);
-  el.innerHTML = `<div class="who">${crewRow()}<button class="x" id="close" aria-label="close">×</button></div>
-    ${h.forecast ? `<div class="hand forecast">“${esc(h.forecast)}”</div>` : ''}
+  renderPanel(
+    el,
+    `${crewHeader()}
+    <div class="station-duration">${esc(coverLine(st, selected) ?? stationRequestLine(st, selected) ?? '')}</div>
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
-          `<button data-v="${v.verb}" ${c.pending ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === m.home ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${esc(v.short)}${v.guess ? '?' : ''}</span><span class="fill"></span></button>`,
+          `<button data-v="${v.verb}" ${waiting ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === m.home ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${esc(v.short)}${v.guess ? '?' : ''}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
     <div class="hint">${
       guess
         ? `I don’t know ${esc(m.name)} yet: these are guesses, in pencil.`
         : seenHint.job
-          ? c.pending
+          ? waiting
             ? 'They heard you.'
             : 'Hold a job to insist. On a yes it only presses.'
           : 'Tap a job to ask. Hold it to insist.'
-    }</div>`;
-  document.getElementById('close')?.addEventListener('click', () => select(null));
-  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-pick]'))
-    b.addEventListener('click', () => select(b.dataset.pick as CookId));
+    }</div>`,
+  );
+  bindCrew(el);
   for (const b of el.querySelectorAll<HTMLButtonElement>('.verbs button')) bindHold(b);
 }
 
@@ -829,21 +874,67 @@ function crewRow(): string {
     .join('')}</div>`;
 }
 
+function crewHeader(): string {
+  return `<div class="who">${crewRow()}<button class="x" id="close" aria-label="close" ${selected ? '' : 'style="visibility:hidden"'}>×</button></div>`;
+}
+
+function foodWork(st: GameState): string {
+  if (st.inputs.slice(st.applied).some((i) => i.kind === 'help'))
+    return '<div class="food-work">Starting your portion on the next kitchen minute.</div>';
+  if (st.help)
+    return `<div class="food-work">You’re preparing ${st.help.station === 'grill' ? 'a grill portion' : 'a cold plate'} for table ${st.tickets.find((t) => t.id === st.help?.ticket)?.table ?? ''}, until ${clock(st.help.until)}.</div>`;
+  const options = helpOptions(st);
+  if (!options.length) return '';
+  return `<div class="food-work">${options
+    .slice(0, 2)
+    .map((o) => `<button data-help="${o.ticket}" data-station="${o.station}">${esc(o.text)}</button>`)
+    .join('')}</div>`;
+}
+
+function bindCrew(el: HTMLElement) {
+  const close = document.getElementById('close');
+  if (close) close.onclick = () => select(null);
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-pick]'))
+    b.onclick = () => select(b.dataset.pick as CookId);
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-help]'))
+    b.onclick = () => {
+      if (!s) return;
+      queueInput(s, {
+        kind: 'help',
+        ticket: Number(b.dataset.help),
+        station: b.dataset.station as 'grill' | 'cold',
+      });
+      writeSave();
+      sheetKey = '';
+      drawSheet();
+      drawStatus();
+    };
+}
+
+const boundJobs = new WeakSet<HTMLButtonElement>();
 function bindHold(b: HTMLButtonElement) {
+  if (boundJobs.has(b)) return;
+  boundJobs.add(b);
   let timer = 0;
   let fired = false;
   const verb = b.dataset.v as Verb;
+  b.addEventListener('click', (event) => {
+    if (event.detail === 0) ask(verb, false);
+  });
   b.addEventListener('contextmenu', (e) => e.preventDefault());
   b.addEventListener('pointerdown', () => {
+    pressingJob = true;
     fired = false;
     b.classList.add('holding');
     timer = window.setTimeout(() => {
       fired = true;
+      pressingJob = false;
       b.classList.remove('holding');
       ask(verb, true);
     }, 450);
   });
   const cancel = () => {
+    pressingJob = false;
     clearTimeout(timer);
     b.classList.remove('holding');
   };
@@ -862,7 +953,7 @@ function ask(verb: Verb, insist: boolean) {
   drawStatus();
   writeSave();
   sheetKey = '';
-  selected = null;
+  cachedHints = null;
   drawScene();
   drawSheet();
 }

@@ -70,7 +70,7 @@ The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, o
 
 ## Deferred
 
-- **2026-11-03 — F-227 first-service problem frequency:** Monday has no scripted cook requests. Adding requests, increasing ticket pressure or preventing autonomous returns changes seed-plus-input replay outcomes. Defer to a versioned simulation round; UI pacing alone cannot provide more problems.
+- **Resolved in pass@4, 2026-10-20 — F-227 first-service problem frequency:** the new edition brings three seeded tickets forward and adds chef food work. The original pass@3 schedule and autonomous returns remain unchanged for its notebooks. This replaces the 2026-11-03 deferral for new runs; taste still needs a source-unread retest.
 
 ## Earlier deferred work (target: after the owner plays pass@3)
 - Waiters and front-of-house as HF people.
@@ -82,3 +82,19 @@ The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, o
 - A crew-level duty in HF instead of the host's crew rule (HF request 6).
 - A hire's own voice in service: hires speak HF's stock answers until the Sunday page (rule-breaker playtest).
 - Talking to a cook outside the scripted moments ("Rafi has been quiet all afternoon"; cozy playtest).
+
+## New runs: pass@4 (2026-10-20)
+
+The owner accepts the feel of the new service separately. The edition is part of the notebook. New runs use pass@4. A pass@3 notebook stays on pass@3 when loaded, replayed, exported or continued. The old edition keeps its original ticket rolls, decisions, input effects and serialized state. No cover or chef-task keys are added to a pass@3 state. The HF dependency remains exactly 2.8.0.
+
+- **A station request has an end.** In pass@4 the requested station offer includes the full duration when predicting and deciding. If accepted, the cook says which station they will hold and the clock time they will finish. Before 20:30 this means until the rush eases at 20:30, or at least 45 minutes if asked near that time. Later it means 45 minutes, bounded by close. The cook keeps the station through the old 25-minute batch boundary and autonomous reviews. Body time, fatigue and food production continue each minute. A new explicit request can change the assignment. A granted emergency request can interrupt it. At the agreed end the cook chooses again. Autonomous work still uses the old 25-minute offers.
+- **The chef can make food.** An open ticket offers one unfinished grill portion or cold plate. The chef works on one selected portion for five kitchen minutes while the crew continues. The ticket records the finished portion. The normal pass still requires the other portions and a clean plate. A table that leaves cancels the task. If the crew finishes those portions first, the chef puts the ingredients back and says so. No extra portion is banked. There is no oven shortcut, and the chef cannot grill without gas.
+- **Monday starts sooner.** The first three existing seeded tickets arrive one, nine and seventeen minutes after opening. The number, price and dishes of those tickets keep their seeded values. Later arrivals keep their old rolls. This gives the opening service a short sequence of food and staffing decisions without adding another character or tutorial.
+
+`test/fixtures/edition3-hashes.json` was captured before the edition changes. It covers three policies across eight services, the first Sunday, full-state SHA-256 checkpoints, and thirty-minute continuations restored from those checkpoints. The previous counter-offer save and its continuation hash remain separate acceptance evidence.
+
+## Round 4 controls (2026-10-20)
+
+The crew row reserves the same position throughout each service, including selection, queued requests, spoken answers, incoming requests and quiet rails. Asking keeps the selected cook. Clock updates preserve the control nodes, keyboard focus and an active press. Each job shows its own current likely answer; the separate preferred-station body forecast has been removed from the sheet. Station duration is shown beside the jobs, and accepted pass@4 cover stays visible there. pass@3 explains its original 25-minute stretch and subsequent autonomous choice.
+
+Acceptance remains the common brief's builder checks and release receipt. The driver accepts feel separately after a fresh source-unread test. In particular, the longer assignments reduce repeated asking; the old six-night policy that forced a quit is retained as a pass@3 test. pass@4 tests still verify lost trust from insisting, bodily costs, refusals and campaign progression; a specific Sunday quit under the new policy is not claimed.

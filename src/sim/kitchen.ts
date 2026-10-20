@@ -83,7 +83,7 @@ import {
 } from './lines.ts';
 import { hashUnit } from './rng.ts';
 
-export const GAME_VERSION = 'pass@3';
+export const GAME_VERSION = 'pass@4';
 export const PRICE = 40;
 export const PIDE_PRICE = 15;
 const ASK = 0.5;
@@ -108,6 +108,7 @@ export type Verb = Station | 'break' | 'eat' | 'home';
 export const VERBS: readonly Verb[] = ['grill', 'cold', 'dish', 'oven', 'break', 'eat', 'home'];
 export type Input =
   | { at: number; kind: 'ask'; cook: CookId; verb: Verb; insist?: boolean; counter?: boolean }
+  | { at: number; kind: 'help'; ticket: number; station: 'grill' | 'cold' }
   | { at: number; kind: 'jar'; choice: 'move' | 'talk' | 'leave' }
   | { at: number; kind: 'answer'; choice: 'yes' | 'no' }
   | { at: number; kind: 'choose'; key: string; value: string }
@@ -165,6 +166,7 @@ export interface CookState {
   deferred: { s: Suggestion; verb: Verb; until: number } | null;
   /** A station turned down because of a break in progress: kept for the rest of that break. */
   breakDeferred: { verb: Verb; endsAt: number; rest: string } | null;
+  cover?: { station: Station; until: number } | null;
   idleUntil: number;
   progress: number;
   /** Portions made in the current stretch (an honest world effect at its end). */
@@ -257,6 +259,7 @@ export interface GameState {
   tickets: Ticket[];
   plates: { clean: number; pile: number; dirty: { at: number }[] };
   oven: { heat: number };
+  help?: { ticket: number; station: 'grill' | 'cold'; until: number } | null;
   lastPromptAt: Record<string, number>;
   work: { grill: number; cold: number; oven: number };
   till: number;
@@ -342,7 +345,7 @@ export function rollTickets(
 
 // ---------- setup ----------
 
-export function newGame(seed: number): GameState {
+export function newGame(seed: number, edition: string = GAME_VERSION): GameState {
   const now = 9 * 60;
   const people = FOUNDERS.map((m) => makeCook(m.id, seed, now));
   const chef = makeChef(seed, now);
@@ -351,7 +354,7 @@ export function newGame(seed: number): GameState {
   for (const r of REGULARS)
     regulars[r.id] = { regard: 0.6, tab: r.tab ? 'open' : 'paying', visits: 0, friendNext: false };
   const s: GameState = {
-    version: GAME_VERSION,
+    version: edition,
     seed,
     night: 1,
     phase: 'service',
@@ -530,6 +533,13 @@ function startNight(s: GameState, n: number) {
   const firstId = (s.tickets.at(-1)?.id ?? 0) + 1;
   const count = Math.max(8, pl.tables - s.raises) + (pl.anniversary ? anniversaryGuests(s) : 0);
   s.tickets = rollTickets(s.seed, n, firstId, count, s.price);
+  if (s.version === 'pass@4') {
+    s.help = null;
+    if (n === 1) {
+      for (const [i, t] of s.tickets.slice(0, 3).entries()) t.at = openAt(n) + 1 + i * 8;
+      s.tickets.sort((a, b) => a.at - b.at || a.id - b.id);
+    }
+  }
   s.plates = { clean: PLATES, pile: 0, dirty: [] };
   s.work = { grill: 0, cold: 0, oven: 0 };
   s.oven = { heat: 0 };
@@ -560,6 +570,7 @@ function startNight(s: GameState, n: number) {
     c.here = !m.left && m.since <= pl.week && m.offDay !== pl.weekday && !(pl.n === 1 && m.id === 'rafi');
     c.gone = false;
     c.pending = null;
+    if (s.version === 'pass@4') c.cover = null;
     c.deferred = null;
     c.breakDeferred = null;
     c.idleUntil = s.minute;
@@ -680,7 +691,7 @@ export function stationsTonight(s: GameState): Station[] {
   return STATIONS.filter((st) => (st === 'dish' ? pl.dish : st === 'oven' ? pl.oven : true));
 }
 
-export function offersFor(s: GameState, id: CookId): Affordance[] {
+export function offersFor(s: GameState, id: CookId, requested?: Verb): Affordance[] {
   const p = personOf(s, id);
   const m = memberOf(s, id);
   const left = remainingRush(s);
@@ -689,7 +700,10 @@ export function offersFor(s: GameState, id: CookId): Affordance[] {
     const effort = st === 'grill' ? 0.75 : st === 'cold' ? 0.58 : st === 'oven' ? 0.66 : 0.62;
     const a = offer(st, {
       label: LABEL[st],
-      duration: 25,
+      duration:
+        s.version === 'pass@4' && (requested ?? cookOf(s, id).pending?.verb) === st
+          ? coverUntil(s) - s.minute
+          : 25,
       effort,
       focus: 0.5,
       placeId: 'line',
@@ -706,7 +720,7 @@ export function offersFor(s: GameState, id: CookId): Affordance[] {
       // Paid by the hour: a stretch on the line is a stretch of wages.
       material: HF_WAGE,
     });
-    if (left > 45)
+    if (left > 45 && (s.version !== 'pass@4' || a.duration === 25))
       a.followedBy = [{ label: 'the rest of the rush', duration: left - 25, effort: effort * 0.9 }];
     list.push(a);
   }
@@ -828,9 +842,9 @@ export function verbsTonight(s: GameState): Verb[] {
 /** What each cook would likely say to each verb, right now. Pure: no state change, no randomness. */
 export function hints(s: GameState, id: CookId, insist = false): Hint[] {
   const p = personOf(s, id);
-  const offers = offersFor(s, id);
   const m = memberOf(s, id);
   return verbsTonight(s).map((verb) => {
+    const offers = offersFor(s, id, verb);
     const sug = suggestion(verb, insist);
     if (!m.founder) {
       const g = predictAs(s.chef, p, offers, sug, { now: s.minute });
@@ -922,7 +936,13 @@ function apply(s: GameState, inp: Input) {
       const c = s.cooks.find((x) => x.id === inp.cook);
       if (!c?.here || c.gone) return;
       const p = personOf(s, inp.cook);
-      if (!inp.insist && !c.pending && p.activity?.affordanceId === inp.verb && isStation(inp.verb)) {
+      if (
+        s.version !== 'pass@4' &&
+        !inp.insist &&
+        !c.pending &&
+        p.activity?.affordanceId === inp.verb &&
+        isStation(inp.verb)
+      ) {
         say(s, c.id, 'I’m on it, Chef.', 'answer');
         return;
       }
@@ -934,6 +954,18 @@ function apply(s: GameState, inp: Input) {
       c.pending = { s: suggestion(inp.verb, inp.insist), verb: inp.verb, counter: inp.counter };
       c.deferred = null;
       if (p.activity) interrupt(p, s.minute, 'voice:chef');
+      return;
+    }
+    case 'help': {
+      if (s.version !== 'pass@4' || s.phase !== 'service' || s.help) return;
+      if (!helpOptions(s).some((o) => o.ticket === inp.ticket && o.station === inp.station)) return;
+      s.help = { ticket: inp.ticket, station: inp.station, until: s.minute + 5 };
+      say(
+        s,
+        'narrator',
+        `I started ${inp.station === 'grill' ? 'a grill portion' : 'a cold plate'} for table ${s.tickets.find((t) => t.id === inp.ticket)?.table}. Five minutes at the pass.`,
+        'journal',
+      );
       return;
     }
     case 'jar': {
@@ -1132,6 +1164,7 @@ export function step(s: GameState): void {
     cookMinute(s, c);
   }
   produce(s);
+  if (s.version === 'pass@4') chefMinute(s);
   pass(s);
   for (const t of s.tickets) {
     if (t.status !== 'open') continue;
@@ -1220,6 +1253,10 @@ function cookMinute(s: GameState, c: CookState) {
   const p = personOf(s, c.id);
   tick(p, s.minute);
   let a = p.activity;
+  if (s.version === 'pass@4' && c.cover) {
+    if (s.minute >= c.cover.until || a?.affordanceId !== c.cover.station) c.cover = null;
+    else if (!c.pending) return;
+  }
   let ended: string | undefined;
   if (a && s.minute >= a.endsAt) {
     ended = a.affordanceId;
@@ -1228,7 +1265,9 @@ function cookMinute(s: GameState, c: CookState) {
   }
   const due = c.pending !== null || (a ? s.minute >= a.reviewAt : s.minute >= c.idleUntil);
   if (!due) return;
-  const offers = offersFor(s, c.id).filter((o) => !a || o.id !== a.affordanceId);
+  const offers = offersFor(s, c.id).filter(
+    (o) => !a || o.id !== a.affordanceId || (s.version === 'pass@4' && c.pending?.verb === o.id),
+  );
   const voice = c.pending ?? (!a && c.deferred && s.minute <= c.deferred.until ? c.deferred : null);
   // Before deciding: which other stations this cook would take now (pure), in case a break turns one down.
   const onBreak = a && OFF_LINE.includes(a.affordanceId) ? a : null;
@@ -1236,7 +1275,8 @@ function cookMinute(s: GameState, c: CookState) {
   const would =
     voice && c.pending && onBreak && station && !voice.s.insist
       ? stationsTonight(s).filter(
-          (st) => st !== voice.verb && predict(p, offersFor(s, c.id), suggestion(st)).verdict === 'assented',
+          (st) =>
+            st !== voice.verb && predict(p, offersFor(s, c.id, st), suggestion(st)).verdict === 'assented',
         )
       : [];
   const rec: DecisionRecord = decide(p, offers, voice ? { suggestion: voice.s } : {});
@@ -1250,6 +1290,15 @@ function cookMinute(s: GameState, c: CookState) {
   notePrompt(s, c.id, p);
   noteResolve(s, c, p, rec);
   if (a && rec.chosenAffordanceId === a.affordanceId) {
+    if (
+      s.version === 'pass@4' &&
+      voice &&
+      isStation(voice.verb) &&
+      ['assented', 'complied'].includes(rec.suggestion?.verdict ?? '')
+    ) {
+      c.cover = { station: voice.verb, until: coverUntil(s) };
+      a.endsAt = c.cover.until;
+    }
     reviewed(p);
     return;
   }
@@ -1268,6 +1317,16 @@ function cookMinute(s: GameState, c: CookState) {
     return;
   }
   c.made = 0;
+  if (s.version === 'pass@4') {
+    c.cover =
+      voice &&
+      isStation(aff.id) &&
+      voice.verb === aff.id &&
+      ['assented', 'complied'].includes(rec.suggestion?.verdict ?? '')
+        ? { station: aff.id, until: coverUntil(s) }
+        : null;
+    if (c.cover && p.activity) p.activity.endsAt = c.cover.until;
+  }
   if (isStation(aff.id) && !c.night.worked.includes(aff.id)) c.night.worked.push(aff.id);
   // A cook who moves station on their own says so in the journal, with what a watcher would see as the reason.
   if (!voice && from && from !== aff.id && isStation(from) && isStation(aff.id)) {
@@ -1393,6 +1452,13 @@ function answered(
     (VERBS as readonly string[]).includes(r.counterOffer.affordanceId ?? '')
   )
     counter = r.counterOffer.affordanceId as Verb;
+  if (
+    s.version === 'pass@4' &&
+    isStation(verb) &&
+    rec.chosenAffordanceId === verb &&
+    ['assented', 'complied'].includes(r.verdict)
+  )
+    text = `${text} ${stationPromise(s, verb)}`;
   const verdict = voice.counter && r.verdict === 'assented' ? 'countered' : r.verdict;
   c.night.events.push({ at: s.minute, verb, verdict, insisted: !!voice.s.insist, crewRule });
   if (voice.quiet) return;
@@ -1501,7 +1567,7 @@ const CLEAR: Record<string, string> = {
   oven: 'nothing was in the oven',
 };
 
-const isStation = (x: string): boolean => (STATIONS as readonly string[]).includes(x);
+const isStation = (x: string): x is Station => (STATIONS as readonly string[]).includes(x);
 
 /** Work waiting at a station: portions owed, or dirty plates. */
 function waitingAt(s: GameState, st: string): number {
@@ -2040,7 +2106,7 @@ export interface Export {
 }
 
 export function exportRun(s: GameState, framework: string): Export {
-  return { game: GAME_VERSION, framework, seed: s.seed, inputs: s.inputs, state: cloneState(s) };
+  return { game: s.version, framework, seed: s.seed, inputs: s.inputs, state: cloneState(s) };
 }
 
 export function cloneState(s: GameState): GameState {
@@ -2060,8 +2126,13 @@ export function restoreState(json: GameState): GameState {
 }
 
 /** Rebuild a run from its seed and input log, stepping service minutes until `until` (or the last input). */
-export function replay(seed: number, inputs: readonly Input[], until?: number): GameState {
-  const s = newGame(seed);
+export function replay(
+  seed: number,
+  inputs: readonly Input[],
+  until?: number,
+  edition: string = GAME_VERSION,
+): GameState {
+  const s = newGame(seed, edition);
   for (const inp of inputs) {
     while (s.phase === 'service' && s.minute < inp.at) step(s);
     s.inputs.push(inp);
@@ -2072,7 +2143,7 @@ export function replay(seed: number, inputs: readonly Input[], until?: number): 
 }
 
 /** Whether an export or save can be replayed by this edition of the game. */
-export const canReplay = (game: string | undefined): boolean => game === GAME_VERSION;
+export const canReplay = (game: string | undefined): boolean => game === GAME_VERSION || game === 'pass@3';
 
 /** A compact fingerprint of everything that matters, for replay checks. */
 export function fingerprint(s: GameState): string {
@@ -2091,3 +2162,77 @@ export function fingerprint(s: GameState): string {
 }
 
 export { CLOSE, dayStart, OPEN, RUSH_FROM, RUSH_TO };
+
+function coverUntil(s: GameState): number {
+  return Math.min(closeAt(s.night), Math.max(s.minute + 45, nightStart(s.night) + RUSH_TO));
+}
+
+function stationPromise(s: GameState, station: Station): string {
+  const until = coverUntil(s);
+  const end = clock(until);
+  return until === nightStart(s.night) + RUSH_TO
+    ? `I’ll hold ${VERB_WORD[station]} till the rush eases at ${end}.`
+    : `I’ll hold ${VERB_WORD[station]} until ${end}.`;
+}
+
+export function stationRequestLine(s: GameState, _id: CookId): string | null {
+  return s.version === 'pass@4'
+    ? `Ask for station cover until ${clock(coverUntil(s))}. Another request can change it.`
+    : 'A station request covers one 25-minute stretch. Then the cook chooses again.';
+}
+
+export function coverLine(s: GameState, id: CookId): string | null {
+  const cover = cookOf(s, id).cover;
+  return s.version === 'pass@4' && cover && s.minute < cover.until
+    ? `I’m holding ${VERB_WORD[cover.station]} until ${clock(cover.until)}.`
+    : null;
+}
+
+export function helpOptions(s: GameState): { ticket: number; station: 'grill' | 'cold'; text: string }[] {
+  if (s.version !== 'pass@4' || s.phase !== 'service' || s.help) return [];
+  return s.tickets
+    .filter((t) => t.status === 'open')
+    .flatMap((t) =>
+      (['grill', 'cold'] as const)
+        .filter(
+          (st) =>
+            (st === 'grill' ? t.doneGrill < t.grill : t.doneCold < t.cold) && (st !== 'grill' || !gasOut(s)),
+        )
+        .map((station) => ({
+          ticket: t.id,
+          station,
+          text: `Help table ${t.table}: ${station === 'grill' ? 'grill one portion' : 'make one cold plate'} · 5 min`,
+        })),
+    );
+}
+
+function chefMinute(s: GameState) {
+  const h = s.help;
+  if (!h) return;
+  const t = s.tickets.find((t) => t.id === h.ticket);
+  if (t?.status !== 'open') {
+    s.help = null;
+    return;
+  }
+  if (h.station === 'grill' ? t.doneGrill >= t.grill : t.doneCold >= t.cold) {
+    say(
+      s,
+      'narrator',
+      `The crew finished table ${t.table}’s ${h.station === 'grill' ? 'grill portions' : 'cold plates'} before me. I put my ingredients back.`,
+      'journal',
+    );
+    s.help = null;
+    return;
+  }
+  if (s.minute < h.until) return;
+  if (h.station === 'grill' && gasOut(s)) return;
+  if (h.station === 'grill') t.doneGrill = Math.min(t.grill, t.doneGrill + 1);
+  else t.doneCold = Math.min(t.cold, t.doneCold + 1);
+  say(
+    s,
+    'narrator',
+    `I finished ${h.station === 'grill' ? 'a grill portion' : 'a cold plate'} for table ${t.table}.`,
+    'journal',
+  );
+  s.help = null;
+}

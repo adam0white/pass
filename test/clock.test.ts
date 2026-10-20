@@ -58,7 +58,7 @@ describe('clock playback', () => {
   });
 
   it('preserves exact replay and continuation of the pre-change pass@3 save across playback policies', () => {
-    const s = replay(fixture.seed, fixture.inputs, fixture.minute);
+    const s = replay(fixture.seed, fixture.inputs, fixture.minute, 'pass@3');
     expect(hash(s)).toBe(baseline.at);
     for (let i = 0; i < 60 && s.phase === 'service'; i++) {
       clockPlayback(s, i % 3);

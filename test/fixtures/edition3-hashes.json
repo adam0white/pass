@@ -1,0 +1,3857 @@
+[
+  {
+    "seed": 42,
+    "policy": "idle",
+    "inputs": [
+      {
+        "kind": "open",
+        "at": 1390
+      },
+      {
+        "kind": "open",
+        "at": 2830
+      },
+      {
+        "kind": "jar",
+        "choice": "talk",
+        "at": 4270
+      },
+      {
+        "kind": "open",
+        "at": 4270
+      },
+      {
+        "kind": "open",
+        "at": 5710
+      },
+      {
+        "kind": "open",
+        "at": 7150
+      },
+      {
+        "kind": "open",
+        "at": 8590
+      },
+      {
+        "kind": "open",
+        "at": 9360
+      },
+      {
+        "kind": "open",
+        "at": 14350
+      }
+    ],
+    "checkpoints": [
+      {
+        "minute": 1054,
+        "night": 1,
+        "phase": "service",
+        "hash": "bf6881a8e221cc3e1764124ee6a63bbb1befab4a494083948f7caa5bd51424a0",
+        "restoredAfter30": "b608ab502aeac2ffd5a44eb5d9accbc5c424fed0b1fc4c532c10ccba9403476e"
+      },
+      {
+        "minute": 1085,
+        "night": 1,
+        "phase": "service",
+        "hash": "04d9c7ee7c9bab464c03227c91bb91a3bf3c2e095f7710983333a9b0dd87b3d9",
+        "restoredAfter30": "6576205b5fb7fedd60cc2ae0a1e3e84d145fa24649343f853efd7f35ab208ae6"
+      },
+      {
+        "minute": 1116,
+        "night": 1,
+        "phase": "service",
+        "hash": "f4d0fcfd511a5e164640e8d7ca1db89cda1b5c76347eba6a0c35c8d36090df6b",
+        "restoredAfter30": "d7c23bb1a9d605bf83bd01c2b79c341a77bfdaa66aeecebaa39ba302bd7582b8"
+      },
+      {
+        "minute": 1147,
+        "night": 1,
+        "phase": "service",
+        "hash": "fd04ec6478a41fdc4795289fbbc6a4c8cf55da380be01fa23b6b266bca6bd747",
+        "restoredAfter30": "d15bd0c02b291f2fae8489f3ba36d99cdb1c74890717d3d9d53b89605981b679"
+      },
+      {
+        "minute": 1178,
+        "night": 1,
+        "phase": "service",
+        "hash": "75b847147dec898be84e243b5d14eec868b3c863c121c8a1e5ee07ad6dffa21d",
+        "restoredAfter30": "7d9f1f3afbcbcdaf40b55817c611faa5047b9872c0d5f0af3460a34596c9ed47"
+      },
+      {
+        "minute": 1209,
+        "night": 1,
+        "phase": "service",
+        "hash": "4a86fa6d29c4f6006ba7e65beec1bf0aee385b97d473f44538e1d149f9164ae6",
+        "restoredAfter30": "189edf42b7e1bddfd92c7e70951df3da3fc9f55aab6326a055699c4ca735dc80"
+      },
+      {
+        "minute": 1240,
+        "night": 1,
+        "phase": "service",
+        "hash": "6eb046e56e4c3996cd3e3218515494deef9a60b5f6116c227235c64cb0508f69",
+        "restoredAfter30": "49e34b22e3454a1b78fa5b05ded0b91af9f9233479894c6eda116f02573f9219"
+      },
+      {
+        "minute": 1271,
+        "night": 1,
+        "phase": "service",
+        "hash": "998359d35a947e2b9b0546ca1f9e1f0bb2a2f1e769e4efa6cea5abab87ee53c6",
+        "restoredAfter30": "0f11128887bfff8f785c2be2ee18b9eccc89c43b238a6dea3431415b83afbad8"
+      },
+      {
+        "minute": 1302,
+        "night": 1,
+        "phase": "service",
+        "hash": "bcc4ec2d9afaa5d7b44d18444bfa277229e8ab7792f0ad102b955b09da97a330",
+        "restoredAfter30": "f75946a3006c4421a39195f0b274887578c595358fb8ef3e8744e4c33688790d"
+      },
+      {
+        "minute": 1390,
+        "night": 1,
+        "phase": "evening",
+        "hash": "f75946a3006c4421a39195f0b274887578c595358fb8ef3e8744e4c33688790d",
+        "restoredAfter30": "7467a28e056135f7f2ce0acf0fcdae2d5ccdf310805053cbbf3631d11bdb731b"
+      },
+      {
+        "minute": 2511,
+        "night": 2,
+        "phase": "service",
+        "hash": "7d0660ed88d1f23bcb7224b1ad19010b467729ca6e14d314c1dd44b9f178884f",
+        "restoredAfter30": "2c05e02d1a98c02a5d31a2ad066475998bd1b1df2fc94387100e0a05d957cba8"
+      },
+      {
+        "minute": 2542,
+        "night": 2,
+        "phase": "service",
+        "hash": "2e3549c624767dae068e66ba4631f82d8e72f48b3d3dcc64194ce0a14709792d",
+        "restoredAfter30": "89d53789563927b29d80d4f87a3ce8c005de0e3ad71f7d5788da1685281cb5be"
+      },
+      {
+        "minute": 2573,
+        "night": 2,
+        "phase": "service",
+        "hash": "45d7894ea6ee1d6d89e43424653547a6501819b259691e36684742350deee64a",
+        "restoredAfter30": "793f0240789c386068c2a1fd643b24639ff0b41458fe6c748160538b47bb5709"
+      },
+      {
+        "minute": 2604,
+        "night": 2,
+        "phase": "service",
+        "hash": "f7af426093c4cbc55fee59f7247dd08a329addb02dcc5b634dc105a54798f672",
+        "restoredAfter30": "3983f9ae8d6f23bff768e801e4e86a0ba36912529c068c945da6001db6956770"
+      },
+      {
+        "minute": 2635,
+        "night": 2,
+        "phase": "service",
+        "hash": "73c0f58dbea74777b464aeb2852fb5911421663e14954762f0faa0ebcbb7859c",
+        "restoredAfter30": "e00e795d4c422dd62f63ad67e51abaf2321336fb1e85eb907adb345d6a5e3689"
+      },
+      {
+        "minute": 2666,
+        "night": 2,
+        "phase": "service",
+        "hash": "78c8b90ba382a334f163a6fd3e9442352f6b5678f21ca92b2948b902b9139728",
+        "restoredAfter30": "e08755dbef0988c39ea907a660fce1bcd499785bf9081f3f9b088700a482292b"
+      },
+      {
+        "minute": 2697,
+        "night": 2,
+        "phase": "service",
+        "hash": "faac747d1167fe690ae8d8f2751804dc045cc1620f2fe855f2f112a3b89c7f6a",
+        "restoredAfter30": "04831d8b24cf1687c200aa933de2129a18d212bb3254cbb06b7ea1406e3a76d5"
+      },
+      {
+        "minute": 2728,
+        "night": 2,
+        "phase": "service",
+        "hash": "0890867ae780b28d09bc54a8fad17866b7a5fa05128b0c127e2a5c38790c2f2c",
+        "restoredAfter30": "82844f3a23eaa1defdbc21c305d5b0685dcd1952f04b32d75eb69924a341f8c7"
+      },
+      {
+        "minute": 2759,
+        "night": 2,
+        "phase": "service",
+        "hash": "7e519fe18e072326c04ba05b39b9b2c6108b96737ec7e2af228c3ddbba8b1c95",
+        "restoredAfter30": "4d59caa8b59e1fa7f90b4c5df26a17357b7e9ef6c4ba925e27cc2e21def33097"
+      },
+      {
+        "minute": 2830,
+        "night": 2,
+        "phase": "evening",
+        "hash": "310cbb511fd8c53c5db11844fff9b082fc58ca9e13f60e04136bab90a7a1f6a0",
+        "restoredAfter30": "4d59caa8b59e1fa7f90b4c5df26a17357b7e9ef6c4ba925e27cc2e21def33097"
+      },
+      {
+        "minute": 3937,
+        "night": 3,
+        "phase": "service",
+        "hash": "20130bff32183a8b3859302ba4ef89b897da2890e4a5b8eaacec3c48c4021fde",
+        "restoredAfter30": "92b9e8f1daf835e6e95d670ce66bfe894624f3ccbb90abe36c9bd4765b51ed4b"
+      },
+      {
+        "minute": 3968,
+        "night": 3,
+        "phase": "service",
+        "hash": "04aee2d5601909be2040f33d86d2fb7f05930757e78a18010532f180f50c4c7e",
+        "restoredAfter30": "2e9149b26e87a037234f03eba0e689406aa2371426a4dd29afb2bb22b6b4735f"
+      },
+      {
+        "minute": 3999,
+        "night": 3,
+        "phase": "service",
+        "hash": "44abe52ea7180e4de87f6e3c28240794eec58a6364d17d299733ed1ab3facd06",
+        "restoredAfter30": "838334005c39cb428d18dcd10c243850beca5158c288da66f40c27c496ab653f"
+      },
+      {
+        "minute": 4030,
+        "night": 3,
+        "phase": "service",
+        "hash": "848f42441f1f202329d2833e728180681c878f8b417a8dfcaaef1d1856e26b28",
+        "restoredAfter30": "327f95872626250aacd6c8ff8e20960b9a643c9daa3f8124b9fa39961cc033e2"
+      },
+      {
+        "minute": 4061,
+        "night": 3,
+        "phase": "service",
+        "hash": "cb3e656070bae0eeb0964e4c0949e10be4c2345ff62c81bb0f4948fd29944e2f",
+        "restoredAfter30": "92fe18c4a5e860f2160ce77e481a2f57f7fb750e66c16aca6a7811cabf570541"
+      },
+      {
+        "minute": 4092,
+        "night": 3,
+        "phase": "service",
+        "hash": "3fb069cfdd5f87526296a7308aecdf2ee8c12c1da3cac38e285c81e0dd900189",
+        "restoredAfter30": "8fc2d78cafe8c0207763a208557ca7a8f3b10cec430b23c782e5867e181129ea"
+      },
+      {
+        "minute": 4123,
+        "night": 3,
+        "phase": "service",
+        "hash": "a3c4aaf1bdeb4e0ce0af4eb69082d964c006dd64ce944b6b55872b3184d2c2a5",
+        "restoredAfter30": "aec5a2ae6756cdc9c00a61db29f786fa504f0e0f18dd23edf5f34b7d1332672a"
+      },
+      {
+        "minute": 4154,
+        "night": 3,
+        "phase": "service",
+        "hash": "280762253cfe8586a912b2d37afbb9bd0429031fea54a0735838424fc5fdab64",
+        "restoredAfter30": "3ead58d9d44fb166e6b555abbc13a418f5b0fe3337210136666faabdc1f46735"
+      },
+      {
+        "minute": 4185,
+        "night": 3,
+        "phase": "service",
+        "hash": "867260dc1c498bf98cf5f7cb6eab6b03b5b940d3e0e2a547476912090b342434",
+        "restoredAfter30": "3ee259f2d0ebef38e62e6922aa59b925dd8bbaaa5d09c09c0ad43e5b3ff0b4f8"
+      },
+      {
+        "minute": 4270,
+        "night": 3,
+        "phase": "evening",
+        "hash": "70b1f185e4ef86b65161dfb856bf7196368e0f62bc9a0aabd10f4fffc791edfe",
+        "restoredAfter30": "3ee259f2d0ebef38e62e6922aa59b925dd8bbaaa5d09c09c0ad43e5b3ff0b4f8"
+      },
+      {
+        "minute": 5394,
+        "night": 4,
+        "phase": "service",
+        "hash": "742096e25164e475af7aad721c627ea8aeed0e5b6fe3a42c4512f7bbcaedda8d",
+        "restoredAfter30": "c442477dbb86e7b21c59133aae569bf3b5c12b987ad0c48b30616bc47877e2ee"
+      },
+      {
+        "minute": 5425,
+        "night": 4,
+        "phase": "service",
+        "hash": "aec635d31fd3cc27595d5717a05b2bea5513ee7d22e08c6130590818b568afc0",
+        "restoredAfter30": "87a6eb7e90d26bc799638865b7255bf78bdd7992b9f211806a4f3e78c07c25c9"
+      },
+      {
+        "minute": 5456,
+        "night": 4,
+        "phase": "service",
+        "hash": "dd824f3a01ef1be6d142b773498d6545a6f9fd73277ebb4e360d74cc132312cc",
+        "restoredAfter30": "94edb89da20c717a63912e1f1e040ce103f3e89c1ebe798c7807721de5e8921d"
+      },
+      {
+        "minute": 5487,
+        "night": 4,
+        "phase": "service",
+        "hash": "a8b8ce58079a88adee4cb453f35559ccdb8e6f7a367bf8e4c181bbcf27f0fe5c",
+        "restoredAfter30": "970cc876093ed3275a1133a12b1c077ee3adea88015797528ebbd1df17bdd19c"
+      },
+      {
+        "minute": 5518,
+        "night": 4,
+        "phase": "service",
+        "hash": "7fe9e8bb2f269b5d48250c5989812a05e4fde5392a67fe3ed6b7bf1f080463ce",
+        "restoredAfter30": "88c2b54d9ac40ce6b55776895287f1c96ca9fef9b97425328fded576fda05168"
+      },
+      {
+        "minute": 5549,
+        "night": 4,
+        "phase": "service",
+        "hash": "5816d1da0b9de1e82621ea9240de527ae3f563e2696d6cafb3207522f0c7930d",
+        "restoredAfter30": "cd96afd3d8fdb36a0234afa1ecb4f8f89bc2215eb8334af803f4512ce691ae83"
+      },
+      {
+        "minute": 5580,
+        "night": 4,
+        "phase": "service",
+        "hash": "75b43c90b77ef510418f79f79e317fdca7be27a388645319ccaa643a27219981",
+        "restoredAfter30": "7dd07b5f60329574d7e05faa07b34298dcb4a4198a6d3e80eb6405d6aebd11b7"
+      },
+      {
+        "minute": 5611,
+        "night": 4,
+        "phase": "service",
+        "hash": "e745a3f3e6201d4030ef5f0dcd82c3ac51dc55d4182e2b0fb7c5c1dfeb1e9387",
+        "restoredAfter30": "dc4ddc0f76999a0a26ea78ff4dcb4fec6768c5eb63950d554ba2912b212a8091"
+      },
+      {
+        "minute": 5710,
+        "night": 4,
+        "phase": "evening",
+        "hash": "2c880c412e90ef7357a77453d2cf0522d90b1120e7c68cf3d5d4222c1ae926fe",
+        "restoredAfter30": "dc4ddc0f76999a0a26ea78ff4dcb4fec6768c5eb63950d554ba2912b212a8091"
+      },
+      {
+        "minute": 6820,
+        "night": 5,
+        "phase": "service",
+        "hash": "424e4e45d03af2096b80afed3cd5167f655cab842c8aba1559d5acbfc12bbe54",
+        "restoredAfter30": "d0d1b8ecd5fe4e6c8ce41799ee4a6b35c02a5bf49fab7a79a61b17c4be18f828"
+      },
+      {
+        "minute": 6851,
+        "night": 5,
+        "phase": "service",
+        "hash": "f67cadfaecfc9c3e08bc35e942fda27469665b6ba5f6eb3b4788925dc1592ae7",
+        "restoredAfter30": "b1c69215fd020a8c30bc4579525bd4b00cc5e6fc2793cc8a9b3f1a740177c3f4"
+      },
+      {
+        "minute": 6882,
+        "night": 5,
+        "phase": "service",
+        "hash": "47c9ec88c2a7034623c93a7cd58c749b056d022df31de4aa96b3804dfa02dd1e",
+        "restoredAfter30": "8cf765e23c446d1b820c43283a02dc3a854ea342c23fe0d9fd24343efbfc07a1"
+      },
+      {
+        "minute": 6913,
+        "night": 5,
+        "phase": "service",
+        "hash": "d1280e5adab72e377382eb1a2f3f8471a606b98391b2222db5663563335e2fe3",
+        "restoredAfter30": "da7ba63189437ff68c2ffd2a7a9ea540fe5c9cbff9808ee3c91918aa7ef6f8af"
+      },
+      {
+        "minute": 6944,
+        "night": 5,
+        "phase": "service",
+        "hash": "27252401faadad3628e46364a30f00491e8b5238b56be4e2c072e0505572cf9e",
+        "restoredAfter30": "0870d2570511a9817d7af616590687d220751a1654e27f0047fa99d9aa88c490"
+      },
+      {
+        "minute": 6975,
+        "night": 5,
+        "phase": "service",
+        "hash": "ac167690da34af046f36e92f164933833e1ffbc4ad121cd79efe32087c450bfd",
+        "restoredAfter30": "075a87426d2ec7a865a515d81a1391a691630c91c6356d1b9196d7ecc1abca1b"
+      },
+      {
+        "minute": 7006,
+        "night": 5,
+        "phase": "service",
+        "hash": "55c69550a8e9a24af1c0c1bd40990330bdaaddeb0d91c355dd10da8e68b2b0ea",
+        "restoredAfter30": "849bced167aa9416b9d3230501d447c31fe40d6aa2d0d86fd3ef60f57a84f3c0"
+      },
+      {
+        "minute": 7037,
+        "night": 5,
+        "phase": "service",
+        "hash": "0a9ca94cadab187a7d8349687a5a1b32101cb3ca3a9b26c09286daeda3736d74",
+        "restoredAfter30": "4032cccf245e04963b8cb852d76740a11f66977c567cb1d2e50cc1f7e220391c"
+      },
+      {
+        "minute": 7068,
+        "night": 5,
+        "phase": "service",
+        "hash": "9d3beace3302cc4b8c85c5578fcb2ea1930e84fb9e630173bee937c5a1ef870e",
+        "restoredAfter30": "ad97fb71a0b9fe3c9821ee79b4f039ab1e9c1d2f3e8b8a48857c84494582aae8"
+      },
+      {
+        "minute": 7150,
+        "night": 5,
+        "phase": "evening",
+        "hash": "fbf44972342738857e3f150cda99bcee175358d46c81ff610913960694cfad0c",
+        "restoredAfter30": "ad97fb71a0b9fe3c9821ee79b4f039ab1e9c1d2f3e8b8a48857c84494582aae8"
+      },
+      {
+        "minute": 8246,
+        "night": 6,
+        "phase": "service",
+        "hash": "ab8a80471254f589be2f9b4e493f50da4dc64fe976b9af81ee62dc6355b1e262",
+        "restoredAfter30": "903bef27bab18a5c29eb3ff0fee42e3ea96ebed7b950d4360b530fea2c3dbbbb"
+      },
+      {
+        "minute": 8277,
+        "night": 6,
+        "phase": "service",
+        "hash": "9ea34751fdb69e2938018a974fb617353b8b7d6f699385b341ad6ff633761d03",
+        "restoredAfter30": "fa440926c9981e5b169cae9fa0757174cca6f9048d0a3d1d2bc66e9839d5cc49"
+      },
+      {
+        "minute": 8308,
+        "night": 6,
+        "phase": "service",
+        "hash": "41beb6045aa9f33d3d389a04e8a65b53de295d6ea7a176855c4e236af7d8617f",
+        "restoredAfter30": "7dfc9e89c534b8378f9c10121bf5e3734d91d6b38cab0156f287e2c30293b99d"
+      },
+      {
+        "minute": 8339,
+        "night": 6,
+        "phase": "service",
+        "hash": "5143c970252e0a692c079c3e185f35a1c1bd35be42d057cde173098c7870f31a",
+        "restoredAfter30": "a09c21ad7bdf4fdc24906ebdc03762df5d16bd5982820bf2db88fe86acd65512"
+      },
+      {
+        "minute": 8370,
+        "night": 6,
+        "phase": "service",
+        "hash": "b0af825e28f4cf05c87a085ee98a20287c5b45d60d47378b88fc55f4f1a0b1f3",
+        "restoredAfter30": "53c152a812f9bb4cbeb933ba82d37123471beee4aaae228ea51cf2c456fb2b01"
+      },
+      {
+        "minute": 8401,
+        "night": 6,
+        "phase": "service",
+        "hash": "83039f93fc2d4ba354f26535a0557698344bdecd0e78b4e821457f2b5ad88cd9",
+        "restoredAfter30": "c65ce08234545730f8dfba52c965f42de78b07f5461b37d1d356168424ce354a"
+      },
+      {
+        "minute": 8432,
+        "night": 6,
+        "phase": "service",
+        "hash": "fb7fa7eb8a3633167c3d16d2afeda58fab7507eda216b7964aa1885c377126ad",
+        "restoredAfter30": "d04ec0b737843159f98011729a25bfeb639e5cbf1a9b95d3490e4d1fe39dcde1"
+      },
+      {
+        "minute": 8463,
+        "night": 6,
+        "phase": "service",
+        "hash": "5e11b1e05810a2e672501494148d78edf0c76f0c6e239bb8064b80b2d2574ff7",
+        "restoredAfter30": "ba19e43b45f8149f5b157a842b522c0842386b683e3ab41134bec39e3c2593d9"
+      },
+      {
+        "minute": 8494,
+        "night": 6,
+        "phase": "service",
+        "hash": "11fe2c3d308d680bf9e88a25274cc028b97e83000640170bc53ffa8d096570ca",
+        "restoredAfter30": "20635fc2a04ec9c3e3389ac1ac5bea7a8e8fe634e40f4202ca5ae5233e2d0756"
+      },
+      {
+        "minute": 8590,
+        "night": 6,
+        "phase": "evening",
+        "hash": "cfb9bbea18a9e962c01d551b01d14f28c256b1529fea5774dce059aee7111792",
+        "restoredAfter30": "20635fc2a04ec9c3e3389ac1ac5bea7a8e8fe634e40f4202ca5ae5233e2d0756"
+      },
+      {
+        "minute": 14012,
+        "night": 7,
+        "phase": "service",
+        "hash": "107ad8e6e32fef5f074c6b22cd30afab2d15ff81366c0648137d6f34038e86d2",
+        "restoredAfter30": "432c5c2cbfc665ab3d63f738a1d4a6bc19571c7a2eee71ff396a78f365abb6b2"
+      },
+      {
+        "minute": 14043,
+        "night": 7,
+        "phase": "service",
+        "hash": "f6f791331f9ba69046234e883ed59babff18c9b11741eaa8b051e1c8d793527d",
+        "restoredAfter30": "83a6bb630ca583cd8eec0c2039cfb4fb189b9d30e3e450432c11df96d137c2f1"
+      },
+      {
+        "minute": 14074,
+        "night": 7,
+        "phase": "service",
+        "hash": "7c268cadc6fd6caf64078bebfdb18e16e8be27375b9a3cfa99133a550cdc46cd",
+        "restoredAfter30": "719f48e41823f05d0935bf2c025f5f168214fc4929550c9a7f94b09f7adea8ef"
+      },
+      {
+        "minute": 14105,
+        "night": 7,
+        "phase": "service",
+        "hash": "1bb7d250d52f2ac0591f8b00793f85c9f7d09e9553de7c83a1c0c7f34eb5b0ae",
+        "restoredAfter30": "b6b4a3ca063ea7f63d8d536ebb53ca5f0f6d7ff80d1d152fcc314f4ba117fec9"
+      },
+      {
+        "minute": 14136,
+        "night": 7,
+        "phase": "service",
+        "hash": "5a67b87c3a2ed8e39f8cd749623f2800b60c72c8c1a2566950ae678c60569125",
+        "restoredAfter30": "dab847b85ce43ac8295501a6956d9ac9a655278d8f201d03c9ccdf689ddcbe59"
+      },
+      {
+        "minute": 14167,
+        "night": 7,
+        "phase": "service",
+        "hash": "31bcc651aea5e27207b3304c5100a6e50804852e3168de33eafb1ec9cffb218f",
+        "restoredAfter30": "327f968c45ffb4ed895afc95d3b066ea1df032037e94e14f5699292ea867d385"
+      },
+      {
+        "minute": 14198,
+        "night": 7,
+        "phase": "service",
+        "hash": "1e4693d5ef30922a2821858d06185dcfddb6ce4cbb2416fb0f6f8110b23eb511",
+        "restoredAfter30": "ca286b818855da0e8d7fdf570231e9a07929d1f94a0ffcde6ae2860344f9cd15"
+      },
+      {
+        "minute": 14229,
+        "night": 7,
+        "phase": "service",
+        "hash": "a187259457b85ccc44b1d40150574935a0af4a8ae21c89bfd6ebc980cc8513e7",
+        "restoredAfter30": "3a881bae811ddcbb3600c54b95daffa61f19ddcebfb5d1d7ef15063ab5443fd3"
+      },
+      {
+        "minute": 14260,
+        "night": 7,
+        "phase": "service",
+        "hash": "ff06a76749ac0d48cfea2bfaa638ea533c3aba9b9140783322153969f1d090d5",
+        "restoredAfter30": "07f9c4aa7506d35449bb67d1225bec1abba80b55e1010d35b503b0167d92d3b2"
+      },
+      {
+        "minute": 14350,
+        "night": 7,
+        "phase": "evening",
+        "hash": "7097e4bcc5fb683468679f08dc7d53f3091ec6b55ca920a9228cf95f32cccafe",
+        "restoredAfter30": "07f9c4aa7506d35449bb67d1225bec1abba80b55e1010d35b503b0167d92d3b2"
+      },
+      {
+        "minute": 15469,
+        "night": 8,
+        "phase": "service",
+        "hash": "0763a55d220310d667dbd243c8cee5a9faea4fb41be16fdc0019243915619ff6",
+        "restoredAfter30": "dfc7e612c6bb854dd2161ab8bac581531318dd7f408ffc0aa56083ccb38b79ae"
+      },
+      {
+        "minute": 15500,
+        "night": 8,
+        "phase": "service",
+        "hash": "cc207669221a4e85b911750f4d2930a022a1d223050de1526bad9c1b79b1d01c",
+        "restoredAfter30": "f984b62e5c11b7c100d2107eb4da145f46c4892ac8c2e6f50077ba4e370c3adf"
+      },
+      {
+        "minute": 15531,
+        "night": 8,
+        "phase": "service",
+        "hash": "9a7caacf8f5cc32620625e7cab4332b249c4b7cf00f58613b883db67646f0e99",
+        "restoredAfter30": "48776b53d50beb1037b3bfe6e9111f626244a0b618ea73ca2a9b96b0462f4963"
+      },
+      {
+        "minute": 15562,
+        "night": 8,
+        "phase": "service",
+        "hash": "416f1d1f48f7decafa919efc972d2e41e82cc81a68b9977ed0fd77fcd8328ad7",
+        "restoredAfter30": "9105d2e0b353a90547fc70fa20bb074db4de5b80054d39c25ccff1843b34e398"
+      },
+      {
+        "minute": 15593,
+        "night": 8,
+        "phase": "service",
+        "hash": "d1133bffa049ebafeb11fb4b149504b7cfd0eedc20b06652b1bc76951ee92f05",
+        "restoredAfter30": "38ba65b0a59da0cd01b455fe5d3d4223052e4f168f739a860b7c6a46a99bd23e"
+      },
+      {
+        "minute": 15624,
+        "night": 8,
+        "phase": "service",
+        "hash": "d5edcb244ffadfddf1543c6ff20e1a6e255ce85a02b940b24b3b82acdac0160a",
+        "restoredAfter30": "434f338d633aa8a1270749c2fc3ca4713656850bbba5fffc531c3b3db52b10b2"
+      },
+      {
+        "minute": 15655,
+        "night": 8,
+        "phase": "service",
+        "hash": "732668bfdd4e44f9ba31dfa72eb95a6ddc19cd5b419fcc14f0c6f57f37466c46",
+        "restoredAfter30": "19207d792ef27b1a04ddf698bbfffe6475431e9387da2dc10fd9d226ed155fd9"
+      },
+      {
+        "minute": 15686,
+        "night": 8,
+        "phase": "service",
+        "hash": "17a14ff271218f70d01e86f602c37d98056d9d30510a86c1b7965c68e4a2adbc",
+        "restoredAfter30": "99e99a778390676175816fc2cacb793d664cce316e6259bb909d760443731f6f"
+      },
+      {
+        "minute": 15717,
+        "night": 8,
+        "phase": "service",
+        "hash": "e9e9f19f0411a3d7b0c6ebd7e27a4800f577b1a41f967c43dbba803bd7b7a31a",
+        "restoredAfter30": "841b0a4fd2e99a9bbc0db23284ba152c0bdd5a6512f19848fd6f8d15e18c0fc1"
+      },
+      {
+        "minute": 15790,
+        "night": 8,
+        "phase": "evening",
+        "hash": "11c977eacaa0ad4f57c44f836eb3392894248a7b4773c5da07d4c0e2fd25945f",
+        "restoredAfter30": "841b0a4fd2e99a9bbc0db23284ba152c0bdd5a6512f19848fd6f8d15e18c0fc1"
+      }
+    ],
+    "final": {
+      "minute": 15790,
+      "night": 8,
+      "phase": "evening",
+      "hash": "11c977eacaa0ad4f57c44f836eb3392894248a7b4773c5da07d4c0e2fd25945f"
+    }
+  },
+  {
+    "seed": 7,
+    "policy": "ask",
+    "inputs": [
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 1074
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1098
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1128
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1158
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1164
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1194
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1200
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1230
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 1230
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1260
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 1260
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 1266
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 1290
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 1296
+      },
+      {
+        "kind": "open",
+        "at": 1390
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 2514
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2538
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2568
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2598
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2604
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 2616
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2634
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2640
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 2646
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2670
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 2670
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 2676
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2700
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 2700
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 2706
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 2730
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 2730
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 2736
+      },
+      {
+        "kind": "open",
+        "at": 2830
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 3954
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 3978
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 4002
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4008
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4038
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4044
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 4056
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4074
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4080
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 4086
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4110
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 4110
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 4116
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4140
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 4140
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 4146
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 4170
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 4170
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 4176
+      },
+      {
+        "kind": "jar",
+        "choice": "talk",
+        "at": 4270
+      },
+      {
+        "kind": "open",
+        "at": 4270
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 5394
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5442
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5448
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5478
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 5496
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5514
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5520
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 5526
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5550
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 5556
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 5574
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5580
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 5586
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 5610
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 5610
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 5616
+      },
+      {
+        "kind": "open",
+        "at": 5710
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 6834
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 6882
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 6888
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 6918
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 6936
+      },
+      {
+        "kind": "answer",
+        "choice": "yes",
+        "at": 6941
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 6954
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 6960
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 6966
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 6990
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 6996
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 7020
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 7026
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 7050
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 7056
+      },
+      {
+        "kind": "open",
+        "at": 7150
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 8274
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8322
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8328
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8358
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8394
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8400
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 8400
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8430
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 8430
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 8454
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8460
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 8484
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 8490
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 8490
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 8514
+      },
+      {
+        "kind": "open",
+        "at": 8590
+      },
+      {
+        "kind": "open",
+        "at": 9360
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 14034
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14082
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14088
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14118
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14148
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14178
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14184
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 14184
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14214
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 14214
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 14238
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14244
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 14244
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 14268
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 14274
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 14274
+      },
+      {
+        "kind": "open",
+        "at": 14350
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 15474
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 15522
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 15528
+      },
+      {
+        "kind": "answer",
+        "choice": "yes",
+        "at": 15591
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 15606
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 15636
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 15648
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 15654
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 15666
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 15678
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": false,
+        "at": 15690
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": false,
+        "at": 15696
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": false,
+        "at": 15708
+      }
+    ],
+    "checkpoints": [
+      {
+        "minute": 1054,
+        "night": 1,
+        "phase": "service",
+        "hash": "0a80b4dd228ca966ada68527c608cae92f7e04d691392bb3c9b62a399ab2001d",
+        "restoredAfter30": "03469017eaba940476f28b5b38220b6ebd70f78155ccb088ddd1d3b5c0330a0d"
+      },
+      {
+        "minute": 1085,
+        "night": 1,
+        "phase": "service",
+        "hash": "f7b48ea6713591c1eedadc5f9f75d488fabd867e55402718224c9de98eb5e3d9",
+        "restoredAfter30": "78e3868b89a1ecbde4b99c75c6a2c68eff53503f7ff26c81f986c3135f470c4a"
+      },
+      {
+        "minute": 1116,
+        "night": 1,
+        "phase": "service",
+        "hash": "838b75615221a1dd428776ecfd6fb6444a486166b6d28cb82556f9e49f5aa7a5",
+        "restoredAfter30": "11c3b58ca1b490caef245f0d443281920e4f9360bc9268019f7f8f3f474681f3"
+      },
+      {
+        "minute": 1147,
+        "night": 1,
+        "phase": "service",
+        "hash": "811d7ff980977464f094865a728e842272951aa2c297eb885af4585f40862e37",
+        "restoredAfter30": "690bde9c04879044ffa32b2729aa0a616366dae7c88115bfc37117777e2f4b1a"
+      },
+      {
+        "minute": 1178,
+        "night": 1,
+        "phase": "service",
+        "hash": "2d46cc417d75c87b9be481f98bcbdabce2a143f43afc4c36ecb3fb6d8a950baa",
+        "restoredAfter30": "aa16ccf256a12059b3e74e9512894c1edb9123d03c7fb0e56bb16c3c9f14802b"
+      },
+      {
+        "minute": 1209,
+        "night": 1,
+        "phase": "service",
+        "hash": "845ad92c1cd515382086110c553231a88e6697a752da8d4c9be15f8457664e27",
+        "restoredAfter30": "483efc5f25babbc12beae0e91b83562f82452c041514ed57a595658349c41a94"
+      },
+      {
+        "minute": 1240,
+        "night": 1,
+        "phase": "service",
+        "hash": "4f2ad45325a6f31d8f28ac1a420fef186275981ca227a9749797ef07a75e9c68",
+        "restoredAfter30": "e82140a436b9410e848b57ff0bd2a2285814f40833b1f118115b7be4ded72349"
+      },
+      {
+        "minute": 1271,
+        "night": 1,
+        "phase": "service",
+        "hash": "f849a2019b08ba89b910f5c14beaa6ff627ba8db41bf5e1bfd03835f4ae06609",
+        "restoredAfter30": "5fa73444a090cb56cd5082c76abb1ad4fcc47aa423df6ba1721b952a30bb0918"
+      },
+      {
+        "minute": 1302,
+        "night": 1,
+        "phase": "service",
+        "hash": "fefbdb1cbd79e5095dc75d8d54e23d8141372e3e0d14d002eac0984e1f33da13",
+        "restoredAfter30": "0c1177c305b95b1809f2f8c5ac7fe549a04c7ba6ebd1ee70efebbf24d6842544"
+      },
+      {
+        "minute": 1390,
+        "night": 1,
+        "phase": "evening",
+        "hash": "0c1177c305b95b1809f2f8c5ac7fe549a04c7ba6ebd1ee70efebbf24d6842544",
+        "restoredAfter30": "f51d61d9b3789035be634cebc2ff0be9105c63a82e1b6a361b1217b76080f3f2"
+      },
+      {
+        "minute": 2511,
+        "night": 2,
+        "phase": "service",
+        "hash": "4fdc31ae273f71c01d47ad0b769b51818e17f73fc5359a37b8d49333f09508da",
+        "restoredAfter30": "5737e818beb820e3dd62f37486d724bea2951e76324c7dfa742d9e6dc8b81d1e"
+      },
+      {
+        "minute": 2542,
+        "night": 2,
+        "phase": "service",
+        "hash": "4519f893102038bb43904f002e27724f66f9f5ddc9ed60c7ee6414bb51b9af13",
+        "restoredAfter30": "47b277b161ba57ae5ebc65223b2936b29435ef44a387c4cd030e9b9487781caf"
+      },
+      {
+        "minute": 2573,
+        "night": 2,
+        "phase": "service",
+        "hash": "70a3dfd28a6a246028ae1566a91497dcb0a75283879354b328231ea4918657f5",
+        "restoredAfter30": "8a62f4ab6cdff30871c9b141e2f781242fc5986e3398dc86e2dfdff22a812c72"
+      },
+      {
+        "minute": 2604,
+        "night": 2,
+        "phase": "service",
+        "hash": "d0c4c7f6c1db88c13393be2f5440d982a33b845a15a3bed40524100098049e95",
+        "restoredAfter30": "d968238a79e9cb6266b87b049af730c8327707b31e4445cbf2571b1fb851a25a"
+      },
+      {
+        "minute": 2635,
+        "night": 2,
+        "phase": "service",
+        "hash": "dccd260c3f0949b6afc0b0cb6eb9ca0b6111033f735dafbe938d4c3fc36d9f00",
+        "restoredAfter30": "ed4e6874b8340963079b7557c9470e7b34a23f415ffc440dd0f89b7862a03747"
+      },
+      {
+        "minute": 2666,
+        "night": 2,
+        "phase": "service",
+        "hash": "fcaf49abf61499e7a94a66b79fc6c36340114ca64c270c9969b0ef321526003d",
+        "restoredAfter30": "49f0292b894ddf1a2c6cbfe4ed43a92fc915c06f64a4c201c799abd6fd062a7b"
+      },
+      {
+        "minute": 2697,
+        "night": 2,
+        "phase": "service",
+        "hash": "e72b1e6ecfd0e7196e18d89acb857689bd74cdf38a10aa4ca0771a1f81a5ea89",
+        "restoredAfter30": "59be29c4d37525fc065f47de46460505af7d6a0779c0a634b90013a874eae5e3"
+      },
+      {
+        "minute": 2728,
+        "night": 2,
+        "phase": "service",
+        "hash": "86b49bcbc2e8165b954ae1567ffb838d89fd76e4577be4526c7c8b1c0dc260fc",
+        "restoredAfter30": "eeba8855f2d924e4226a09017d03af25c1132f8f50225e5308299c7772d3e655"
+      },
+      {
+        "minute": 2759,
+        "night": 2,
+        "phase": "service",
+        "hash": "5302e58a954c14fa9539985842d57a06007c92057c697276de6090552bcfa8e9",
+        "restoredAfter30": "9bb567a9056fd9a7e83bdf2362a47ff3d121015eabf56445afb245f13b0b0b9b"
+      },
+      {
+        "minute": 2830,
+        "night": 2,
+        "phase": "evening",
+        "hash": "e8a71ac12d1cf62e45a3873b31ba82097554db4c9672601bec546f973bf61eed",
+        "restoredAfter30": "9bb567a9056fd9a7e83bdf2362a47ff3d121015eabf56445afb245f13b0b0b9b"
+      },
+      {
+        "minute": 3937,
+        "night": 3,
+        "phase": "service",
+        "hash": "6bae3739a6222ae0f0afb7187328e2181d98e3d847e26c5757af4c47b7ebda02",
+        "restoredAfter30": "f4acd8b18f4109b070643cefab97a86462abe2d1fd8b8f02b94e8b1d3615dfeb"
+      },
+      {
+        "minute": 3968,
+        "night": 3,
+        "phase": "service",
+        "hash": "139e5f1710c6ec7d3c1eaa46db2ed4dc1396cbc70bb4de2cb55fccdecb9a5fc1",
+        "restoredAfter30": "28827c5e96dc4894dc7bf67787d0db81cbdad0a8824e0ae076afbc6d147952a8"
+      },
+      {
+        "minute": 3999,
+        "night": 3,
+        "phase": "service",
+        "hash": "0e11e293ff12b899eeb5f8b95ab194daca253e545b3366814f8e94cce80b96c9",
+        "restoredAfter30": "eef6e23e8e6f713cbfb2cdefcad0ecb343c7157ffff44ea60745f84fe681bce0"
+      },
+      {
+        "minute": 4030,
+        "night": 3,
+        "phase": "service",
+        "hash": "19a624036d57eb22ad4e6b439f29dbbea5ba71b9162df20a7ac4372d8699f7e8",
+        "restoredAfter30": "28ae4fe5d9853c5a8c4c6d8ba6b0e0a144ea921d10ae600d1b8ca37118d5b4d7"
+      },
+      {
+        "minute": 4061,
+        "night": 3,
+        "phase": "service",
+        "hash": "407f489e92fdbbe4504df7cac03622878fca64b83e9eb7dba8cefec86f7d2c25",
+        "restoredAfter30": "d7a3234202fc41ede0e42f61bacc824fb01f1dc7916d80e13495f68ca1004c37"
+      },
+      {
+        "minute": 4092,
+        "night": 3,
+        "phase": "service",
+        "hash": "21224ee202fefbe5cd50f2e12abb98f171ab7650bcf82e104a6e45986cceef22",
+        "restoredAfter30": "c919780264f1157ae06c502e1e4b72dacbb118ecb55d148d74116c1b4b3fd9c6"
+      },
+      {
+        "minute": 4123,
+        "night": 3,
+        "phase": "service",
+        "hash": "168b17de7ce15b9adcf9aef28a8720f782ce1ee5254729d586c11a633dd49ce4",
+        "restoredAfter30": "23062afe0b7f793abe866d0982f72315364be450c5c36a0be52a3f59f11996e6"
+      },
+      {
+        "minute": 4154,
+        "night": 3,
+        "phase": "service",
+        "hash": "90d073a88416e4ee5f7301382968358c5783571ed948a39b29cf585a1e5b420e",
+        "restoredAfter30": "f8e4f5038f44014a422302ab980bd1a73caffb6e5f41b3b4fae21e039c5e7978"
+      },
+      {
+        "minute": 4185,
+        "night": 3,
+        "phase": "service",
+        "hash": "4059684fbce8998d2ed9f831ba34f9e18a0a0a1da756e36df82aced9155bf423",
+        "restoredAfter30": "61b2479a0f5d9da759d7b9e5a9bc5a146e4189af6b5872a7ad278f36c376c610"
+      },
+      {
+        "minute": 4270,
+        "night": 3,
+        "phase": "evening",
+        "hash": "aa037cb95b1133edcd0fd5705c5d6d10d8f430026776e4f1fdcb1d85653647d6",
+        "restoredAfter30": "61b2479a0f5d9da759d7b9e5a9bc5a146e4189af6b5872a7ad278f36c376c610"
+      },
+      {
+        "minute": 5394,
+        "night": 4,
+        "phase": "service",
+        "hash": "d5c116be3724a1311b0747d688cf00027905764f10afdb0f4522bc7885eec943",
+        "restoredAfter30": "f882488b1b8ec7b0c21a2283fd3f400357adbbc75db77316fd884720eacedec4"
+      },
+      {
+        "minute": 5425,
+        "night": 4,
+        "phase": "service",
+        "hash": "e24266d8e084050eb4160284b058bfb11baa7a12bd8740179612ced004f82397",
+        "restoredAfter30": "aae5557b85a89c6aed154c9083143701bdc372d9b741795677f2ec4a9f8ca66e"
+      },
+      {
+        "minute": 5456,
+        "night": 4,
+        "phase": "service",
+        "hash": "a9e871eb09b75623dba3044b7c706dc0dd4625d303cf32e6d8d836a7cc526655",
+        "restoredAfter30": "9711933b0553398c01780c0aa7ffb1d161a1aef6d06777095f8730038cbf66a3"
+      },
+      {
+        "minute": 5487,
+        "night": 4,
+        "phase": "service",
+        "hash": "60a57175f511903bf72c55cd3a4bca25408186b18b05658d895cdf9dffb22698",
+        "restoredAfter30": "ab79a0f70311b860c454206be02d979de80c21e0adf7c78617fceeb0a3b187af"
+      },
+      {
+        "minute": 5518,
+        "night": 4,
+        "phase": "service",
+        "hash": "4e6aae41812934378a586fa4c477683765afeec9c30e25e03d10e81b619b2a92",
+        "restoredAfter30": "d08fa26e611cc5e0cb2b95e2f13d9109ad249391c49d2e2094c2d6c032b2a1f5"
+      },
+      {
+        "minute": 5549,
+        "night": 4,
+        "phase": "service",
+        "hash": "62a8b9ab5c527a67be2b56fb5cd6c8db371cf00b94053ed8a59f2a857dbcea4e",
+        "restoredAfter30": "c6688614a4a5868447249c8c316259d3990e3255713a4281022cce1acb39d315"
+      },
+      {
+        "minute": 5580,
+        "night": 4,
+        "phase": "service",
+        "hash": "26b6ed20cb3168c11b7d6d5163bc5c763a4ddc153cd8b4a286210efd2cf3de9a",
+        "restoredAfter30": "525f67891f5b3a27ff622442d6ac27cfee03cc865e6ef8cd5ec181eb2c51d1cc"
+      },
+      {
+        "minute": 5611,
+        "night": 4,
+        "phase": "service",
+        "hash": "3873070bf2b1b0bc28cc0c0b6b5c8e3b71fea2cb84f76111480dce5023f17100",
+        "restoredAfter30": "a3a9d24c082d4ed2bbb59785e5ce186ba04b349af0aa13d36c06ef23f21a8a77"
+      },
+      {
+        "minute": 5710,
+        "night": 4,
+        "phase": "evening",
+        "hash": "56406efece30f77ef9b93914a3b478fd64a381891feb89c48b79e95c01573a54",
+        "restoredAfter30": "f36117af474c1ab7b2039eb8cd1549ae9a8801c81bb9d54a631ee47ca772a1cd"
+      },
+      {
+        "minute": 6820,
+        "night": 5,
+        "phase": "service",
+        "hash": "4db7a7207d1c942181a3ac207678fb38568b2783aa0c713dc798d84c9c5de197",
+        "restoredAfter30": "d38cb3170bfd299c0e0e26ae63cc06d0ecaca7c4fba8ed6271f779f46ac19454"
+      },
+      {
+        "minute": 6851,
+        "night": 5,
+        "phase": "service",
+        "hash": "3bc2de9a56558c9c6a1e2989f7c0dce539e745424b2736bdddf19eef50bd523a",
+        "restoredAfter30": "af0ba73ca0894959390d9862bc9dce48ffe941227194aaea9c28d4e706a3c7b6"
+      },
+      {
+        "minute": 6882,
+        "night": 5,
+        "phase": "service",
+        "hash": "261c6aa4d6e480c60bd8c5fbfb397c5eff665c21b792e5a190517604b8e46bcd",
+        "restoredAfter30": "3d84810bfdcf677b0daa4eb7651db9d29f505c573102f885462f57d80bd5d9cf"
+      },
+      {
+        "minute": 6913,
+        "night": 5,
+        "phase": "service",
+        "hash": "51c5fd41051804f1c6b0378b2fae67a3624c3908f9d264c6cc7f655ebef7e951",
+        "restoredAfter30": "c956d39a09c0876f4f78199da426ebd8da3b8695fbe1a688a506dafb0ff43d18"
+      },
+      {
+        "minute": 6944,
+        "night": 5,
+        "phase": "service",
+        "hash": "9e540595d30d03280877fcb6cd1196eb66c85b4aa06a380893b5affc8aa6eb38",
+        "restoredAfter30": "33ed801fa51d0f93435711efc70dac1b407182f1c03922bb4526ea549bc0530b"
+      },
+      {
+        "minute": 6975,
+        "night": 5,
+        "phase": "service",
+        "hash": "6c0b65b337330c13abbacd6f8f311e613dd7732a3e9c670f5a30527ecb8b8d70",
+        "restoredAfter30": "38de97db9415a3bbeffd93279c28ab327d42e00d96870d859182f0f0930eb39d"
+      },
+      {
+        "minute": 7006,
+        "night": 5,
+        "phase": "service",
+        "hash": "d299b076d2bb3553a8e95c9485d51ddeebe99c6407b79b583ab129c65b529578",
+        "restoredAfter30": "5f8ce1916ceb7976d35033b4ad0e5fc3e19932d61fcbda7c395263eb7dd12f64"
+      },
+      {
+        "minute": 7037,
+        "night": 5,
+        "phase": "service",
+        "hash": "b32298c193925d796bb8b5e8d6889623ea32676f18290474b6302ef434b5c263",
+        "restoredAfter30": "1b177a8191be4190b39225e3d3a289f4c931b90e7b50e1c55e11a78269fcd98a"
+      },
+      {
+        "minute": 7068,
+        "night": 5,
+        "phase": "service",
+        "hash": "c6907d0e7ee483c27d11a62ec3c067e66e6639a2d35c65cdd89fe3baef377a94",
+        "restoredAfter30": "483694a07a50ce584ba74de768b8b49e6dc316be99482a2ed7aabab766987b6e"
+      },
+      {
+        "minute": 7150,
+        "night": 5,
+        "phase": "evening",
+        "hash": "abb16b77a9b3371df9be735a5c2294df90609c2dcc994494fe3206b116fb564d",
+        "restoredAfter30": "483694a07a50ce584ba74de768b8b49e6dc316be99482a2ed7aabab766987b6e"
+      },
+      {
+        "minute": 8246,
+        "night": 6,
+        "phase": "service",
+        "hash": "695d1ced870ee110cce1786f3ea4882cd63d2f05faec87fae5c55b5a8ee8d39a",
+        "restoredAfter30": "e260b2ae0dd5d75d10b790cbc5474ab5f742d7c1dae245305a896862003014e4"
+      },
+      {
+        "minute": 8277,
+        "night": 6,
+        "phase": "service",
+        "hash": "dd7e7e651b9c3f1eac987922cd344a26ddd40e55d631593a09aed9c9d997563c",
+        "restoredAfter30": "d7f9e845a95fcca88cd69439fdd775b4a24c82baf4151cf7d841751c6cd18523"
+      },
+      {
+        "minute": 8308,
+        "night": 6,
+        "phase": "service",
+        "hash": "bbe039177f98eaa8ba73708e0dc1096cf5e5b57b8b367b9829db5684baa89183",
+        "restoredAfter30": "e1bad36e1e4eef93912433c923cc02e1f2bb60dd6378239e2b1b9075ab56a57b"
+      },
+      {
+        "minute": 8339,
+        "night": 6,
+        "phase": "service",
+        "hash": "7df392e355dc310ec05f0a12eeb77f15f3d533c9ddb02fe7726b7102ad87a698",
+        "restoredAfter30": "9cf558d0ba78f23bf7e2dc0194aa2791d50f8a6fcdb74fd356ba91cee5ff117d"
+      },
+      {
+        "minute": 8370,
+        "night": 6,
+        "phase": "service",
+        "hash": "4fac9725453b1bcf6e583980498ccf28908873c756c69d1fe5c2f174808d8eb7",
+        "restoredAfter30": "9c14aa489556e62f3e3e8f9e0f94c40b2590adc72329a59f94181bc4eb23fdda"
+      },
+      {
+        "minute": 8401,
+        "night": 6,
+        "phase": "service",
+        "hash": "c77977fef474c4457d597b305b2eb9f0ff2c36e1defe2e599adae68f693ebb1c",
+        "restoredAfter30": "1dffacb1922716f1f1cd9b3e31302ee1da8ce228c2be66c811663f49c53c8db2"
+      },
+      {
+        "minute": 8432,
+        "night": 6,
+        "phase": "service",
+        "hash": "bcbdedd2cf71b46e60912712bdd6411a89a296629fd9634d0d44298a3e45ee6a",
+        "restoredAfter30": "8492ff6f73e43c88a8240e5c9e91fc82f8b508b88fd8de44eda50cb01019b930"
+      },
+      {
+        "minute": 8463,
+        "night": 6,
+        "phase": "service",
+        "hash": "a0ac2eff8f3b365a9662d16379043aa348701a3eaa30f6bdc9d42dff44a35644",
+        "restoredAfter30": "9f2580d489d1235d1928b2b11e1c5bcb0e38db2fd45cad88150ec39a62a40e0b"
+      },
+      {
+        "minute": 8494,
+        "night": 6,
+        "phase": "service",
+        "hash": "c061d61bc64c3a55cdd88bc7c3a82924c9694281264c331917f27aff55c20ac2",
+        "restoredAfter30": "8b5099fa218b7c0ec536442bc8f10af4904128615775b7d6066f637b74bca499"
+      },
+      {
+        "minute": 8590,
+        "night": 6,
+        "phase": "evening",
+        "hash": "1c8fd917b6d79f2d71a0ce6485f223d2d59f259f72cf237e345fd711b52d167c",
+        "restoredAfter30": "274cbcbbddf7198d940b0900ac9a09a31bf16a3c09138d6773564f1bfb38d4d4"
+      },
+      {
+        "minute": 14012,
+        "night": 7,
+        "phase": "service",
+        "hash": "6e44288749e7dad15f5a4c135e83b0b0ad89ebbca8288c0c9fc13e704f3ebd88",
+        "restoredAfter30": "be2b73681590bb23fb4de77b9e415a5dbcf8dff5f3dde2523774342ee4a28b33"
+      },
+      {
+        "minute": 14043,
+        "night": 7,
+        "phase": "service",
+        "hash": "cdc452a18f6479f20926de92750cad1699fcab52e1480ab91a56079acf970cc3",
+        "restoredAfter30": "f6118b03f630f23e5ae2507b1db8fe014fa1f570be232cafe7aba6fad5f57251"
+      },
+      {
+        "minute": 14074,
+        "night": 7,
+        "phase": "service",
+        "hash": "b3d4b7f9af7ed0eeb12693e92c05995fa44f914be38019571ef1670d859d8a12",
+        "restoredAfter30": "bfd8feb60ae6d1cc67b3453bee3c0c525ff873541cd4d5128ee1a219b0e6bc6a"
+      },
+      {
+        "minute": 14105,
+        "night": 7,
+        "phase": "service",
+        "hash": "67e0a4116d42d9e0dee8cf635da1c2fd2a8c55b068b2f1f398eb92b515cc7cfa",
+        "restoredAfter30": "630e89f783ed7259fe717e0689954ed9a478669f0343f2a5db5b0bd7c7bbc536"
+      },
+      {
+        "minute": 14136,
+        "night": 7,
+        "phase": "service",
+        "hash": "4c091c1c13f0bda9671ddbe3d65db1c95db688c7902d47214349e16389545c7b",
+        "restoredAfter30": "a128bd7986739ccd1f05aa4e9e25d375bd7ac35b422ba26424748e1ae11e5dca"
+      },
+      {
+        "minute": 14167,
+        "night": 7,
+        "phase": "service",
+        "hash": "2e1dbeb4f8d8446f4c7496194833151a64a29320d4787ca554051f2153ca57e7",
+        "restoredAfter30": "c0d3f50f1c45de29487239d25345a589784ffb7fecce68ae55c1c6246442dc41"
+      },
+      {
+        "minute": 14198,
+        "night": 7,
+        "phase": "service",
+        "hash": "1eabeebda165dce808bd283066b6a7132a02e6f00adf671fd8ba276005ff1dca",
+        "restoredAfter30": "3e455716322017e03e6bd9a4525c2fe1f652313138cf62e586342c0a27ac3fdc"
+      },
+      {
+        "minute": 14229,
+        "night": 7,
+        "phase": "service",
+        "hash": "9f472947337f8b8bf306c1e69adaec2ae3491bb17032be1b41cd86b3d9f1986d",
+        "restoredAfter30": "32e68d7e7e20e6b5d8a84e9b6c9bd388799a4b1508e992cf8a58f128ef329554"
+      },
+      {
+        "minute": 14260,
+        "night": 7,
+        "phase": "service",
+        "hash": "e6dc821311c7b7ad6641996eccf29e1c8364f3e825a4b341a68e9aae54543f7f",
+        "restoredAfter30": "30b9562ef6a0c4812847706314d3eea42fbc90305e21c03260902cf34f56eef3"
+      },
+      {
+        "minute": 14350,
+        "night": 7,
+        "phase": "evening",
+        "hash": "97c253941dfb26b41959bf0bc2ecd6272d35b632f8866e4742acdfba6d7aed05",
+        "restoredAfter30": "e5a60eb4bae7cb90918fb869663b4870f93396206a3c23f6411837e7e2cc5db2"
+      },
+      {
+        "minute": 15469,
+        "night": 8,
+        "phase": "service",
+        "hash": "4a6acb836f75b9bb824c366c0d01e966042aa9ccd4e3dbbcdbbeb393ec8f6e44",
+        "restoredAfter30": "309953043efde26d1441b68ac218a20c37e14e63c7952887ca8639a1c38f2e95"
+      },
+      {
+        "minute": 15500,
+        "night": 8,
+        "phase": "service",
+        "hash": "d80276256f8eb7bd12da17409205fbaee934d8558eb20cf687244a5102b366e9",
+        "restoredAfter30": "9f4a1cf7d405623c95851092bf95dc38a1eebec9fc4d1c6e317799a2dc39492e"
+      },
+      {
+        "minute": 15531,
+        "night": 8,
+        "phase": "service",
+        "hash": "1206db7e00a8f48f0ea7d450b297fdeaaca5791533beef3cd3fef6b4092c0f79",
+        "restoredAfter30": "5011e7a60b996d4b6774cc269913389cf7bfc167b7b535ff0f677422e490a740"
+      },
+      {
+        "minute": 15562,
+        "night": 8,
+        "phase": "service",
+        "hash": "445355f025b1f2d87fbc66f52d61c1beae34a7b56a1e51841fb8dfd50f10a177",
+        "restoredAfter30": "d4c9343d0f94570863285ed253cb87244c079ca3965149bb10832a7c2623d62f"
+      },
+      {
+        "minute": 15593,
+        "night": 8,
+        "phase": "service",
+        "hash": "eee8b0693f5893d8404df55da99397bccab31133a842802976cb70ccaef3fd98",
+        "restoredAfter30": "a2bc25a3d0e8c4ec551167ed105ce7959ffb727264eeed9fb476a04496c134e1"
+      },
+      {
+        "minute": 15624,
+        "night": 8,
+        "phase": "service",
+        "hash": "87410c26066e9497c78d561c38df25d40702214841657f9056bc6697c06739e6",
+        "restoredAfter30": "7fb2517e89bd8bf452ddfe834770d9eb0d49d70b3e7e748b8986f6a59e874260"
+      },
+      {
+        "minute": 15655,
+        "night": 8,
+        "phase": "service",
+        "hash": "69908e75ae0ffd6626010ebbc07c40e612e0a4a09478a5246d05cc62a40f31ce",
+        "restoredAfter30": "5a3e730493ace277f94d284b511619cf74ecfcb662a079000928e84f3194bc39"
+      },
+      {
+        "minute": 15686,
+        "night": 8,
+        "phase": "service",
+        "hash": "14d5c6ac6d4da4d3b4b377ded5236c45874c20d2cdbb3c7d80f9bf74fa35a466",
+        "restoredAfter30": "1605fd16fc5d9f4b0c2626ee081bac380c914a1d285e65e54b38fe48b9c07d9d"
+      },
+      {
+        "minute": 15717,
+        "night": 8,
+        "phase": "service",
+        "hash": "cd4e73a9fa849d22e1c70a945a9230d1c7d8d0717bdbcc96402df4f6cd336219",
+        "restoredAfter30": "baf5a95e136113a0d23493925441e7f97a0c021ba32b257a2b1947bbbe8e05c8"
+      },
+      {
+        "minute": 15790,
+        "night": 8,
+        "phase": "evening",
+        "hash": "8ca94f1f656370c34ddc1eb5460df9c17022d79207711969b916e8d1d206032f",
+        "restoredAfter30": "baf5a95e136113a0d23493925441e7f97a0c021ba32b257a2b1947bbbe8e05c8"
+      }
+    ],
+    "final": {
+      "minute": 15790,
+      "night": 8,
+      "phase": "evening",
+      "hash": "8ca94f1f656370c34ddc1eb5460df9c17022d79207711969b916e8d1d206032f"
+    }
+  },
+  {
+    "seed": 31,
+    "policy": "insist",
+    "inputs": [
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 1074
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1098
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 1104
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1128
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1158
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1164
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 1182
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1194
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 1212
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1224
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 1242
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1254
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 1272
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1284
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 1302
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 1314
+      },
+      {
+        "kind": "open",
+        "at": 1390
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2514
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2538
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2544
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2568
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2598
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2604
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 2616
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2622
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2634
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2640
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2646
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 2646
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2652
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2652
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2658
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2658
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2664
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2664
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2670
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 2676
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2694
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2700
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2700
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2706
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2706
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 2706
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2712
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2712
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2718
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 2724
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 2736
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 2742
+      },
+      {
+        "kind": "open",
+        "at": 2830
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 3954
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 3984
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4002
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 4002
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4032
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4038
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 4056
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4068
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 4086
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4098
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4104
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4110
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 4110
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4116
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 4116
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4122
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 4140
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 4146
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 4146
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4152
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 4152
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4158
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 4158
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4164
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4170
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4176
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 4176
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4182
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 4188
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 4188
+      },
+      {
+        "kind": "jar",
+        "choice": "talk",
+        "at": 4270
+      },
+      {
+        "kind": "open",
+        "at": 4270
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 5394
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 5424
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5442
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5472
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5478
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5496
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5508
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5526
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5538
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5544
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5550
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5556
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5556
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5562
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 5580
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5586
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5592
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5592
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5598
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5598
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5604
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5604
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5610
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5610
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5616
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5616
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5622
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 5622
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 5628
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 5634
+      },
+      {
+        "kind": "open",
+        "at": 5710
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 6834
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 6864
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6882
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6912
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6918
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 6936
+      },
+      {
+        "kind": "answer",
+        "choice": "no",
+        "at": 6941
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6948
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 6966
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6978
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6984
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6990
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 6996
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 6996
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 7002
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 7026
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 7032
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 7032
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 7038
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 7038
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 7044
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 7044
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 7050
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 7050
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 7056
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 7062
+      },
+      {
+        "kind": "open",
+        "at": 7150
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 8274
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 8304
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8322
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8352
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8358
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8388
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8400
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8418
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8424
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8430
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8430
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8436
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8442
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 8460
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8460
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8472
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8478
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8484
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8490
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 8490
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8490
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8496
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 8496
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8496
+      },
+      {
+        "kind": "ask",
+        "cook": "selim",
+        "verb": "grill",
+        "insist": true,
+        "at": 8502
+      },
+      {
+        "kind": "ask",
+        "cook": "dilek",
+        "verb": "cold",
+        "insist": true,
+        "at": 8502
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8502
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8508
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 8514
+      },
+      {
+        "kind": "open",
+        "at": 8590
+      },
+      {
+        "kind": "open",
+        "at": 9360
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 14256
+      },
+      {
+        "kind": "open",
+        "at": 14350
+      },
+      {
+        "kind": "answer",
+        "choice": "no",
+        "at": 15591
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 15672
+      },
+      {
+        "kind": "ask",
+        "cook": "rafi",
+        "verb": "dish",
+        "insist": true,
+        "at": 15702
+      }
+    ],
+    "checkpoints": [
+      {
+        "minute": 1054,
+        "night": 1,
+        "phase": "service",
+        "hash": "d00539b57ce4af3ab254f98a669c2a34dd657599a0f53a81d5acf504f7ac9261",
+        "restoredAfter30": "d4c55bf92d36cdac38dc5934e900a32387e67237cc73d4ba64a94276f3e198a4"
+      },
+      {
+        "minute": 1085,
+        "night": 1,
+        "phase": "service",
+        "hash": "bcbce9a6d966a4a83575a755f1e4991fd8eae41bb4c788c65397ab49f3c0f491",
+        "restoredAfter30": "09b7418ccca8bfbe9143772b7bcea71eace14a4c4604a3d2dc36d8ea958bbcd2"
+      },
+      {
+        "minute": 1116,
+        "night": 1,
+        "phase": "service",
+        "hash": "f249881fb86e41a956b95f1cfbbcd6e23019ff9c56eafd8b66012e62273ae93d",
+        "restoredAfter30": "02fd7b24ed17a8d7e98943fda4a48188043273c381e8365a78afb02d12b39d05"
+      },
+      {
+        "minute": 1147,
+        "night": 1,
+        "phase": "service",
+        "hash": "412600d0ec8ca7b59f962f90769ce5aee68f4e1ed53ff453a257063b3fd43a7b",
+        "restoredAfter30": "5dfab6694569643f46f31f243c04e56a1810fba266aa6d91fb3a255d88a8ddf3"
+      },
+      {
+        "minute": 1178,
+        "night": 1,
+        "phase": "service",
+        "hash": "3fca2aad7f8f0bbe4b69f6b22b9cd6e7ee2c97eb2331e0fb31d9a369c67e7a69",
+        "restoredAfter30": "7ad0be47f750cacced85264a5fc51d3f39b6cfae4b083cf2f4a8ca4ee2cce026"
+      },
+      {
+        "minute": 1209,
+        "night": 1,
+        "phase": "service",
+        "hash": "3b726831ead691f37ab94f6dc4a160079650e551cf5fefd5d6b88c745e7331cd",
+        "restoredAfter30": "b80d6ad71cdeaf7515179740b80f75a559f99bc13cd34ef8b233fdf79327785c"
+      },
+      {
+        "minute": 1240,
+        "night": 1,
+        "phase": "service",
+        "hash": "1bbbff88230a77bbad303c7611e5284efd72493503ea53fc7d4fa5019547f6a2",
+        "restoredAfter30": "ca6d9f2a2486d5e85b76b008016c39eb7dda16037058533167bb04eda1f70624"
+      },
+      {
+        "minute": 1271,
+        "night": 1,
+        "phase": "service",
+        "hash": "f4ea8be122ca617d17f50d906a45d1c1017a8b47f8802b523b22fdb0eeaa0a33",
+        "restoredAfter30": "64d4156af87fdb8066d8a8ca14a97d2876ba3e90858422dd7a655f3013cd7073"
+      },
+      {
+        "minute": 1302,
+        "night": 1,
+        "phase": "service",
+        "hash": "eed28b20d4219981aafcc6c428a7e10125cab2e4d7109d420af0da08f1ae1859",
+        "restoredAfter30": "5bcc7066a3ba0d50ff368be5717ee60079d6609e3ec439af1d1228a4a814a57a"
+      },
+      {
+        "minute": 1390,
+        "night": 1,
+        "phase": "evening",
+        "hash": "f13f5bfdc579c2afc4a78b419d3ebff19bf53b03a19264be837a1dfb790c9a28",
+        "restoredAfter30": "dbbe730e7851fb1ddf2a57029430e3e5717ee2165e888ad3d9750161f817cf02"
+      },
+      {
+        "minute": 2511,
+        "night": 2,
+        "phase": "service",
+        "hash": "d1f7e96908cd5ca8a4145aa672066425c9e4e595fd4982d3c9a1c6eabfecf12b",
+        "restoredAfter30": "9d4bcc3030304dab0f5bae2d58e0ceb3b9246eccc57f031a92d5346e7b45d914"
+      },
+      {
+        "minute": 2542,
+        "night": 2,
+        "phase": "service",
+        "hash": "5011e9df1d05c8ad3079f0e627c613d1b5cad6152e422d1e2d1ed128a8793a9a",
+        "restoredAfter30": "1fcd45e069ebc2ba6b6c899610c693155cb074057130fc7770276149f227f0f1"
+      },
+      {
+        "minute": 2573,
+        "night": 2,
+        "phase": "service",
+        "hash": "c8c68c33502278072a73bd494c17189a16218f76a24c60a8a206edb1e4d6f3f7",
+        "restoredAfter30": "879a14fcfbe29507cb3c036a9434f24ad5d3531b1abb818959a860b78f54fde4"
+      },
+      {
+        "minute": 2604,
+        "night": 2,
+        "phase": "service",
+        "hash": "fdb2462424272cab764b1b52654fe9480014b3a7b605595523130924ac7cd8bd",
+        "restoredAfter30": "e44e0233d940b4d9800a39381d794dbb76b5546b21a8ac6cc99a9d3e158ecd3d"
+      },
+      {
+        "minute": 2635,
+        "night": 2,
+        "phase": "service",
+        "hash": "cdd3b058b668e526039c90799143405fa8933c47f660e1b918e296db70837c96",
+        "restoredAfter30": "1cd3cb816b34387ae44836cdebb81034ed6b35c9d3dd388cd30447952a2cca08"
+      },
+      {
+        "minute": 2666,
+        "night": 2,
+        "phase": "service",
+        "hash": "28abb79e6f0b442cc23be2128fd6ba215e5aad6e7e699f61fe9422b8a08e4936",
+        "restoredAfter30": "d2ee0bc82b76f6e0885f30c30267c5306e4451be5f023ced2bd90e7d0cfd5273"
+      },
+      {
+        "minute": 2697,
+        "night": 2,
+        "phase": "service",
+        "hash": "9015923a326ac36711c7dd75af77c22dac3bcb022c662e1c951b251b99a167b9",
+        "restoredAfter30": "d49bafc23db78d1c688dd24a642ef00529275e0b740fcc3c5b89875e7a54e2ab"
+      },
+      {
+        "minute": 2728,
+        "night": 2,
+        "phase": "service",
+        "hash": "c208a537028db729f92c65f1d6f18bd85f1e902960f221f57040c3d9b59969c8",
+        "restoredAfter30": "403860e20a2e6ac49717e704586f1283d6d964e385e39072ad19d8776217e865"
+      },
+      {
+        "minute": 2759,
+        "night": 2,
+        "phase": "service",
+        "hash": "a87960aae8dace765383a4bb6008531bd170229262ac6938fe0747e1a1f766b0",
+        "restoredAfter30": "d24d4683b568acfc95ee74a4ceb99fcf67baf82d332dcb4982f8d9549f2bec9b"
+      },
+      {
+        "minute": 2830,
+        "night": 2,
+        "phase": "evening",
+        "hash": "566e8e23cf861d6163888637c21df1273f67bf206b95289c38438657b6a99ca2",
+        "restoredAfter30": "d24d4683b568acfc95ee74a4ceb99fcf67baf82d332dcb4982f8d9549f2bec9b"
+      },
+      {
+        "minute": 3937,
+        "night": 3,
+        "phase": "service",
+        "hash": "bf43df9ce697ad50a78879f13571300bdf5ab28493869898d99dc933d624cf1c",
+        "restoredAfter30": "47033a441453c92cf12df18a3bad029fe6efc2c714c0edc48b687cc3fd554792"
+      },
+      {
+        "minute": 3968,
+        "night": 3,
+        "phase": "service",
+        "hash": "c82e5866619f781a06cbbf17384b089e269006baaea5ea60b1d44513a264e9cb",
+        "restoredAfter30": "ea45a7752d7d851204500dd062e9d1e9ee718a0899b7ace4208c7b26162f05af"
+      },
+      {
+        "minute": 3999,
+        "night": 3,
+        "phase": "service",
+        "hash": "ccdb08fbccb8ebe90795a66c2115769d1aa829abe33fb73907e9f2be64135c6a",
+        "restoredAfter30": "fb3bdf1bc60f03489a3c4e09fd8db1377216175386275a36ca63d548c18b59fd"
+      },
+      {
+        "minute": 4030,
+        "night": 3,
+        "phase": "service",
+        "hash": "755391e5d19399b9a535e378c7f80dc800e5a17cde45da7b24642498b268196a",
+        "restoredAfter30": "62ccafbe6570ca7373bf2ad3864c3de3bb051ea82d1dd3c8f63af5429e4b7256"
+      },
+      {
+        "minute": 4061,
+        "night": 3,
+        "phase": "service",
+        "hash": "326a31c12184d81901221225fd79ecbae24a5b4f3cd176b40f4656748c640fa1",
+        "restoredAfter30": "775046a0a1948c8b13929dc34670cbb60580cdddc7cccf30c4372cefcd38ecb0"
+      },
+      {
+        "minute": 4092,
+        "night": 3,
+        "phase": "service",
+        "hash": "bf59421aa7f5322ce3fc2c87f9505ca5c14d5515f7262f24877bcde44f2a126e",
+        "restoredAfter30": "8557b19ca59e99687b8aa15d1d3096f77fc9b5426e928d295a1afd8dcf45f692"
+      },
+      {
+        "minute": 4123,
+        "night": 3,
+        "phase": "service",
+        "hash": "8c546b3d14f18a2bf85a546446ff64311949f795f411fdcb62b2389121dbccd1",
+        "restoredAfter30": "31dfa362dd431a7d49393cb95287dd5f6ed44e98d0f5ac159abe619dfb6fdd6f"
+      },
+      {
+        "minute": 4154,
+        "night": 3,
+        "phase": "service",
+        "hash": "987a8de4b59b8d38730e9f6b566845503921ba2802d896f0d4f8005591aa4c31",
+        "restoredAfter30": "2d8077b4444d14138a5a040f2b9d300f1f005220115ef9abb605926f5e75ffe3"
+      },
+      {
+        "minute": 4185,
+        "night": 3,
+        "phase": "service",
+        "hash": "bdf2c4b90254c7ed8565b0c40164c0b31a1e23bac9949b3b1825a837922e2c08",
+        "restoredAfter30": "e33633ddb439d26f02d20158e3ff138e63e31327b00e17dc0c12662212a4d180"
+      },
+      {
+        "minute": 4270,
+        "night": 3,
+        "phase": "evening",
+        "hash": "b58257388f6cad7a1dbbaf1cf82496ab2ea9f362da6f9ddaeedc0f6984b71d49",
+        "restoredAfter30": "4a7910f6b720dc2198cc1515d437b8f066f2a0dc3f362133e3d6183d005986be"
+      },
+      {
+        "minute": 5394,
+        "night": 4,
+        "phase": "service",
+        "hash": "cef8b982b7a0ce0ce4bce9b1f6924562f8b134ed28b91ea26f85805ed9e28310",
+        "restoredAfter30": "41eab5a5916117622baee07a6395b9298b92dd7f459d8907a73a71d79ec6716c"
+      },
+      {
+        "minute": 5425,
+        "night": 4,
+        "phase": "service",
+        "hash": "e9bec182d0a046851b58deb7ca0f6f0d83f4c3ea5eb38dcc46459428a8cb96f2",
+        "restoredAfter30": "cd22407d7af6636a2e4b7c1bd7e53ad45e66260f63ba3624cdbaf7749a440fe0"
+      },
+      {
+        "minute": 5456,
+        "night": 4,
+        "phase": "service",
+        "hash": "182b54c77d252a1ddc2cbe86060ee2dba194c7199891660058f6c50efe607d5f",
+        "restoredAfter30": "450b976fbd6c2095cf87dc7f4cda268924abb33163f5f9c4966282b0d668b563"
+      },
+      {
+        "minute": 5487,
+        "night": 4,
+        "phase": "service",
+        "hash": "ea016d416aaede26aa3363f76aeffaadb386f886594c397a7a7aedfca636e263",
+        "restoredAfter30": "c99ed2a9d20255d85b4f5aacbb2a3c7c98805b46964b61e3e447f2b0b596f185"
+      },
+      {
+        "minute": 5518,
+        "night": 4,
+        "phase": "service",
+        "hash": "1629171a372d1853312a3c7b155730e724428eefd554070ab27ec7fb2edc3872",
+        "restoredAfter30": "fc6dd912ab6d5260866e0c4bb529d3dedbf81c2f3b124e6565d08834dd180ff0"
+      },
+      {
+        "minute": 5549,
+        "night": 4,
+        "phase": "service",
+        "hash": "69d78ecaccd4cf83ef190d27d32bae04872ee002bad2709741cf8821f44a0a76",
+        "restoredAfter30": "c1f395c81bce9ee3047c7bae3348241d0863f7d8be8bf3a08596eb1a1725bda8"
+      },
+      {
+        "minute": 5580,
+        "night": 4,
+        "phase": "service",
+        "hash": "3eaea77670becc280f51b88c416363eda07c2154753cea7d219df61b88cacece",
+        "restoredAfter30": "89ce5f155f9718d4335458703471d79efd022446ab55a8e72f86a7d024303de8"
+      },
+      {
+        "minute": 5611,
+        "night": 4,
+        "phase": "service",
+        "hash": "ba7bce697ac0b571aef082ab871442e3f76f7395031d37e7947be0c54d5024ce",
+        "restoredAfter30": "1349ad369edb9ee8848454602ecaad764926e330ccf6bb30ba9ea65a5d725230"
+      },
+      {
+        "minute": 5710,
+        "night": 4,
+        "phase": "evening",
+        "hash": "c13f236e42c2226683be498127fd278a7a533ea6ffa288ae7e4830308d9365ba",
+        "restoredAfter30": "8da4c2a694a78c68a76eff692d9c45277e6ee08ce3d605fb2a6158383f93f904"
+      },
+      {
+        "minute": 6820,
+        "night": 5,
+        "phase": "service",
+        "hash": "0a2b1bf38bb8edcec23cd9cf4e95b37c69d54719b6d4da7f7a3bd2dc615aa521",
+        "restoredAfter30": "4c106d71e5fca26456137e1c66704667dd41b23eaf087e3779cd9bed2cad98e0"
+      },
+      {
+        "minute": 6851,
+        "night": 5,
+        "phase": "service",
+        "hash": "19c9f9dcaf50e66c835db6d3631ee48de9ef20e1b9a0db52386db7fb29d59428",
+        "restoredAfter30": "ad010601ed034aa755d56dc2df0c49293cf2a9146f02882df2aa9a3a2d206016"
+      },
+      {
+        "minute": 6882,
+        "night": 5,
+        "phase": "service",
+        "hash": "e33c6afe0bd3c36f7de8f90b7a2b5ee939f41c40415f8f59de1aed6aa875f381",
+        "restoredAfter30": "1e3dbc4d88b06c91df2df2d65dd7c5f33d70b10d797b98f91290953e91884754"
+      },
+      {
+        "minute": 6913,
+        "night": 5,
+        "phase": "service",
+        "hash": "6494625beedd39d1aad15096dca4cc60c759582c3ccebc5397d5613f61279f3e",
+        "restoredAfter30": "d8124f0128d8d4e2f7fa509884efeb864d8909479cc970498382d7ab4974e091"
+      },
+      {
+        "minute": 6944,
+        "night": 5,
+        "phase": "service",
+        "hash": "ba8ab06f0120a051fa35e97d497665bb4f2525615227b6d9ae590599a4ad71b8",
+        "restoredAfter30": "11c15f9799efd783f11479206a9b740b0be50880d0353b72a152a152ad36ef93"
+      },
+      {
+        "minute": 6975,
+        "night": 5,
+        "phase": "service",
+        "hash": "09f40b9247b50f1bf746f265131f189ac96b96aa766eec2fb09936b0e99c21e6",
+        "restoredAfter30": "345a835abd0ac2c629f10887fd9310981a67dac0a41affdfd39eb967acf61a77"
+      },
+      {
+        "minute": 7006,
+        "night": 5,
+        "phase": "service",
+        "hash": "cdfa3971c6bd57a0e6a311d1afdb835a0afcfefde441d9503e0a2821cb283bb1",
+        "restoredAfter30": "2c3fc82732125056ea9c6c804e9ddef9a242531c92b029c15d15b397755a35c9"
+      },
+      {
+        "minute": 7037,
+        "night": 5,
+        "phase": "service",
+        "hash": "f385e8109bda713232824af6b4ab3fe30c970bf4019a64cce46f127c65b05d90",
+        "restoredAfter30": "6a1f4438d6f0855299bd01feb91b85ccf632dccda853cc0140419c578e574768"
+      },
+      {
+        "minute": 7068,
+        "night": 5,
+        "phase": "service",
+        "hash": "979e1c193e672acc2c830e22b42ce1601230bb3fe5a3ab3b8123afbf92d819c6",
+        "restoredAfter30": "6cc563fbdb60b4582e13d228d0c2ed49d2b434a176afbcf60199b4b0c777a8d3"
+      },
+      {
+        "minute": 7150,
+        "night": 5,
+        "phase": "evening",
+        "hash": "f81098c9980b1b4ba3ccb3ca317220be9bf42c9b0dc46fdf082f275da9229509",
+        "restoredAfter30": "6cc563fbdb60b4582e13d228d0c2ed49d2b434a176afbcf60199b4b0c777a8d3"
+      },
+      {
+        "minute": 8246,
+        "night": 6,
+        "phase": "service",
+        "hash": "2e9d5a82430a698e77fd1aecfcffa1b68fb3b5466ed206ada31020a1bcf69d29",
+        "restoredAfter30": "a0ef995e5a79f4109b8d5bc53f5f38d96e7d16ef1355b5850e97429f350f46b4"
+      },
+      {
+        "minute": 8277,
+        "night": 6,
+        "phase": "service",
+        "hash": "a22e82633de41ff598a3154aa1dd55adbd2473ee2a42d5e9f8221d753d24fe64",
+        "restoredAfter30": "1aa62872d6e675902cdf988443548e841b400366ad691e9b9004a3d1e3288683"
+      },
+      {
+        "minute": 8308,
+        "night": 6,
+        "phase": "service",
+        "hash": "332b82fc23108cd81d379e51d72d01daedd366ab51fa8a8513f2e96112ed87e9",
+        "restoredAfter30": "99e720840dd3e581fab0c0f268c20564808efe1b5eff618400b734f03b6c5aab"
+      },
+      {
+        "minute": 8339,
+        "night": 6,
+        "phase": "service",
+        "hash": "fbeb01eb28f2f1b9afeb44cfcfcda6e65cd29000fee51dc3e72c619e4fe481be",
+        "restoredAfter30": "036c84fcb1276adc766fccfaa7fd5f9227f79a41c777cc00ef6e735d232605c0"
+      },
+      {
+        "minute": 8370,
+        "night": 6,
+        "phase": "service",
+        "hash": "63630183036f3ac16fd453a6304794d1b2b100b26a7b67c18a533dccf943f23d",
+        "restoredAfter30": "f8b70b57671f8908df9c17b96573b720e7c3d56c5bf9f0748af7834c6f82c2e2"
+      },
+      {
+        "minute": 8401,
+        "night": 6,
+        "phase": "service",
+        "hash": "c297c36d20320dd1beaf4420b845d9da19c63a7b00c98848bf019cbdeb20cb69",
+        "restoredAfter30": "e31e13ea9371c9c4dc9b990870afac0332632e32b4edfd3b8139c229390fcd0e"
+      },
+      {
+        "minute": 8432,
+        "night": 6,
+        "phase": "service",
+        "hash": "0dbd71daca505d1d5d7847377b8ec824cac96490639a01c79e700d7e7f22ef8c",
+        "restoredAfter30": "72165347dc9516a621f99e302fea260d7b8fe705c761ab5df0485bf14f9f1650"
+      },
+      {
+        "minute": 8463,
+        "night": 6,
+        "phase": "service",
+        "hash": "444286bcdccb748733a5ffc32b1254d3fb76a635603caa8722fb177f9a460964",
+        "restoredAfter30": "dd4bc37af3b44f5de91de3ec0dfb2833204aa534831280d9bafa59cb8ec1847d"
+      },
+      {
+        "minute": 8494,
+        "night": 6,
+        "phase": "service",
+        "hash": "cfd0ef0cd819eb071796b1b0decbdb5e49993879251dea0c4e797332fd781017",
+        "restoredAfter30": "27a6aa1c3c0cdadad5e2023708019de00d14c43bb252f806d21099ce7ac52846"
+      },
+      {
+        "minute": 8590,
+        "night": 6,
+        "phase": "evening",
+        "hash": "5ef8a94e19a7c95bb35753e49c29e7793cf4fc79ed4ac60eeed863fed91c1572",
+        "restoredAfter30": "1b054ef65fffc5e88fdbe2e1dd72b11fd25df9d4cc531d199bbc68ea076515bd"
+      },
+      {
+        "minute": 14012,
+        "night": 7,
+        "phase": "service",
+        "hash": "784c8c1371b6e6eb24f423bcdb2467f8d428465b15b28dac1a18a98f59770e29",
+        "restoredAfter30": "62fed9f440b1f6b79ea4462f4c9c4d8987915664f8127c6bcd12840b09d310f3"
+      },
+      {
+        "minute": 14043,
+        "night": 7,
+        "phase": "service",
+        "hash": "50c34d83271764099e90eed9eed21de47178ff0e03350f7447792b904cb1f700",
+        "restoredAfter30": "4359ff56a6123b9e59f361c8a09916acfa372d624161861e93033b81fe7ef75c"
+      },
+      {
+        "minute": 14074,
+        "night": 7,
+        "phase": "service",
+        "hash": "e6cf64d1d1448ac7e2b7e13dfac9f6582fb4a471ace8d7c6846db099679d8eb7",
+        "restoredAfter30": "0cc6370d0be32289cc9d1fe00c47e4ead6d068cf3099f373f63af4e834f0e39a"
+      },
+      {
+        "minute": 14105,
+        "night": 7,
+        "phase": "service",
+        "hash": "7d2896a06d78b58b5df206274e9632d1e598afc391bd16327314352c9b738cfa",
+        "restoredAfter30": "afe25cf4e82b2e773687657e2495f81b93d896d00f2db6d1ade1468341b7458d"
+      },
+      {
+        "minute": 14136,
+        "night": 7,
+        "phase": "service",
+        "hash": "7983985fd4157052897bb1ed697477745c598e8d01e0208f7e9c191f0660efdd",
+        "restoredAfter30": "69a23dd25d3c3a8d837a10303834e514410c22148e40f60628a346eda07b1f19"
+      },
+      {
+        "minute": 14167,
+        "night": 7,
+        "phase": "service",
+        "hash": "17327f99549fb67b8eafed13fd1758ce5848a4c39c343df004278ec5797fa6fd",
+        "restoredAfter30": "abcf3b49e7b6ff90289f5bdcb8e6dad21aa4d0d6e3b219ff8ebae803f2f8f77c"
+      },
+      {
+        "minute": 14198,
+        "night": 7,
+        "phase": "service",
+        "hash": "7e53dd4ba3b39fa354ef872baf0388b4cf638b4e0c004f50cf2aed09fdf7f9c9",
+        "restoredAfter30": "a53224d3c1f939f6ecbbd8d3f8071c23b4be612ab0cc1230b8164955ca2c9895"
+      },
+      {
+        "minute": 14229,
+        "night": 7,
+        "phase": "service",
+        "hash": "a8e245c4db690a51016efa1efd4437c820aa06a071d4c9736bdd6bdf23ce2518",
+        "restoredAfter30": "9f3a63da21d2068458f153a0595f03cc7d5f4dd304c76699f12bc667ca315c76"
+      },
+      {
+        "minute": 14260,
+        "night": 7,
+        "phase": "service",
+        "hash": "838def357f1dd6b0313a1e07ba3cf2b68a72284ff7f9e565f0802bcd89469b88",
+        "restoredAfter30": "1d7c4ff48a06399b84a3e98773a9040f4fbfd45fe0077a285f97401ef0c720e0"
+      },
+      {
+        "minute": 14350,
+        "night": 7,
+        "phase": "evening",
+        "hash": "1a59875fc13bb27a35e50422214b25426833bed4bc27b91db982b834d2eeba73",
+        "restoredAfter30": "1d7c4ff48a06399b84a3e98773a9040f4fbfd45fe0077a285f97401ef0c720e0"
+      },
+      {
+        "minute": 15469,
+        "night": 8,
+        "phase": "service",
+        "hash": "1939ee3c6df657d7d366ae8a207d5e82e48ada07823204aa0f349d0681b499fe",
+        "restoredAfter30": "9436218dd2af9f8bb4f1d865eddb24709044698ab4b1dec076ec2b30474a97ba"
+      },
+      {
+        "minute": 15500,
+        "night": 8,
+        "phase": "service",
+        "hash": "17ea553e1d30ef4d294dd5f2b04a7ed8ef206baf8fb19a8a586284d12c03a110",
+        "restoredAfter30": "a3f7adb883eaf112186eb531bf5cbb17df855bca325fbbd51b39cb3d7ac9fb7c"
+      },
+      {
+        "minute": 15531,
+        "night": 8,
+        "phase": "service",
+        "hash": "0d516a5fb9f046aae8ea4b733330b44bdf03ecea5a7c7a93081c6ff2c7cb3fff",
+        "restoredAfter30": "5f64a355c9e3547c4722677e79eb709c66f7161039c9e6197e6482b8024c2c65"
+      },
+      {
+        "minute": 15562,
+        "night": 8,
+        "phase": "service",
+        "hash": "8c9b7c63ffbedf34804ae374552b0e510d567889288c6d0f99bac0f393e48fe1",
+        "restoredAfter30": "a4ce472738239bb002c8bb7dc23ac11a66b9ca0971b5941b951e89a176fd04cf"
+      },
+      {
+        "minute": 15593,
+        "night": 8,
+        "phase": "service",
+        "hash": "5adae016379021b3ebf21df5eeb9726a8660c2c6625a7d6efa7b137b3a899e67",
+        "restoredAfter30": "67f3a461def6bbbc6906db08def2c0fe2fc906f1c5f44d6f37a895a20ecc0ef0"
+      },
+      {
+        "minute": 15624,
+        "night": 8,
+        "phase": "service",
+        "hash": "7f657b3da57e00ec42da36a4bfe4d7e03600243d4014ede3a4c2e752b9b69b66",
+        "restoredAfter30": "1df2f1a4ac761807f584d9302f80681b430979d5da4a1a3d3133609f6002ba66"
+      },
+      {
+        "minute": 15655,
+        "night": 8,
+        "phase": "service",
+        "hash": "2888d624a8e4fc9624f0e3783f81f2cd156c32c3ec0fb2e2fa1a6f8c1294fbaf",
+        "restoredAfter30": "131cf93d1a6a6c0ce99cd6c098e4a2ac0e116d8a5004fc70be0381d1cac25a9c"
+      },
+      {
+        "minute": 15686,
+        "night": 8,
+        "phase": "service",
+        "hash": "ba7e1954238a2ba6b7f8ed7978ab49cff08513286ceb58df0377e1f097b40558",
+        "restoredAfter30": "7ba22c5a1c744be46ca7cea5a250cd8d14fd7a65ec2d464feaaa62e09be9412f"
+      },
+      {
+        "minute": 15717,
+        "night": 8,
+        "phase": "service",
+        "hash": "7f542e37b81a1a0b26d4601361cb8667413c5a23385098da10d1d5fd260bc2bb",
+        "restoredAfter30": "98991d24057747615028ad39b293fa43cb114a229f910a343ddd42a2551dcf6b"
+      },
+      {
+        "minute": 15790,
+        "night": 8,
+        "phase": "evening",
+        "hash": "1d24025a0a2a8b5b6375b6e7ce464c080ca11e6ceb007bcab5b202b93b6be59f",
+        "restoredAfter30": "98991d24057747615028ad39b293fa43cb114a229f910a343ddd42a2551dcf6b"
+      }
+    ],
+    "final": {
+      "minute": 15790,
+      "night": 8,
+      "phase": "evening",
+      "hash": "1d24025a0a2a8b5b6375b6e7ce464c080ca11e6ceb007bcab5b202b93b6be59f"
+    }
+  }
+]
