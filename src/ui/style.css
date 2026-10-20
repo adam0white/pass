@@ -754,3 +754,74 @@ button.slip:disabled {
 .service.inspecting .chef-work {
   display: none;
 }
+
+/* The board commits stay in view while a long station editor is open. */
+@media (max-width: 600px) {
+  .board-page {
+    padding-bottom: calc(var(--board-actions-height, 100px) + 24px);
+  }
+  .board-page form > .actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    margin: 0;
+  }
+}
+
+.hands-on .chef-line {
+  min-height: 40px;
+  font-size: 13px;
+  line-height: 17px;
+}
+.hands-on .top {
+  flex-shrink: 0;
+}
+.hands-on .chef-stations button {
+  min-height: 72px;
+  overflow-wrap: anywhere;
+}
+.portion-act.ready {
+  border: 2px solid var(--rope);
+}
+.pass-plates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.pass-plates:not(:empty) {
+  margin-top: 6px;
+}
+.hands-on .pass-plates button {
+  min-height: 44px;
+  padding: 5px;
+  font-size: 14px;
+}
+.service.hands-on.responding .chef-work {
+  display: none;
+}
+.hands-on .rail {
+  min-height: 88px;
+}
+.service.hands-on:has(.chef-work) .sheet {
+  height: auto;
+  flex: 1 1 160px;
+  min-height: 110px;
+}
+.hands-on .scene {
+  flex: 1 1 60px;
+}
+.service.hands-on:has(.chef-work) .service-status {
+  min-height: 80px;
+}
+.hands-on.inspecting .rail {
+  display: none;
+}
+.service.hands-on:has(.chef-work).inspecting .sheet {
+  flex-basis: 390px;
+}
+.service.hands-on.responding .scene {
+  flex: 0 1 120px;
+}
+.service.hands-on:has(.chef-work).responding .sheet {
+  flex-basis: 260px;
+}

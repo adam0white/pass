@@ -3,7 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { boardDefaults, newGame, queueInput, step } from '../../src/sim/kitchen.ts';
 
 async function start(page: Page, minute = 1060) {
-  const s = newGame(42);
+  const s = newGame(42, 'pass@6');
   if (s.phase === 'board') {
     queueInput(s, { kind: 'board', rows: boardDefaults(s) });
     queueInput(s, { kind: 'open' });
@@ -65,7 +65,7 @@ test('station control reserves a portion immediately and keeps its exact label',
 });
 
 test('real touch and desktop renders show station work and the Game menu', async ({ page }) => {
-  const shots = '/Users/abdul/code/.lab-scratch/design-round/pass-shots';
+  const shots = '/Users/abdul/code/.lab-scratch/patterns/pass-shots/legacy6';
   mkdirSync(shots, { recursive: true });
   await start(page, 1060);
   await page.evaluate(() => document.fonts.ready);
@@ -127,7 +127,9 @@ test('cook inspection keeps every job reachable on the phone after a priority ca
   await page.locator('[data-priority]').first().tap();
   await page.locator('[data-pick="selim"]').tap();
   await onScreen(page, '.who, .station-duration, .verbs button, #sheet .hint');
-  await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/design-round/pass-shots/cook-phone-d.png' });
+  await page.screenshot({
+    path: '/Users/abdul/code/.lab-scratch/patterns/pass-shots/legacy6/cook-phone-d.png',
+  });
 });
 
 test('station limits name warming and lost gas when portions are waiting', async ({ page }) => {

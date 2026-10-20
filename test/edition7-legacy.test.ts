@@ -1,0 +1,102 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import {
+  cloneState,
+  type Export,
+  exportRun,
+  type GameState,
+  type Input,
+  replay,
+  restoreState,
+  step,
+} from '../src/sim/kitchen.ts';
+
+interface Checkpoint {
+  night: number;
+  minute: number;
+  inputCount: number;
+  hash: string;
+  restoredHash: string;
+  restoredAfter30: string;
+}
+interface Baseline {
+  baselineCommit: string;
+  framework: string;
+  provenance: { source: string; assetSha256: string; assetBytes: number };
+  sampleNotebooks: Export[];
+  rows: { edition: string; seed: number; policy: string; inputs: Input[]; checkpoints: Checkpoint[] }[];
+}
+const baseline: Baseline = JSON.parse(
+  readFileSync(new URL('./fixtures/edition6-live-pattern-hashes.json', import.meta.url), 'utf8'),
+);
+const hash = (s: GameState) =>
+  createHash('sha256')
+    .update(JSON.stringify(cloneState(s)))
+    .digest('hex');
+const serializedExport = (s: GameState, framework: string): Export =>
+  JSON.parse(JSON.stringify(exportRun(s, framework)));
+const replayNotebook = (notebook: Export) =>
+  replay(notebook.seed, notebook.inputs, notebook.state.minute, notebook.game);
+
+// Captured by executing the downloaded live production JavaScript before edition 7.
+// The fixture records the asset URL and SHA-256, input logs and a complete notebook.
+// Hash every serialized field, including HF people, RNG state, inputs and logs.
+describe('pass@7 preserves live pass@5 and pass@6 production notebooks', () => {
+  it('records the immutable source commit and the complete seed/policy matrix', () => {
+    expect(baseline.baselineCommit).toBe('19419a989064d17d33be96c3a8bc687e1af1d0a9');
+    expect(baseline.framework).toBe('2.8.0');
+    expect(baseline.provenance.source).toBe('https://pass.adamwhite.work/assets/index-v5JrfO6K.js');
+    expect(baseline.provenance.assetSha256).toBe(
+      '5d4d737afe539fae6eca1e767037335fbd21e4c1b23da37e85a908df2fffa16b',
+    );
+    expect(baseline.provenance.assetBytes).toBe(334717);
+    expect(baseline.rows.map(({ edition, seed, policy }) => [edition, seed, policy])).toEqual(
+      ['pass@5', 'pass@6'].flatMap((edition) =>
+        [42, 1001, 2026].flatMap((seed) =>
+          ['idle', 'plain', 'insist'].map((policy) => [edition, seed, policy]),
+        ),
+      ),
+    );
+  });
+
+  it('replays and re-exports a complete notebook exported by the baseline', () => {
+    for (const notebook of baseline.sampleNotebooks) {
+      expect(['pass@5', 'pass@6']).toContain(notebook.game);
+      expect(notebook.framework).toBe(baseline.framework);
+      expect(notebook.inputs).toEqual(notebook.state.inputs);
+      const replayed = replayNotebook(notebook);
+      expect(cloneState(replayed)).toEqual(notebook.state);
+      expect(serializedExport(replayed, notebook.framework)).toEqual(notebook);
+    }
+  });
+
+  for (const row of baseline.rows) {
+    it(`${row.edition}, seed ${row.seed}, ${row.policy}: full-state replay, restore and re-export`, () => {
+      expect(['pass@5', 'pass@6']).toContain(row.edition);
+      expect(row.checkpoints.map((c) => c.night)).toEqual([1, 3, 6]);
+      for (const checkpoint of row.checkpoints) {
+        const label = `night ${checkpoint.night}, minute ${checkpoint.minute}`;
+        const replayed = replay(
+          row.seed,
+          row.inputs.slice(0, checkpoint.inputCount),
+          checkpoint.minute,
+          row.edition,
+        );
+        expect(replayed.version).toBe(row.edition);
+        expect(replayed.night).toBe(checkpoint.night);
+        expect(replayed.minute).toBe(checkpoint.minute);
+        expect(hash(replayed), `${label}: replay`).toBe(checkpoint.hash);
+
+        const exported = serializedExport(replayed, baseline.framework);
+        expect(hash(replayNotebook(exported)), `${label}: re-export replay`).toBe(checkpoint.hash);
+        const restored = restoreState(exported.state);
+        expect(cloneState(restored)).toEqual(exported.state);
+        // HF restore preserves values but can change object key insertion order.
+        expect(hash(restored), `${label}: restored export`).toBe(checkpoint.restoredHash);
+        for (let k = 0; k < 30; k++) step(restored);
+        expect(hash(restored), `${label}: restored continuation`).toBe(checkpoint.restoredAfter30);
+      }
+    }, 30000);
+  }
+});

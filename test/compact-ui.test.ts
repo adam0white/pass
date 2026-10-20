@@ -12,7 +12,7 @@ import {
 import { compactRun } from '../src/ui/run.ts';
 
 it('compact notebook run preserves edition, inputs and exact elapsed minute for replay', () => {
-  for (const edition of ['pass@3', 'pass@4', 'pass@5', 'pass@6']) {
+  for (const edition of ['pass@3', 'pass@4', 'pass@5', 'pass@6', 'pass@7']) {
     const s = newGame(42, edition);
     if (s.phase === 'board') {
       queueInput(s, { kind: 'board', rows: boardDefaults(s) });

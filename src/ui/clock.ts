@@ -1,4 +1,4 @@
-import { type GameState, nameOf } from '../sim/kitchen.ts';
+import { cookingStep, type GameState, nameOf } from '../sim/kitchen.ts';
 import { serviceStatus } from './status.ts';
 
 const SPEEDS = [0.5, 1.5, 3.5] as const;
@@ -28,6 +28,10 @@ export function clockPlayback(s: GameState, speed: number) {
           : s.request?.state === 'asking'
             ? `${nameOf(s, s.request.who)} needs an answer.`
             : 'A station needs a cook.';
+  } else if (s.version === 'pass@7' && speed <= 1 && cookingStep(s)?.ready) {
+    rate = 0.1;
+    label = 'Slow';
+    reason = cookingStep(s)?.text ?? 'Your portion is ready.';
   } else if (
     !s.tickets.some((t) => t.status === 'open' || (t.status === 'waiting' && t.at <= s.minute + 10))
   ) {

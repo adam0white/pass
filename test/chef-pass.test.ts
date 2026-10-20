@@ -18,7 +18,7 @@ function required<T>(value: T | null | undefined): T {
 }
 
 function open(seed = 42) {
-  const s = newGame(seed);
+  const s = newGame(seed, 'pass@6');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   return s;

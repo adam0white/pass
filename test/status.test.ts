@@ -38,6 +38,15 @@ function work(s: ReturnType<typeof setup>, id: string, station: Station) {
 }
 
 describe('serviceStatus', () => {
+  it('keeps pass@7 agreed station gaps informational', () => {
+    const s = setup();
+    s.version = 'pass@7';
+    s.tickets = [ticket()];
+    expect(serviceStatus(s)).toEqual({
+      text: 'Grill is uncovered under tonight’s board.',
+      needsResponse: false,
+    });
+  });
   it('prioritizes a named request over a pending job and missing work', () => {
     const s = setup();
     s.tickets = [ticket()];
