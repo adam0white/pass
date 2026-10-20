@@ -807,28 +807,31 @@ function drawSheet() {
   const doing = personOf(st, selected).activity?.affordance.label ?? 'between jobs';
   const queued = st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected);
   const waiting = !!c.pending || queued;
-  const key = `c${selected}${h.at}${waiting}${doing}${st.inputs.length}`;
+  const absent = !c.here || c.gone;
+  const key = `c${selected}${h.at}${waiting}${absent}${doing}${st.inputs.length}`;
   if (sheetKey === key) return;
   sheetKey = key;
   const guess = h.list.some((v) => v.guess);
   renderPanel(
     el,
     `${crewHeader()}
-    <div class="station-duration">${esc(coverLine(st, selected) ?? stationRequestLine(st, selected) ?? '')}</div>
+    <div class="station-duration">${esc(absent ? `${m.name} has left. Ask again next service.` : (coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''))}</div>
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
-          `<button data-v="${v.verb}" ${waiting ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === m.home ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${esc(v.short)}${v.guess ? '?' : ''}</span><span class="fill"></span></button>`,
+          `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === m.home ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(v.short)}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
     <div class="hint">${
-      guess
-        ? `I don’t know ${esc(m.name)} yet: these are guesses, in pencil.`
-        : seenHint.job
-          ? waiting
-            ? 'They heard you.'
-            : 'Hold a job to insist. On a yes it only presses.'
-          : 'Tap a job to ask. Hold it to insist.'
+      absent
+        ? 'This cook has left the kitchen.'
+        : guess
+          ? `I don’t know ${esc(m.name)} yet: these are guesses, in pencil.`
+          : seenHint.job
+            ? waiting
+              ? 'They heard you.'
+              : 'Hold a job to insist. On a yes it only presses.'
+            : 'Tap a job to ask. Hold it to insist.'
     }</div>`,
   );
   bindCrew(el);

@@ -114,3 +114,24 @@ test('Round 4 keeps expanded opening notes open across clock ticks', async ({ pa
   await page.clock.runFor(1000);
   await expect(page.locator('.journal details')).toHaveAttribute('open', '');
 });
+
+test('Round 4 keeps a departing cook selected and explains why more jobs are unavailable', async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date('2026-10-20T12:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-10-20T12:01:00Z'));
+  await fresh(page);
+  await page.locator('[data-pick="selim"]').click();
+  const home = page.locator('[data-v="home"]');
+  const box = await home.boundingBox();
+  if (!box) throw new Error('Expected home control');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.clock.runFor(500);
+  await page.mouse.up();
+  await page.clock.runFor(1500);
+  await expect(page.locator('[data-pick="selim"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-pick="selim"]')).toContainText('gone');
+  await expect(page.locator('.station-duration')).toContainText('next service');
+  for (const button of await page.locator('.verbs button').all()) await expect(button).toBeDisabled();
+});
