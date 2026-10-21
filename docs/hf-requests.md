@@ -11,4 +11,4 @@ Filed 2026-10-19 against HF 2.7.0, and appended to `~/code/human-framework/docs/
 7. (2026-10-18, kept) `reviewLine` for a kept day reads "Today I kept <label>" and only works with noun-phrase labels. The game composes kept-day lines itself.
 8. (2026-10-19, polish round) **A `review:resolve` term does not name its resolve.** A host that wants to show muhasaba weighing in a choice ("Rafi turned from the jar, as he said he would") cannot tell which resolve the term came from. Proposal: carry the resolve key on the term (for example `review:resolve:<key>`, or a `ref` field). Workaround: the game infers it from the chosen act and the person's resolve list.
 
-Status against HF 2.13.0: items 1 (suggestion reasons) and 4 (firm self-rule) are done in pass@10. The other workarounds above stay. pass@3–9 notebooks retain their original feature flags and wording.
+Status against HF 2.13.0: items 1 (suggestion reasons) and 4 (firm self-rule) are done in pass@10. Item 8 is available since HF 2.9.0 (`Term.ref` on `review:resolve`) but the game does not use it yet. The other workarounds above stay. pass@3–9 notebooks retain their original feature flags and wording.

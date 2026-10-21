@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { planOf } from '../src/sim/campaign.ts';
 import { beginAtWeekTwo, firstPartyBoard, runToSeating } from '../src/sim/firstweek.ts';
 import { boardDefaults, cookingStep, queueInput } from '../src/sim/kitchen.ts';
-import { handoverContext, sundayOpenLabel } from '../src/ui/first-party.ts';
+import { handoverContext, handoverHands, sundayOpenLabel } from '../src/ui/first-party.ts';
 
 it('names the first party night and follows the current Sunday promises', () => {
   const s = beginAtWeekTwo(42);
@@ -47,5 +47,12 @@ it('names empty hands and the reserved next portion at handover', () => {
   s.tickets.push({ ...ticket, id: 999, table: 4 });
   expect(handoverContext(s)).toBe(
     'The steady hand ran the service until now. Your hands are empty. Chef’s next: table 4’s pide.',
+  );
+});
+
+it('a save without the hand-over record does not describe the current kitchen as inherited', () => {
+  expect(handoverHands(undefined)).toBe('The steady hand ran the service until the hand-over.');
+  expect(handoverHands('The steady hand ran the service until now. Your hands are empty.')).toBe(
+    'The steady hand ran the service until now. Your hands are empty.',
   );
 });

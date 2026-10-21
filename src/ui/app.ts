@@ -66,7 +66,7 @@ import {
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
 import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { portionEdition } from './editions.ts';
-import { handoverContext, sundayOpenLabel } from './first-party.ts';
+import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab } from './lab.ts';
 import { compactRun } from './run.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
@@ -1048,7 +1048,7 @@ function drawCaption() {
   if (partyHandover && s.night === partyHandover.night && s.minute <= partyHandover.at - HANDOVER_LEAD + 10) {
     const party = partyOf(partyHandover.party);
     if (party)
-      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} ${partyHandover.hands ?? handoverContext(s)} You have the pass.`)}</span>`;
+      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} ${handoverHands(partyHandover.hands)} You have the pass.`)}</span>`;
   }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;

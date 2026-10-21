@@ -25,3 +25,10 @@ export function handoverContext(s: GameState): string {
   if (s.chefNext) hands += ` Chef’s next: table ${table(s.chefNext.ticket)}’s ${food(s.chefNext.station)}.`;
   return `The steady hand ran the service until now. ${hands}`;
 }
+
+/**
+ * The hand-over words saved when the player took the pass. Saves made before they were saved have no record
+ * of what the chef held then, so they get the neutral line rather than a reading of the current kitchen.
+ */
+export const handoverHands = (saved: string | undefined): string =>
+  saved ?? 'The steady hand ran the service until the hand-over.';
