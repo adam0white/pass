@@ -61,10 +61,10 @@ export function serviceStatus(s: GameState): ServiceStatus {
     if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
       return status('Food is waiting for clean plates.');
     return status(
-      ['pass@5', 'pass@6', 'pass@7'].includes(s.version)
+      ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9'].includes(s.version)
         ? 'Food needs clean plates; dish is uncovered.'
         : 'Food needs clean plates; select a cook for dish.',
-      !['pass@5', 'pass@6', 'pass@7'].includes(s.version),
+      !['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9'].includes(s.version),
     );
   }
   const remaining = owed(s);
@@ -74,10 +74,10 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (missing.length) {
     const names = missing.length === 3 ? 'grill, cold and oven' : missing.join(' and ');
     return status(
-      ['pass@5', 'pass@6', 'pass@7'].includes(s.version)
+      ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9'].includes(s.version)
         ? `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'is' : 'are'} uncovered under tonight’s board.`
         : `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'needs' : 'need'} a cook; select a cook.`,
-      !['pass@5', 'pass@6', 'pass@7'].includes(s.version),
+      !['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9'].includes(s.version),
     );
   }
 

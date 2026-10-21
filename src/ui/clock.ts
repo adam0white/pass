@@ -1,4 +1,5 @@
 import { cookingChoice, cookingStep, type GameState, nameOf } from '../sim/kitchen.ts';
+import { portionEdition } from './editions.ts';
 import { serviceStatus } from './status.ts';
 
 const SPEEDS = [0.5, 1.5, 3.5] as const;
@@ -28,14 +29,14 @@ export function clockPlayback(s: GameState, speed: number) {
           : s.request?.state === 'asking'
             ? `${nameOf(s, s.request.who)} needs an answer.`
             : 'A station needs a cook.';
-  } else if (s.version === 'pass@8' && !s.help && s.chefGrace?.some((claim) => claim.until > s.minute)) {
+  } else if (portionEdition(s) && !s.help && s.chefGrace?.some((claim) => claim.until > s.minute)) {
     rate = 0.1;
     label = 'Slow';
     reason = 'A cook is holding a portion for you: Yours, Chef?';
   } else if (
-    (s.version === 'pass@7' || s.version === 'pass@8') &&
+    (s.version === 'pass@7' || portionEdition(s)) &&
     !s.help?.instinct &&
-    ((speed <= 1 && cookingStep(s)?.ready) || (s.version === 'pass@8' && cookingChoice(s)))
+    ((speed <= 1 && cookingStep(s)?.ready) || (portionEdition(s) && cookingChoice(s)))
   ) {
     rate = 0.1;
     label = 'Slow';
