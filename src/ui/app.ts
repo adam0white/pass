@@ -68,6 +68,7 @@ import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { portionEdition } from './editions.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab } from './lab.ts';
+import { endingTally, START_APPROACHES } from './notebook.ts';
 import { compactRun } from './run.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
@@ -110,6 +111,7 @@ const bubbles: Record<string, { text: string; until: number; minute: number }> =
 let wake: { release(): Promise<void> } | null = null;
 const seenHint = { tap: false, job: false };
 let menuOpen = false;
+let keepTally = false;
 let menuOrigin: HTMLElement | null = null;
 let boardActionsObserver: ResizeObserver | null = null;
 
@@ -194,7 +196,12 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<h2>Game menu</h2><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><div class="actions"><button id="save-kitchen" ${s ? '' : 'disabled'}>Save this kitchen</button><button id="download-run" ${s ? '' : 'disabled'}>Download this run</button><button id="send-run" ${s ? '' : 'disabled'}>Send this run to the notebook</button><button id="menu-back">Back to the kitchen</button></div><p id="save-result" role="status">${s ? 'The kitchen waits while this menu is open.' : 'Open a kitchen to save or share a run.'}</p><a href="https://human.adamwhite.work/games/">All games</a>`;
+  dialog.innerHTML = `<h2>Game menu</h2><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><p><label><input type="checkbox" id="keep-tally" ${keepTally ? 'checked' : ''} /> Keep a tally in the notebook</label></p><p class="soft">Show the kitchen’s game reckoning only at the end. This choice lasts until this page is reloaded.</p><div class="actions"><button id="save-kitchen" ${s ? '' : 'disabled'}>Save this kitchen</button><button id="download-run" ${s ? '' : 'disabled'}>Download this run</button><button id="send-run" ${s ? '' : 'disabled'}>Send this run to the notebook</button><button id="menu-back">Back to the kitchen</button></div><p id="save-result" role="status">${s ? 'The kitchen waits while this menu is open.' : 'Open a kitchen to save or share a run.'}</p><a href="https://human.adamwhite.work/games/">All games</a>`;
+  dialog.querySelector<HTMLInputElement>('#keep-tally')?.addEventListener('change', (event) => {
+    keepTally = (event.currentTarget as HTMLInputElement).checked;
+    const tally = document.getElementById('ending-tally');
+    if (tally && s) tally.innerHTML = endingTally(s, keepTally);
+  });
   let sendSheet = false;
   const close = () => dialog.close();
   dialog.addEventListener('close', () => {
@@ -275,7 +282,7 @@ function title() {
     <div class="actions">
       ${save ? `<button class="primary" id="cont">Back to the kitchen <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button>` : ''}
       ${turnBack}
-      <div class="start-option"><button class="quiet" id="pace" aria-label="Nevin's pace" aria-pressed="false" aria-describedby="pace-note">Nevin's pace</button><p id="pace-note" class="soft">Tables wait as long as in the first week, all month. Easier.</p></div>
+      <div class="start-option"><button class="quiet" id="pace" aria-pressed="false" aria-describedby="pace-note">Selim: “I hope the regulars give us time.”</button><p id="pace-note" class="soft">${esc(START_APPROACHES.pace)}</p><p class="soft">${esc(START_APPROACHES.normal)}</p></div>
       <button class="${save ? '' : 'primary'}" id="new">${save ? 'A new notebook' : 'Open the doors'}</button>
       <div class="start-option"><button class="quiet" id="week-two" aria-describedby="week-two-note">Begin at the second week</button><p id="week-two-note" class="soft">A steady hand runs the first week for you. You take over on its Sunday.</p></div>
       <div class="start-option"><button class="quiet" id="first-party" aria-describedby="first-party-note">Begin at the first party</button><p id="first-party-note" class="soft">A steady hand runs the first week and the evening up to your first party. You choose the promises on Sunday and take the pass before they sit.</p></div>
@@ -1902,6 +1909,7 @@ function ending() {
     <h2>${esc(head)}</h2>
     <p>${esc(body)}</p>
     <p>${esc(together)}</p>
+    <div id="ending-tally">${endingTally(st, keepTally)}</div>
     ${gone.length ? `<p class="soft">Gone from the kitchen: ${gone.map((m) => esc(m.name)).join(', ')}.</p>` : ''}
     <h2 class="hand" style="font-size:28px">What the crew said about me</h2>
     ${lastLines.map((l) => `<div class="cookline"><b>${esc(nameOf(st, l.id))}</b><div class="hand">“${esc(l.t)}”</div></div>`).join('')}
