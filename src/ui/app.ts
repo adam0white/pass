@@ -399,7 +399,13 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     value: string,
   ) =>
     `<div class="board-choice" role="group" aria-label="${esc(nameOf(st, row.cook))} ${label}"><span class="board-label">${label}</span><div class="board-chips">${choices.map((choice) => `<button type="button" data-field="${field}" data-value="${esc(choice.value)}" aria-pressed="${value === choice.value}">${esc(choice.label)}</button>`).join('')}</div></div>`;
-  app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p>${parties ? `<div class="board-parties">${parties}</div>` : ''}<form id="board-form"><div class="board-rows">${rows
+  const bare = (['grill', 'cold', 'oven'] as const).filter(
+    (place) => stationsTonight(st).includes(place) && !rows.some((row) => row.station === place),
+  );
+  const bareNote = bare.length
+    ? `<p class="board-uncovered">Nobody is on the ${bare.map((place) => stationName[place]).join(' or the ')} tonight.${bare.includes('oven') ? ' Pide bakes only in a hot oven, and only a cook standing at it keeps it hot; I cannot tend it and cook.' : ''} Change someone’s station, or those tables wait.</p>`
+    : '';
+  app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p>${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<form id="board-form"><div class="board-rows">${rows
     .map((row) => {
       const answer = agreed.find((r) => r.cook === row.cook);
       const revised = changed;
@@ -1237,6 +1243,15 @@ function drawSheet() {
 }
 
 /** One-time tips, said when the thing they explain first appears. */
+/** The chef cannot warm the oven: only a cook standing at it does (simulation: stepCooks). */
+function ovenTended(st: GameState) {
+  return onShift(st).some((id) => stationOf(st, id) === 'oven');
+}
+
+function ovenWait(st: GameState) {
+  return ovenTended(st) ? 'Oven warming' : 'Cold. Nobody on it';
+}
+
 function tipLine(st: GameState): string {
   const mm = st.minute - openAt(st.night);
   const pl = planOf(st.night);
@@ -1244,7 +1259,7 @@ function tipLine(st: GameState): string {
   if (st.night === 1 && !seenHint.tap) t = 'Tap a cook.';
   else if (st.night === 2 && mm < 40) t = 'Plates come back dirty. Someone has to wash them.';
   else if (pl.week === 2 && pl.weekday === 2 && mm < 50)
-    t = 'Pide bakes only in a hot oven. Someone has to warm it before the rush, and it cools if left.';
+    t = 'Pide bakes only in a hot oven. A cook has to stand at it to warm it, and it cools if left.';
   else if (pl.week === 2 && pl.weekday === 2 && mm < 90)
     t = 'Regulars come on their own nights. Keep them waiting and they stop coming.';
   else if (pl.week === 3 && pl.weekday === 3 && mm < 40 && st.crew.some((m) => !m.founder && m.since === 4))
@@ -1346,10 +1361,14 @@ function drawChefWork() {
     const table = st.tickets.find((t) => t.id === st.help?.ticket)?.table;
     const next = portionEdition(st) ? st.chefNext : null;
     const choice = portionEdition(st) ? cookingChoice(st) : null;
+    const actText =
+      act?.station === 'oven' && st.oven.heat < OVEN_HOT && !gasOut(st) && !ovenTended(st)
+        ? 'Waiting for the oven. Nobody is on it to warm it.'
+        : (act?.text ?? '');
     const actControl = choice
       ? `<div class="food-choices"><button class="primary" data-cook-choice="now" data-choice-ticket="${choice.ticket}">${esc(choice.plain)}<span class="work-duration">Plain. Ready sooner.</span></button><button class="primary" data-cook-choice="careful" data-choice-ticket="${choice.ticket}">${esc(choice.careful)}<span class="work-duration">${choice.minutes} more kitchen minutes. Other tables wait.</span></button></div>`
       : act
-        ? `<button class="portion-act ${act.ready ? 'ready' : ''}" data-cook-step="${act.ticket}" aria-label="${esc(act.text)}">${esc(act.text)}</button>`
+        ? `<button class="portion-act ${act.ready ? 'ready' : ''}" data-cook-step="${act.ticket}" aria-label="${esc(actText)}" ${act.ready ? '' : 'disabled'}>${esc(actText)}</button>`
         : '';
     renderPanel(
       el,
@@ -1359,7 +1378,7 @@ function drawChefWork() {
         .filter((place) => stationsTonight(st).includes(place))
         .map((place) => {
           const option = options.find((o) => o.station === place);
-          return `<button data-chef-station="${place}" data-portion-ticket="${option?.ticket ?? ''}" aria-label="Work ${place === 'cold' ? 'cold side' : place}" ${st.help && !portionEdition(st) ? 'disabled' : ''}>${st.help && portionEdition(st) ? 'Next: ' : 'Work '}${place === 'cold' ? 'cold side' : place}<span class="work-duration">${option ? `Table ${st.tickets.find((t) => t.id === option.ticket)?.table}${st.help ? '. Reserve it.' : '. Take a portion.'}` : st.help ? 'Hands full' : owed(st)[place] > 0 && place !== 'cold' && gasOut(st) ? 'Waiting for gas' : owed(st)[place] > 0 && place === 'oven' && st.oven.heat < OVEN_HOT ? 'Oven warming' : 'Nothing waiting'}</span></button>`;
+          return `<button data-chef-station="${place}" data-portion-ticket="${option?.ticket ?? ''}" aria-label="Work ${place === 'cold' ? 'cold side' : place}" ${(st.help && !portionEdition(st)) || !option ? 'disabled' : ''}>${st.help && portionEdition(st) ? 'Next: ' : 'Work '}${place === 'cold' ? 'cold side' : place}<span class="work-duration">${option ? `Table ${st.tickets.find((t) => t.id === option.ticket)?.table}${st.help ? '. Reserve it.' : '. Take a portion.'}` : st.help ? 'Hands full' : owed(st)[place] > 0 && place !== 'cold' && gasOut(st) ? 'Waiting for gas' : owed(st)[place] > 0 && place === 'oven' && st.oven.heat < OVEN_HOT ? ovenWait(st) : 'Nothing waiting'}</span></button>`;
         })
         .join(
           '',
@@ -1405,7 +1424,7 @@ function drawChefWork() {
               : owed(st)[station] > 0 && station !== 'cold' && gasOut(st)
                 ? 'Waiting for gas'
                 : owed(st)[station] > 0 && station === 'oven' && st.oven.heat < OVEN_HOT
-                  ? 'Oven warming'
+                  ? ovenWait(st)
                   : 'Nothing waiting')
           }</span></button>`,
       )

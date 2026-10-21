@@ -145,6 +145,19 @@ test('station limits name warming and lost gas when portions are waiting', async
     s.tickets = [{ ...s.tickets[0], status: 'open', oven: 1, doneOven: 0 }];
     app._debug.refresh();
   });
+  await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText(
+    'Cold. Nobody on it',
+  );
+  await page.evaluate(async () => {
+    const appPath = '/src/ui/app.ts';
+    const kitchenPath = '/src/sim/kitchen.ts';
+    const app = await import(appPath);
+    const kitchen = await import(kitchenPath);
+    const s = app._debug.state;
+    const id = kitchen.onShift(s)[0];
+    kitchen.personOf(s, id).activity.affordanceId = 'oven';
+    app._debug.refresh();
+  });
   await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText('Oven warming');
   await page.evaluate(async () => {
     const appPath = '/src/ui/app.ts';

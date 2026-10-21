@@ -34,8 +34,11 @@ test('a large food surface carries the act and updates immediately after a touch
   await page.evaluate(() => {
     const app = Reflect.get(window, '__pass');
     app.step(3);
+    app.state.help.readyAt = app.state.minute;
     app.draw();
   });
+  await page.clock.runFor(800);
+  await expect(page.locator('[data-cook-step]')).toBeEnabled();
   const before = await page.locator('[data-cook-step]').textContent();
   await page.locator('[data-cook-step]').tap();
   expect(await page.locator('[data-cook-step]').textContent()).not.toBe(before);

@@ -194,6 +194,11 @@ button.quiet {
 .board-parties :where(p + p) {
   margin-top: 6px;
 }
+.board-uncovered {
+  font-size: 15px;
+  border-left: 2px solid var(--rope);
+  padding-left: 8px;
+}
 
 /* ---------- service ---------- */
 .service {

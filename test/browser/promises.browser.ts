@@ -328,3 +328,21 @@ test('every party signature fits the reserved rail space without moving cooking 
     expect(position.workTop, position.id).toBe(positions[0]?.workTop);
   }
 });
+
+test('the second-week board says nobody is on the oven and goes when someone takes it', async ({ page }) => {
+  await title(page);
+  await page.getByRole('button', { name: 'Begin at the second week', exact: true }).tap();
+  for (const button of await page.locator('.party-card [data-val="plain"]').all()) await button.tap();
+  await page.getByRole('button', { name: 'Open on Wednesday', exact: true }).tap();
+  const note = page.locator('.board-uncovered');
+  await expect(note).toContainText('Nobody is on the oven tonight.');
+  await expect(note).toContainText('only a cook standing at it keeps it hot');
+  await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-more/ui-shots/board-oven-phone.png' });
+  const rafi = page.locator('[data-board-cook="rafi"]');
+  await rafi.getByRole('button', { name: 'Change', exact: true }).tap();
+  await rafi
+    .getByRole('group', { name: /Station/ })
+    .getByRole('button', { name: /oven/i })
+    .tap();
+  await expect(page.locator('.board-uncovered')).toHaveCount(0);
+});
