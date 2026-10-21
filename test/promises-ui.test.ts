@@ -11,7 +11,7 @@ import {
 import { clockPlayback } from '../src/ui/clock.ts';
 
 function opening() {
-  const s = newGame(42);
+  const s = newGame(42, 'pass@10');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   return s;

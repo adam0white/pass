@@ -20,7 +20,7 @@ it('names the first party night and follows the current Sunday promises', () => 
   expect(firstPartyBoard(s).night).toBe(thursday.night);
 });
 
-it('names the inherited portion and its cooking step without changing the notebook', () => {
+it('hands over people-run service without a portion or table call', () => {
   const s = beginAtWeekTwo(42);
   queueInput(s, { kind: 'open' });
   const target = firstPartyBoard(s);
@@ -28,26 +28,12 @@ it('names the inherited portion and its cooking step without changing the notebo
   queueInput(s, { kind: 'open' });
   runToSeating(s, target);
   const before = JSON.stringify(s);
-  expect(handoverContext(s)).toContain('The steady hand ran the service until now.');
-  const act = cookingStep(s);
-  expect(s.help).toBeTruthy();
-  expect(act).toBeTruthy();
-  expect(handoverContext(s)).toContain('You take over table');
-  expect(handoverContext(s)).toContain('grill portion');
-  expect(handoverContext(s)).toContain(act?.text);
-  expect(JSON.stringify(s)).toBe(before);
-});
-
-it('names empty hands and the reserved next portion at handover', () => {
-  const s = beginAtWeekTwo(42);
-  expect(handoverContext(s)).toBe('The steady hand ran the service until now. Your hands are empty.');
-  s.chefNext = { ticket: 999, station: 'oven' };
-  const ticket = s.tickets[0];
-  if (!ticket) throw new Error('Expected a completed table');
-  s.tickets.push({ ...ticket, id: 999, table: 4 });
+  expect(s.help).toBeNull();
+  expect(cookingStep(s)).toBeNull();
   expect(handoverContext(s)).toBe(
-    'The steady hand ran the service until now. Your hands are empty. Chef’s next: table 4’s pide.',
+    'The steady hand ran the service until now. The crew cooks and sends plates; you run the pass.',
   );
+  expect(JSON.stringify(s)).toBe(before);
 });
 
 it('a save without the hand-over record does not describe the current kitchen as inherited', () => {

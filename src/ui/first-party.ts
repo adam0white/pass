@@ -1,6 +1,6 @@
 /** First-party start words. Reading these never advances the notebook. */
 import { planOf } from '../sim/campaign.ts';
-import { cookingStep, type GameState } from '../sim/kitchen.ts';
+import { cookingStep, type GameState, peopleRun } from '../sim/kitchen.ts';
 
 export function sundayOpenLabel(s: GameState, firstPartyStart: boolean): string {
   if ((s.sunday?.week ?? 0) >= 4) return 'Close the notebook';
@@ -14,6 +14,8 @@ export function sundayOpenLabel(s: GameState, firstPartyStart: boolean): string 
 }
 
 export function handoverContext(s: GameState): string {
+  if (peopleRun(s))
+    return 'The steady hand ran the service until now. The crew cooks and sends plates; you run the pass.';
   const food = (station: 'grill' | 'cold' | 'oven') =>
     station === 'grill' ? 'grill portion' : station === 'cold' ? 'cold plate' : 'pide';
   const table = (ticket: number) => s.tickets.find((t) => t.id === ticket)?.table;

@@ -3,10 +3,10 @@
  * ordinary inputs, so the notebook replays exactly. Returns the state on Sunday of week 1, phase 'sunday'.
  */
 import { advance } from './host-policy.ts';
-import { type Booking, type GameState, newGame, queueInput } from './kitchen.ts';
+import { type Booking, GAME_VERSION, type GameState, newGame, queueInput } from './kitchen.ts';
 
-export function beginAtWeekTwo(seed: number, pace?: 'nevin'): GameState {
-  const s = newGame(seed);
+export function beginAtWeekTwo(seed: number, pace?: 'nevin', edition = GAME_VERSION): GameState {
+  const s = newGame(seed, edition);
   if (pace) queueInput(s, { kind: 'pace', value: pace });
   for (let turns = 0; turns <= 10000; turns++) {
     if (s.lost || s.phase === 'end') throw new Error('The first-week host run ended in a loss.');

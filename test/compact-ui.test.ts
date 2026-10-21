@@ -30,7 +30,7 @@ it('compact notebook run preserves edition, inputs and exact elapsed minute for 
 });
 
 it('compact replay retains an immediately reserved portion and continues identically', () => {
-  const s = newGame(42);
+  const s = newGame(42, 'pass@10');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   while (!helpOptions(s).length) step(s);

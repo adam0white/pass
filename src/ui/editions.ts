@@ -1,5 +1,5 @@
-import type { GameState } from '../sim/kitchen.ts';
+import { type GameState, peopleRun } from '../sim/kitchen.ts';
 
-/** Both editions use the same portion choices, reservation and playback rules. */
-export const portionEdition = (s: Pick<GameState, 'version'> | null) =>
-  s?.version === 'pass@8' || s?.version === 'pass@9' || s?.version === 'pass@10';
+/** Historical chef editions retain portion rules for replay; continuation uses people. */
+export const portionEdition = (s: Pick<GameState, 'version' | 'peopleRun'> | null) =>
+  !!s && !peopleRun(s) && ['pass@8', 'pass@9', 'pass@10'].includes(s.version);

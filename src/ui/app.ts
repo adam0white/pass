@@ -25,6 +25,7 @@ import {
   canReplay,
   chefLine,
   closeAt,
+  continueThroughPeople,
   cookingChoice,
   cookingStep,
   cookOf,
@@ -46,9 +47,11 @@ import {
   onShift,
   openAt,
   owed,
+  PEOPLE_RUN_NOTE,
   partiesTonight,
   partyCard,
   pendingCoverLine,
+  peopleRun,
   personOf,
   plateOptions,
   priorityOptions,
@@ -291,7 +294,7 @@ function title() {
     </div>
     <details><summary>More about the kitchen</summary>
       <p>Tap a cook, then a job. Hold the job to insist. They can say no. The job dot marks their current station.</p>
-      <p>Promises put the signature portion in my hands; the whole order must be out on time. Nevin's pace gives tables longer to wait; Begin at the second week runs the first week for me.</p>
+      <p>Promises put a party first; the crew must send the whole order out on time. Nevin's pace gives tables longer to wait; Begin at the second week runs the first week for me.</p>
       <p>Each ticket lists what the grill and the cold side owe it; ● is ready. Money is in Turkish lira (${lira(1)}).</p>
     </details>
     ${footer()}
@@ -302,6 +305,10 @@ function title() {
     partyHandover = save.partyHandover ?? null;
     pages = save.pages ?? [];
     s = replay(save.seed, save.inputs, save.minute, save.game);
+    if (continueThroughPeople(s)) {
+      writeSave();
+      alert(PEOPLE_RUN_NOTE);
+    }
     enter();
   });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-page]'))
@@ -315,6 +322,7 @@ function title() {
       partyHandover = null;
       pages = save.pages.filter((p) => p.week <= week);
       s = replay(save.seed, save.inputs.slice(0, page.k), undefined, save.game);
+      if (continueThroughPeople(s)) alert(PEOPLE_RUN_NOTE);
       writeSave();
       enter();
     });
@@ -352,14 +360,17 @@ function title() {
       const r = replay(ex.seed, ex.inputs, ex.state?.minute ?? ex.minute, ex.game);
       const same = ex.state ? fingerprint(r) === fingerprint(ex.state) : true;
       s = r;
+      const migrated = continueThroughPeople(s);
       firstPartyStart = false;
       partyHandover = null;
       pages = [];
       writeSave();
       alert(
-        same
-          ? 'Replayed the run: it matches the exported state.'
-          : 'Replayed the run, but it differs from the export.',
+        migrated
+          ? PEOPLE_RUN_NOTE
+          : same
+            ? 'Replayed the run: it matches the exported state.'
+            : 'Replayed the run, but it differs from the export.',
       );
       enter();
     } catch {
@@ -372,7 +383,7 @@ function title() {
 function replayNight(sv: Save): number {
   let n = 1;
   let sunday = false;
-  let atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10'].includes(sv.game);
+  let atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
     if (atBoard) {
@@ -383,7 +394,7 @@ function replayNight(sv: Save): number {
     else {
       sunday = false;
       n = Math.min(LAST_NIGHT, n + 1);
-      atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10'].includes(sv.game);
+      atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(sv.game);
     }
   }
   return n;
@@ -582,14 +593,14 @@ function service() {
   cachedHints = null;
   shownSaid = Math.max(0, s.said.length - 3);
   requestWake();
-  app.innerHTML = `<div class="service ${s.version === 'pass@7' || portionEdition(s) ? 'hands-on' : ''} ${partiesTonight(s).length ? 'party-night' : ''}" style="--sheet-height:${s.version === 'pass@5' || s.version === 'pass@6' || s.version === 'pass@7' || portionEdition(s) || stationsTonight(s).length === 4 ? 342 : 276}px">
+  app.innerHTML = `<div class="service ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? 'hands-on' : ''} ${partiesTonight(s).length ? 'party-night' : ''}" style="--sheet-height:${s.version === 'pass@5' || (!peopleRun(s) && s.version === 'pass@6') || (!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) || stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
     <div class="service-status" id="status" role="status" aria-live="polite"></div>
-    ${s.version === 'pass@7' || portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
-    ${s.version === 'pass@6' || (s.version === 'pass@7' || portionEdition(s)) ? '<div class="chef-work" id="chef-work" aria-live="polite"></div>' : ''}
-    ${s.version !== 'pass@7' && !portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
+    ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
+    ${(!peopleRun(s) && s.version === 'pass@6') || ((!peopleRun(s) && s.version === 'pass@7') || portionEdition(s)) ? '<div class="chef-work" id="chef-work" aria-live="polite"></div>' : ''}
+    ${(peopleRun(s) || s.version !== 'pass@7') && !portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
     <div class="scene" id="scene"></div>
     <div class="caption" id="caption"></div>
     <div class="sheet" id="sheet"></div>
@@ -660,7 +671,7 @@ function frame(t: number) {
       carry -= 1;
       const act = cookingStep(s);
       if (
-        (s.version === 'pass@7' || portionEdition(s)) &&
+        ((!peopleRun(s) && s.version === 'pass@7') || portionEdition(s)) &&
         speed > 1 &&
         act &&
         !(portionEdition(s) && cookingChoice(s)) &&
@@ -757,7 +768,7 @@ function drawRail() {
         const row = (name: string, done: number, n: number) =>
           n === 0
             ? ''
-            : `<div class="d">${name} ${(st.version === 'pass@7' || portionEdition(st)) && n > 5 ? `${done}/${n}` : '●'.repeat(done) + '○'.repeat(n - done)}</div>`;
+            : `<div class="d">${name} ${((!peopleRun(st) && st.version === 'pass@7') || portionEdition(st)) && n > 5 ? `${done}/${n}` : '●'.repeat(done) + '○'.repeat(n - done)}</div>`;
         const dish =
           row('grill', t.doneGrill, t.grill) +
           row('cold', t.doneCold, t.cold) +
@@ -770,7 +781,7 @@ function drawRail() {
         const party = t.party ? partyOf(t.party) : undefined;
         const booking = bookingOf(st, t.id);
         const partyLabel = party
-          ? `<div class="party-label" id="party-label-${t.id}">${booking?.promised ? `promised: <span class="chef-signature">${esc(party.signature.words)} (Chef’s)</span> · out by ${clock(booking.servedBy)}` : 'as it comes'}</div>`
+          ? `<div class="party-label" id="party-label-${t.id}">${booking?.promised ? (peopleRun(st) ? `promised: first at the pass · out by ${clock(booking.servedBy)}` : `promised: <span class="chef-signature">${esc(party.signature.words)} (Chef’s)</span> · out by ${clock(booking.servedBy)}`) : 'as it comes'}</div>`
           : '';
         const who = party
           ? party.host
@@ -781,13 +792,19 @@ function drawRail() {
             : `table ${t.table}`;
         const patience = t.patience;
         const option =
-          (st.version === 'pass@6' || st.version === 'pass@7' || portionEdition(st)) &&
+          ((!peopleRun(st) && st.version === 'pass@6') ||
+            (!peopleRun(st) && st.version === 'pass@7') ||
+            portionEdition(st)) &&
           helpOptions(st).find((o) => o.ticket === t.id);
         const priority =
           st.passDecision?.ticket === t.id ? '<div class="priority-mark">First on the pass</div>' : '';
-        if (st.version === 'pass@6' || st.version === 'pass@7' || portionEdition(st))
-          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Work ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
-        return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}</div>${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
+        if (
+          (!peopleRun(st) && st.version === 'pass@6') ||
+          (!peopleRun(st) && st.version === 'pass@7') ||
+          portionEdition(st)
+        )
+          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Work ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(!peopleRun(st) && st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
+        return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
       })
       .join(''),
   );
@@ -795,7 +812,7 @@ function drawRail() {
     ticket.onclick = () => {
       const option = helpOptions(st).find((o) => o.ticket === Number(ticket.dataset.ticket));
       if (option) reservePortion(option.ticket, option.station);
-      else if (st.version === 'pass@7' || portionEdition(st))
+      else if ((!peopleRun(st) && st.version === 'pass@7') || portionEdition(st))
         reservePortion(
           Number(ticket.dataset.ticket),
           ticket.dataset.portionStation as 'grill' | 'cold' | 'oven',
@@ -1055,7 +1072,7 @@ function drawCaption() {
   if (partyHandover && s.night === partyHandover.night && s.minute <= partyHandover.at - HANDOVER_LEAD + 10) {
     const party = partyOf(partyHandover.party);
     if (party)
-      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} ${handoverHands(partyHandover.hands)} You have the pass.`)}</span>`;
+      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? (peopleRun(s) ? 'You promised their order first and on time.' : `You promised ${party.signature.words}.`) : 'You promised nothing; they come anyway.'} ${peopleRun(s) ? 'The steady hand ran the service until now. The crew cooks and sends plates.' : handoverHands(partyHandover.hands)} You have the pass.`)}</span>`;
   }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
@@ -1148,7 +1165,7 @@ function drawSheet() {
   const staffing = st.staffing?.find((decision) => decision.state === 'asking');
   const priorityWaiting =
     st.passDecision?.state === 'asking' &&
-    (!st.help || st.version === 'pass@6') &&
+    (!st.help || (!peopleRun(st) && st.version === 'pass@6')) &&
     !staffing &&
     rq?.state !== 'asking';
   document
@@ -1243,7 +1260,7 @@ function drawSheet() {
     const openingNotes = st.night === 1 && lines.every((x) => x.at === openAt(1) - 5);
     renderPanel(
       el,
-      `${crewHeader()}${tipLine(st)}${st.version === 'pass@6' || (st.version === 'pass@7' || portionEdition(st)) ? '' : foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
+      `${crewHeader()}${tipLine(st)}${(!peopleRun(st) && st.version === 'pass@6') || ((!peopleRun(st) && st.version === 'pass@7') || portionEdition(st)) ? '' : foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
         .map((x) =>
           x.who === 'narrator'
             ? `<div>${esc(gloss(journalWords(st, x)))}</div>`
@@ -1345,6 +1362,7 @@ function crewHeader(): string {
 }
 
 function foodWork(st: GameState): string {
+  if (peopleRun(st)) return '';
   if (st.inputs.slice(st.applied).some((i) => i.kind === 'help'))
     return '<div class="food-work">Starting your portion on the next kitchen minute.</div>';
   if (st.help)
@@ -1368,7 +1386,8 @@ function reservePortion(ticket: number, station: 'grill' | 'cold' | 'oven') {
 }
 
 function immediateReply(saidBefore: GameState['said'][number] | undefined, text?: string) {
-  if (!s || (s.version !== 'pass@7' && !portionEdition(s)) || s.said.at(-1) === saidBefore) return;
+  if (!s || ((peopleRun(s) || s.version !== 'pass@7') && !portionEdition(s)) || s.said.at(-1) === saidBefore)
+    return;
   const reply = s.said.at(-1);
   const caption = document.getElementById('caption');
   if (reply && caption) {
@@ -1397,12 +1416,12 @@ function handsInput(input: Parameters<typeof queueInput>[1]) {
 }
 
 function drawChefWork() {
-  if (!s || (s.version !== 'pass@6' && s.version !== 'pass@7' && !portionEdition(s))) return;
+  if (!s || peopleRun(s) || (s.version !== 'pass@6' && s.version !== 'pass@7' && !portionEdition(s))) return;
   const el = document.getElementById('chef-work');
   if (!el) return;
   const st = s;
   const options = helpOptions(st);
-  if (st.version === 'pass@7' || portionEdition(st)) {
+  if ((!peopleRun(st) && st.version === 'pass@7') || portionEdition(st)) {
     const act = cookingStep(st);
     const plates = plateOptions(st);
     el.classList.toggle('crowded-pass', plates.length > 2);
@@ -1611,6 +1630,15 @@ function evening() {
     .map((result) => {
       const party = partyOf(result.party);
       if (!party || !result.outcome) return '';
+      if (peopleRun(st)) {
+        const words =
+          result.outcome === 'kept'
+            ? `${party.host}: “On time, as promised. Thank you.”`
+            : result.outcome === 'broken'
+              ? `${party.host}: “We had agreed a time.”`
+              : party[result.outcome];
+        return `<p class="party-outcome">${result.walked ? `${esc(party.walked)}${result.promised ? ' I had promised them.' : ''}` : esc(words)}</p>`;
+      }
       return `<p class="party-outcome">${result.walked ? `${esc(party.walked)}${result.promised ? ' I had promised them.' : ''}` : `${esc(party[result.outcome])}${(result.outcome === 'kept' || result.outcome === 'broken') && result.waited !== undefined ? ` Table ${result.waited} waited longest while I ${esc(party.doing)}.` : ''}`}</p>`;
     })
     .join('');

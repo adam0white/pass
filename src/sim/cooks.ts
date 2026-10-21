@@ -109,7 +109,7 @@ export function makeCook(id: CookId, seed: number, now: number, edition = 'pass@
       kind: 'abstain',
       toId: 'self',
       label: 'my rule about the plates',
-      ...(edition === 'pass@10' ? { firm: true as const } : {}),
+      ...(['pass@10', 'pass@11'].includes(edition) ? { firm: true as const } : {}),
       actions: [],
       violatedBy: ['dish'],
       from: dayStart(now) + RUSH_FROM,
@@ -190,7 +190,7 @@ export function makeCook(id: CookId, seed: number, now: number, edition = 'pass@
       recurEvery: 1440,
     });
   }
-  if (edition === 'pass@10') enableSuggestionReasons(p);
+  if (['pass@10', 'pass@11'].includes(edition)) enableSuggestionReasons(p);
   shiftRule(p, now);
   return p;
 }
@@ -335,7 +335,7 @@ export function makeHire(t: HireTemplate, seed: number, now: number, edition = '
       lastAt: now,
     });
   }
-  if (edition === 'pass@10') enableSuggestionReasons(p);
+  if (['pass@10', 'pass@11'].includes(edition)) enableSuggestionReasons(p);
   shiftRule(p, now);
   return p;
 }

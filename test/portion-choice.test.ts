@@ -19,7 +19,7 @@ function required<T>(value: T | null | undefined): T {
 }
 
 function open() {
-  const s = newGame(42);
+  const s = newGame(42, 'pass@10');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   while (!helpOptions(s).length) step(s);

@@ -1,0 +1,306 @@
+{
+  "game": "pass@10",
+  "seed": 1899016004,
+  "inputs": [
+    {
+      "kind": "pace",
+      "value": "nevin",
+      "at": 1045
+    },
+    {
+      "kind": "board",
+      "rows": [
+        {
+          "cook": "selim",
+          "station": "grill",
+          "breakAt": 1260,
+          "cover": "dilek"
+        },
+        {
+          "cook": "dilek",
+          "station": "cold",
+          "breakAt": 1090,
+          "cover": "selim"
+        }
+      ],
+      "at": 1045
+    },
+    {
+      "kind": "open",
+      "at": 1045
+    },
+    {
+      "kind": "help",
+      "ticket": 1,
+      "station": "grill",
+      "at": 1053
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 1,
+      "at": 1056
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 1,
+      "at": 1059
+    },
+    {
+      "kind": "cook-choice",
+      "ticket": 1,
+      "choice": "careful",
+      "at": 1062
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 1,
+      "at": 1065
+    },
+    {
+      "kind": "pass-priority",
+      "ticket": 1,
+      "at": 1066
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 1,
+      "at": 1072
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 11,
+      "at": 1073
+    },
+    {
+      "kind": "help",
+      "ticket": 13,
+      "station": "grill",
+      "at": 1120
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 13,
+      "at": 1123
+    },
+    {
+      "kind": "help",
+      "ticket": 2,
+      "station": "grill",
+      "at": 1124
+    },
+    {
+      "kind": "help",
+      "ticket": 2,
+      "station": "grill",
+      "at": 1126
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 13,
+      "at": 1126
+    },
+    {
+      "kind": "cook-choice",
+      "ticket": 13,
+      "choice": "careful",
+      "at": 1129
+    },
+    {
+      "kind": "help",
+      "ticket": 2,
+      "station": "grill",
+      "at": 1131
+    },
+    {
+      "kind": "help",
+      "ticket": 13,
+      "station": "grill",
+      "at": 1132
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 13,
+      "at": 1132
+    },
+    {
+      "kind": "help",
+      "ticket": 2,
+      "station": "grill",
+      "at": 1135
+    },
+    {
+      "kind": "help",
+      "ticket": 3,
+      "station": "cold",
+      "at": 1135
+    },
+    {
+      "kind": "help",
+      "ticket": 3,
+      "station": "cold",
+      "at": 1135
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 2,
+      "at": 1135
+    },
+    {
+      "kind": "help",
+      "ticket": 3,
+      "station": "cold",
+      "at": 1136
+    },
+    {
+      "kind": "help",
+      "ticket": 2,
+      "station": "grill",
+      "at": 1137
+    },
+    {
+      "kind": "help",
+      "ticket": 2,
+      "station": "grill",
+      "at": 1138
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 13,
+      "at": 1138
+    },
+    {
+      "kind": "help",
+      "ticket": 3,
+      "station": "cold",
+      "at": 1138
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 9,
+      "at": 1138
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 2,
+      "at": 1138
+    },
+    {
+      "kind": "help",
+      "ticket": 3,
+      "station": "cold",
+      "at": 1140
+    },
+    {
+      "kind": "help",
+      "ticket": 3,
+      "station": "cold",
+      "at": 1141
+    },
+    {
+      "kind": "cook-choice",
+      "ticket": 2,
+      "choice": "careful",
+      "at": 1141
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 2,
+      "at": 1144
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 2,
+      "at": 1146
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 3,
+      "at": 1147
+    },
+    {
+      "kind": "cook-choice",
+      "ticket": 3,
+      "choice": "careful",
+      "at": 1150
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 7,
+      "at": 1152
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 3,
+      "at": 1153
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 3,
+      "at": 1154
+    },
+    {
+      "kind": "help",
+      "ticket": 10,
+      "station": "grill",
+      "at": 1154
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 10,
+      "at": 1157
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 10,
+      "at": 1160
+    },
+    {
+      "kind": "cook-choice",
+      "ticket": 10,
+      "choice": "careful",
+      "at": 1163
+    },
+    {
+      "kind": "cook-step",
+      "ticket": 10,
+      "at": 1166
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 10,
+      "at": 1168
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 8,
+      "at": 1179
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 5,
+      "at": 1204
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 14,
+      "at": 1206
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 15,
+      "at": 1218
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 4,
+      "at": 1241
+    },
+    {
+      "kind": "call-plate",
+      "ticket": 6,
+      "at": 1270
+    }
+  ],
+  "minute": 1390,
+  "stateSha256": "a54b4fd3cf7cd09e7e88c8d039ac8053fbe8f52f08c8e2892ce9d83616fb35a6"
+}

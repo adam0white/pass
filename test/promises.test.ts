@@ -521,7 +521,7 @@ describe('returning parties and the promises the chef makes', () => {
     ).toBe(true);
   });
   it('replays and restores queued signatures, active signatures and resolved parties exactly in week two', () => {
-    const s = beginAtWeekTwo(42);
+    const s = beginAtWeekTwo(42, undefined, 'pass@10');
     const checked = new Set<string>();
     function checkpoint(label: string) {
       if (checked.has(label)) return;

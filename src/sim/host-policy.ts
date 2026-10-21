@@ -69,7 +69,7 @@ export function bot(s: GameState, policy: Policy) {
     if (
       !st &&
       open.length > 0 &&
-      (s.version !== 'pass@10' ||
+      (!['pass@10', 'pass@11'].includes(s.version) ||
         hints(s, id, policy === 'insist').find((h) => h.verb === want)?.verdict !== 'refused')
     )
       queueInput(s, { kind: 'ask', cook: id, verb: want, insist: policy === 'insist' });
