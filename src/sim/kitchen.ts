@@ -83,11 +83,12 @@ import {
   type NightEvent,
   REQUEST_LINES,
   resolveSeen,
+  suggestionWords,
   VERB_WORD,
 } from './lines.ts';
 import { hashUnit } from './rng.ts';
 
-export const GAME_VERSION = 'pass@9';
+export const GAME_VERSION = 'pass@10';
 const portionEdition = (s: GameState) => s.version === 'pass@8' || promisesOn(s);
 const handsOn = (s: GameState) => s.version === 'pass@7' || portionEdition(s);
 const chefEdition = (s: GameState) => s.version === 'pass@6' || handsOn(s);
@@ -219,7 +220,7 @@ export interface CookState {
   pending: { s: Suggestion; verb: Verb; counter?: boolean; quiet?: boolean } | null;
   deferred: { s: Suggestion; verb: Verb; until: number } | null;
   /** A station turned down because of a break in progress: kept for the rest of that break. */
-  breakDeferred: { verb: Verb; endsAt: number; rest: string } | null;
+  breakDeferred: { verb: Verb; endsAt: number; rest: string; reason?: string; short?: string } | null;
   cover?: { station: Station; until: number } | null;
   idleUntil: number;
   progress: number;
@@ -475,7 +476,7 @@ export function rollTickets(
 
 export function newGame(seed: number, edition: string = GAME_VERSION): GameState {
   const now = 9 * 60;
-  const people = FOUNDERS.map((m) => makeCook(m.id, seed, now));
+  const people = FOUNDERS.map((m) => makeCook(m.id, seed, now, edition));
   const chef = makeChef(seed, now);
   for (const p of people) acquaintWith(chef, p, 0.5, now);
   const regulars: Record<string, RegularState> = {};
@@ -998,8 +999,8 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
       return {
         verb,
         verdict: g.resolution.verdict,
-        says: g.resolution.says,
-        short: crewShort(s, id, verb, offers) ?? shortOf(g.resolution),
+        says: (s.version === 'pass@10' && answerWords(s, p, g.resolution, verb)?.text) || g.resolution.says,
+        short: crewShort(s, id, verb, offers) ?? shortOf(g.resolution, s, p, verb),
         guess: g.confidence < 0.6,
       };
     }
@@ -1007,8 +1008,8 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
     return {
       verb,
       verdict: r.verdict,
-      says: r.says,
-      short: crewShort(s, id, verb, offers) ?? shortOf(r),
+      says: (s.version === 'pass@10' && answerWords(s, p, r, verb)?.text) || r.says,
+      short: crewShort(s, id, verb, offers) ?? shortOf(r, s, p, verb),
       guess: false,
     };
   });
@@ -1036,7 +1037,24 @@ function crewShort(s: GameState, id: CookId, verb: Verb, offers: Affordance[]): 
 
 const afterless = (label: string) => label.replace(/^after I /, '');
 
-function shortOf(r: SuggestionResolution): string {
+/** A remembered break deferral keeps the reason HF originally gave until that break ends. */
+function answerWords(s: GameState, p: Person, r: SuggestionResolution, verb: Verb) {
+  const remembered = cookOf(s, p.id).breakDeferred;
+  if (
+    ['deferred', 'modified'].includes(r.verdict) &&
+    remembered?.verb === verb &&
+    s.minute < remembered.endsAt &&
+    remembered.reason
+  )
+    return { text: remembered.reason, short: remembered.short ?? 'not now' };
+  return suggestionWords(p, r, verb);
+}
+
+function shortOf(r: SuggestionResolution, s: GameState, p: Person, verb: Verb): string {
+  if (s.version === 'pass@10') {
+    const words = answerWords(s, p, r, verb);
+    if (words) return words.short;
+  }
   switch (r.verdict) {
     case 'assented':
       return 'yes';
@@ -1768,7 +1786,9 @@ function answered(
   }
   if (r.verdict === 'assented') c.night.assented += 1;
   const verb = voice.verb;
-  let text = r.says;
+  const previousBreak = c.breakDeferred;
+  const reason = s.version === 'pass@10' ? answerWords(s, p, r, voice.verb) : null;
+  let text = reason?.text ?? r.says;
   let counter: Verb | undefined;
   const crewRule =
     r.verdict === 'refused' && r.reason === 'unavailable' && (OFF_LINE.includes(verb) || verb === 'home');
@@ -1795,8 +1815,15 @@ function answered(
           : onBreak.affordanceId === 'phone'
             ? `Off the phone for ${job}? One minute.`
             : `Off my ten for ${job}? Let me have my ten.`;
-    text = `${why}${would[0] ? ` ${capital(VERB_WORD[would[0]] ?? '')} I’d do.` : ''}`;
-    c.breakDeferred = { verb, endsAt: onBreak.endsAt, rest: REST_WORD[onBreak.affordanceId] ?? 'ten' };
+    text = reason?.text ?? `${why}${would[0] ? ` ${capital(VERB_WORD[would[0]] ?? '')} I’d do.` : ''}`;
+    c.breakDeferred = {
+      verb,
+      endsAt: onBreak.endsAt,
+      rest: REST_WORD[onBreak.affordanceId] ?? 'ten',
+      ...(reason ? { reason: reason.text, short: reason.short } : {}),
+    };
+    if (s.version === 'pass@10' && previousBreak?.verb === verb && s.minute < previousBreak.endsAt)
+      c.breakDeferred = previousBreak;
     if (would[0]) counter = would[0];
   } else if (
     !onBreak &&
@@ -1807,7 +1834,10 @@ function answered(
     // Still the same no as on the break: say so, rather than a new reason that doesn't fit.
     const on = p.activity?.affordanceId;
     const came = on && on in VERB_WORD ? ` for ${VERB_WORD[on]}` : '';
-    text = `I came off my ${c.breakDeferred.rest}${came}. ${capital(VERB_WORD[verb] ?? verb)}, not yet.`;
+    text =
+      s.version === 'pass@10'
+        ? (c.breakDeferred.reason ?? reason?.text ?? 'Not now, Chef.')
+        : `I came off my ${c.breakDeferred.rest}${came}. ${capital(VERB_WORD[verb] ?? verb)}, not yet.`;
   } else if (
     onBreak &&
     (r.verdict === 'assented' || r.verdict === 'complied') &&
@@ -2541,7 +2571,7 @@ function choose(s: GameState, key: string, value: string) {
   if (key === 'hire' && value !== 'none') {
     const t = hireTemplate(value);
     if (!t || !page.candidates.includes(value)) return;
-    const p = makeHire(t, s.seed, s.minute);
+    const p = makeHire(t, s.seed, s.minute, s.version);
     s.people.push(p);
     s.crew.push({
       id: t.id,
@@ -2658,6 +2688,7 @@ export function replay(
 
 /** Whether an export or save can be replayed by this edition of the game. */
 export const canReplay = (game: string | undefined): boolean =>
+  game === 'pass@10' ||
   game === 'pass@9' ||
   game === 'pass@8' ||
   game === 'pass@7' ||
@@ -2937,6 +2968,9 @@ function takeStation(
   );
   const rec = decide(p, offers, { suggestion: suggestion(station) });
   const r = rec.suggestion;
+  const says = r
+    ? ((s.version === 'pass@10' ? suggestionWords(p, r, station)?.text : undefined) ?? r.says)
+    : 'No, Chef.';
   const aff = offers.find((a) => a.id === station);
   const accepted = !!aff && rec.chosenAffordanceId === station && r?.verdict === 'assented';
   if (!quiet)
@@ -2944,17 +2978,17 @@ function takeStation(
       s,
       c.id,
       accepted
-        ? `${r?.says} I’ll hold ${VERB_WORD[station]} until ${clock(until)}.`
-        : `${r?.says ?? 'No, Chef.'} That part is not agreed.`,
+        ? `${says} I’ll hold ${VERB_WORD[station]} until ${clock(until)}.`
+        : `${says} That part is not agreed.`,
       'answer',
     );
-  if (!accepted || !aff) return { accepted: false, says: r?.says ?? 'No, Chef.' };
+  if (!accepted || !aff) return { accepted: false, says };
   if (p.activity) endActivity(p, 'interrupted', s.minute, s, c);
   if (!begin(p, aff, rec)) return { accepted: false, says: 'I cannot start that stretch.' };
   c.cover = { station, until };
   if (p.activity) p.activity.endsAt = until;
   if (!c.night.worked.includes(station)) c.night.worked.push(station);
-  return { accepted: true, says: r?.says ?? 'Yes.' };
+  return { accepted: true, says };
 }
 
 function agreeBoard(s: GameState, rows: BoardRow[]) {
@@ -3013,9 +3047,13 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     const rec = decide(p, affs, { suggestion: suggestion(row.station) });
     reviewed(p);
     row.coverAccepted = rec.chosenAffordanceId === row.station && rec.suggestion?.verdict === 'assented';
+    const answer = rec.suggestion;
+    const says = answer
+      ? ((s.version === 'pass@10' ? suggestionWords(p, answer, row.station)?.text : undefined) ?? answer.says)
+      : 'No.';
     const line = row.coverAccepted
-      ? `${rec.suggestion?.says} I’ll cover ${nameOf(s, row.cook)} on ${VERB_WORD[row.station]} at ${clock(row.breakAt)}, for twenty minutes.`
-      : `${rec.suggestion?.says ?? 'No.'} I haven’t agreed to that cover.`;
+      ? `${says} I’ll cover ${nameOf(s, row.cook)} on ${VERB_WORD[row.station]} at ${clock(row.breakAt)}, for twenty minutes.`
+      : `${says} I haven’t agreed to that cover.`;
     row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
     say(s, row.cover, line, 'answer');
   }
@@ -3497,7 +3535,8 @@ function prepareChefClaims(s: GameState) {
 export const PROMISE_EDITION = 'pass@9';
 /** pass@9: share of the till left after a paid bill that next week's creditor adds, having seen the queue. */
 export const SEEN_SHARE = 0.5;
-export const promisesOn = (s: Pick<GameState, 'version'>): boolean => s.version === PROMISE_EDITION;
+export const promisesOn = (s: Pick<GameState, 'version'>): boolean =>
+  s.version === PROMISE_EDITION || s.version === 'pass@10';
 
 /** The Sunday card for one offered party. */
 export function partyCard(s: GameState, party: string): PartyCard | null {

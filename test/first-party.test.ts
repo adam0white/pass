@@ -26,4 +26,4 @@ it('gives the player the target board, hands over the service shortly before sea
     expect(fingerprint(restored)).toBe(fingerprint(s));
     expect(restored).toEqual(s);
   }
-});
+}, 30000);

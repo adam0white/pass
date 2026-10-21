@@ -66,7 +66,12 @@ export function bot(s: GameState, policy: Policy) {
         queueInput(s, { kind: 'ask', cook: id, verb: want });
       continue;
     }
-    if (!st && open.length > 0)
+    if (
+      !st &&
+      open.length > 0 &&
+      (s.version !== 'pass@10' ||
+        hints(s, id, policy === 'insist').find((h) => h.verb === want)?.verdict !== 'refused')
+    )
       queueInput(s, { kind: 'ask', cook: id, verb: want, insist: policy === 'insist' });
   }
 }

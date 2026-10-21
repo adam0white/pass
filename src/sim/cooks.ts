@@ -8,6 +8,7 @@
 import {
   createPerson,
   enablePromptings,
+  enableSuggestionReasons,
   MINUTES_PER_YEAR,
   type Person,
   promise,
@@ -66,7 +67,7 @@ function shiftRule(p: Person, now: number) {
   });
 }
 
-export function makeCook(id: CookId, seed: number, now: number): Person {
+export function makeCook(id: CookId, seed: number, now: number, edition = 'pass@9'): Person {
   const base = { id, now, enable: { fatigueStore: true } };
   let p: Person;
   if (id === 'selim') {
@@ -108,6 +109,7 @@ export function makeCook(id: CookId, seed: number, now: number): Person {
       kind: 'abstain',
       toId: 'self',
       label: 'my rule about the plates',
+      ...(edition === 'pass@10' ? { firm: true as const } : {}),
       actions: [],
       violatedBy: ['dish'],
       from: dayStart(now) + RUSH_FROM,
@@ -188,6 +190,7 @@ export function makeCook(id: CookId, seed: number, now: number): Person {
       recurEvery: 1440,
     });
   }
+  if (edition === 'pass@10') enableSuggestionReasons(p);
   shiftRule(p, now);
   return p;
 }
@@ -248,7 +251,7 @@ export const HIRES: readonly HireTemplate[] = [
 
 export const hireTemplate = (id: string): HireTemplate | undefined => HIRES.find((h) => h.id === id);
 
-export function makeHire(t: HireTemplate, seed: number, now: number): Person {
+export function makeHire(t: HireTemplate, seed: number, now: number, edition = 'pass@9'): Person {
   const base = {
     id: t.id,
     name: t.name,
@@ -332,6 +335,7 @@ export function makeHire(t: HireTemplate, seed: number, now: number): Person {
       lastAt: now,
     });
   }
+  if (edition === 'pass@10') enableSuggestionReasons(p);
   shiftRule(p, now);
   return p;
 }

@@ -1,13 +1,10 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { cloneState, type newGame, replay, restoreState, step } from '../src/sim/kitchen.ts';
+import { cloneState, type GameState, replay, restoreState, step } from '../src/sim/kitchen.ts';
+import { legacyHash } from './hash.ts';
 
 const legacy = JSON.parse(readFileSync(new URL('./fixtures/edition4-hashes.json', import.meta.url), 'utf8'));
-const hash = (s: ReturnType<typeof newGame>) =>
-  createHash('sha256')
-    .update(JSON.stringify(cloneState(s)))
-    .digest('hex');
+const hash = (s: GameState) => legacyHash(s, '2.8.0');
 
 // Captured before pass@5 from the baseline commit recorded in the fixture.
 // Hash every serialized field, including HF people, RNG state, inputs and logs.
