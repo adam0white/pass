@@ -349,6 +349,8 @@ export interface Party {
   critic?: boolean;
   /** Sunday card: how the booking came. */
   booked: string;
+  /** What the chef did, in the waiting-table journal line. */
+  doing: string;
   /** Journal lines. */
   sits: string;
   kept: string;
@@ -360,10 +362,11 @@ export interface Party {
 export const PARTIES: readonly Party[] = [
   {
     id: 'writer',
+    doing: 'rested the lamb',
     host: 'the food writer',
     weekday: 3,
-    at: 19 * 60 + 50,
-    order: { grill: 2, cold: 2 },
+    at: 19 * 60,
+    order: { grill: 1, cold: 1 },
     grows: 'grill',
     signature: { station: 'grill', words: 'the lamb, rested properly' },
     critic: true,
@@ -377,11 +380,12 @@ export const PARTIES: readonly Party[] = [
   },
   {
     id: 'hasan',
+    doing: 'rested the lamb',
     host: 'Hasan Bey',
     regular: 'hasan',
     weekday: 5,
-    at: 19 * 60 + 55,
-    order: { grill: 2, cold: 1 },
+    at: 19 * 60,
+    order: { grill: 1, cold: 1 },
     grows: 'grill',
     signature: { station: 'grill', words: 'the lamb, rested properly' },
     booked:
@@ -394,11 +398,12 @@ export const PARTIES: readonly Party[] = [
   },
   {
     id: 'arslan',
+    doing: 'gave the pide its minute',
     host: 'Mrs Arslan',
     regular: 'arslan',
     weekday: 3,
     at: 18 * 60 + 20,
-    order: { oven: 2, cold: 1 },
+    order: { oven: 1, cold: 1 },
     grows: 'oven',
     signature: { station: 'oven', words: 'the egg pide, its crust given another minute' },
     booked:
@@ -411,11 +416,12 @@ export const PARTIES: readonly Party[] = [
   },
   {
     id: 'kemal',
+    doing: 'dressed the salad',
     host: 'Kemal',
     regular: 'kemal',
     weekday: 4,
-    at: 20 * 60 + 10,
-    order: { grill: 2, cold: 1 },
+    at: 19 * 60,
+    order: { grill: 1, cold: 1 },
     grows: 'grill',
     signature: { station: 'cold', words: 'the shepherd’s salad, dressed carefully' },
     booked:
@@ -428,11 +434,12 @@ export const PARTIES: readonly Party[] = [
   },
   {
     id: 'aksoy',
+    doing: 'made the cacık',
     host: 'the Aksoy sisters',
     regular: 'aksoy',
     weekday: 2,
-    at: 19 * 60 + 45,
-    order: { cold: 2, oven: 1 },
+    at: 19 * 60,
+    order: { cold: 1, oven: 1 },
     grows: 'cold',
     signature: { station: 'cold', words: 'the cacık, done Nevin’s way' },
     booked:
@@ -445,11 +452,12 @@ export const PARTIES: readonly Party[] = [
   },
   {
     id: 'ilyas',
+    doing: 'rested the köfte',
     host: 'Ilyas',
     regular: 'ilyas',
     weekday: 5,
-    at: 20 * 60 + 15,
-    order: { grill: 1, cold: 2 },
+    at: 19 * 60,
+    order: { grill: 1, cold: 1 },
     grows: 'cold',
     signature: { station: 'grill', words: 'the köfte, rested before the plate' },
     booked:
@@ -462,10 +470,11 @@ export const PARTIES: readonly Party[] = [
   },
   {
     id: 'demir',
+    doing: 'gave the pide its minute',
     host: 'the Demirs',
     weekday: 4,
-    at: 19 * 60 + 40,
-    order: { cold: 2, oven: 1, grill: 1 },
+    at: 19 * 60,
+    order: { cold: 1, oven: 1, grill: 1 },
     grows: 'oven',
     signature: { station: 'oven', words: 'the cheese pide, its crust given another minute' },
     booked:
