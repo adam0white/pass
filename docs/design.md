@@ -27,7 +27,7 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 - Stations: grill, cold, dish. A cook working a station turns minutes into portions at a rate set by skill, HF body capacity, and protest. The pass plates a ticket when its portions are ready and a clean plate is free. A table that waits too long walks out.
 - Money is world truth and may be shown as a number. A person's inner state is never shown as a number: posture, hand-written lines and the journal show it.
 
-## The people (HF 2.8.0, pinned exactly)
+## The people (HF pinned exactly: 2.8.0 through pass@9, 2.13.0 from pass@10)
 - **Selim**, grill, 56. Worked for Nevin twenty years. Honest, proud, prays maghrib (a quiet offer at sunset; a journal line, no station effect).
 - **Dilek**, cold, 34. Smokes; her own rule is no smoke in the rush (an HF abstention); a habit pulls the other way. Reviews by ruminating.
 - **Rafi**, dish, 19. Broke. A habit toward the tip jar against his held norm on theft: an HF prompting. If the chef talks to him he gets a practised response (redirect) that grows with use; moving the jar removes the offer instead.
@@ -247,7 +247,7 @@ You played the first week of pass@1 on 2026-10-19. Since then, in order:
 
 New notebooks use pass@10 and pin `@adam0white/human-framework` to exactly 2.13.0. Returning parties, promises, Nevin’s pace, the rota and chef cooking carry forward from pass@9.
 
-Every pass@10 cook, including hires, enables HF suggestion reasons. Captions, rota replies and job-button hints translate `decidedBy` into kitchen words: a running break, work that would leave the cook spent later, a habit, a held rule or a bodily need. Unknown or absent explanations get a neutral line; sources and margins are never shown. Counter-offer buttons remain. A break deferral repeats the original reason until that break ends. Earlier editions retain their old wording and do not enable the flag.
+Every pass@10 cook, including hires, enables HF suggestion reasons. Captions, rota replies and job-button hints translate `decidedBy` into kitchen words: a running break, work that would leave the cook spent later, a habit, a held rule or a bodily need. Unknown or absent explanations get a neutral line; sources and margins are never shown. After Deniz's retest (F-398), a probe found the neutral line hid Selim's sunset prayer (`norm:salah`); a deferral it decides now says “Let me pray first, Chef.” Across 280 probed deferrals on five seeds no neutral line remains. Counter-offer buttons remain. A break deferral repeats the original reason until that break ends. Earlier editions retain their old wording and do not enable the flag.
 
 Selim alone holds “my rule about the plates” with `firm: true`: he will not wash plates in the rush, even when the chef insists. Dilek’s smoking rule, Rafi’s jar rule and every rule owed to the chef keep their existing behavior. No hire template has a personal abstention to make firm. The host policies skip a refused insist.
 

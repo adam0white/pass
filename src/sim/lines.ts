@@ -393,6 +393,8 @@ export function suggestionWords(
         return { text: `Off the phone for ${job}? One minute.`, short: 'let me finish my call' };
       case 'break':
         return { text: `Off my ten for ${job}? Let me have my ten.`, short: 'let me have my ten' };
+      case 'pray':
+        return { text: 'Let me finish my prayer, Chef.', short: 'after I pray' };
       default:
         return { text: 'Let me finish what I’m doing first, Chef.', short: 'let me finish this' };
     }
@@ -432,9 +434,12 @@ export function suggestionWords(
       },
       'going to my mother': { text: 'I have to get to my mother, Chef.', short: 'my mother needs me' },
       'going at nine': { text: 'You said I could go at nine, Chef.', short: 'we agreed on nine' },
+      maghrib: { text: 'Let me pray first, Chef.', short: 'after I pray' },
     };
     return (label && rules[label]) || neutral;
   }
+  // Selim's prayer stays a quiet part of his evening: one plain line, no more.
+  if (source === 'norm:salah') return { text: 'Let me pray first, Chef.', short: 'after I pray' };
   if (source === 'norm:theft') return { text: 'I won’t take what isn’t mine, Chef.', short: 'it isn’t mine' };
   const needs: Record<string, { text: string; short: string }> = {
     'need:food': { text: 'I need to eat first, Chef.', short: 'I’m hungry' },

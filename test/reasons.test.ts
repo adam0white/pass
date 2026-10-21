@@ -62,6 +62,20 @@ it('Selim refuses plates in the rush even when insisted, with his own line and a
 
 import { suggestionWords } from '../src/sim/lines.ts';
 
+it('names the sunset prayer plainly when it decided a deferral', () => {
+  const p = personOf(newGame(42), 'selim');
+  const r = (decidedBy: { kind: 'term'; source: string; margin: number }) =>
+    suggestionWords(
+      p,
+      { voiceId: 'chef', verdict: 'deferred', reason: 'x', says: 'stock', decidedBy },
+      'grill',
+    );
+  expect(r({ kind: 'term', source: 'norm:salah', margin: 0.57 })).toEqual({
+    text: 'Let me pray first, Chef.',
+    short: 'after I pray',
+  });
+});
+
 it('keeps an unknown reason neutral and never prints its source or margin', () => {
   const p = personOf(newGame(42), 'selim');
   expect(
