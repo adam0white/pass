@@ -403,6 +403,10 @@ export function suggestionWords(
       text: 'That job would leave me spent for the rest of the service, Chef.',
       short: 'I’d be spent later',
     };
+  if (source === 'effort')
+    return { text: 'I’d rather take the lighter job, Chef.', short: 'rather the lighter job' };
+  if (source === 'material')
+    return { text: 'I’d rather stay on paid work, Chef.', short: 'rather paid work' };
   if (source === 'habit')
     return { text: 'I’d rather keep at what I’m doing, Chef.', short: 'rather keep at this' };
   if (source?.startsWith('abstain:') || source?.startsWith('commitment:')) {
