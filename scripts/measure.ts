@@ -1,128 +1,87 @@
 // Headless balance measure: policy bots x seeds -> nights, takings, bills, trust, quits.
-// Run: npm run measure [-- seeds=4] [p=flex,care]
-import { weekOf } from '../src/sim/campaign.ts';
-import {
-  activeCrew,
-  boardDefaults,
-  cookOf,
-  type GameState,
-  hints,
-  memberOf,
-  newGame,
-  onShift,
-  owed,
-  personOf,
-  queueInput,
-  staffingOptions,
-  stationOf,
-  stationsTonight,
-  step,
-  trustOf,
-} from '../src/sim/kitchen.ts';
+// Run: npm run measure -- edition=pass@9 seeds=10 p=flex,flex-chef [pace=nevin]
+// Match pass@8 nights with partyNights=7,8,... from the corresponding pass@9 output.
+import { pathToFileURL } from 'node:url';
+import { planOf } from '../src/sim/campaign.ts';
+import { type Arm, advance, type Policy } from '../src/sim/host-policy.ts';
 
-type Policy = 'none' | 'ask' | 'insist' | 'care' | 'flex' | 'push';
-let push = false;
+export { type Arm, advance, bot, carefulChef, type Policy, sunday } from '../src/sim/host-policy.ts';
 
-const WORK = { grill: 5, cold: 3.5, oven: 6, dish: 1.4 } as const;
+import { activeCrew, type GameState, newGame, personOf, queueInput, trustOf } from '../src/sim/kitchen.ts';
 
-function bot(s: GameState, policy: Policy) {
-  if (policy === 'none' || s.minute % 5 !== 0) return;
-  const open = s.tickets.filter((t) => t.status === 'open');
-  const asked: Record<string, string> = {};
-  for (const id of onShift(s)) {
-    const c = cookOf(s, id);
-    if (c.pending) continue;
-    const st = stationOf(s, id);
-    const want = memberOf(s, id).home;
-    if (policy === 'flex' || policy === 'push') {
-      push = policy === 'push';
-      const o = owed(s);
-      const need: Record<string, number> = {
-        grill: o.grill * WORK.grill,
-        cold: o.cold * WORK.cold,
-        oven: o.oven * WORK.oven + (s.oven.heat < 0.7 ? 10 : 0),
-        dish: s.plates.pile * WORK.dish - s.plates.clean,
-      };
-      const taken = onShift(s).map(
-        (x) => asked[x] ?? (cookOf(s, x).pending?.verb as string | undefined) ?? stationOf(s, x),
-      );
-      const best = stationsTonight(s)
-        .filter((x) => (need[x] ?? 0) > 0)
-        .sort(
-          (a, b) =>
-            (need[b] ?? 0) - (taken.includes(b) ? 8 : 0) - ((need[a] ?? 0) - (taken.includes(a) ? 8 : 0)),
-        )[0];
-      const h = best ? hints(s, id).find((x) => x.verb === best) : undefined;
-      if (best && st !== best && h && h.verdict !== 'refused' && (!st || (need[st] ?? 0) < 2)) {
-        queueInput(s, { kind: 'ask', cook: id, verb: best, insist: push });
-        asked[id] = best;
-      } else if (!st && open.length === 0 && personOf(s, id).body.satiety < 0.5)
-        queueInput(s, { kind: 'ask', cook: id, verb: 'eat' });
-      continue;
-    }
-    if (policy === 'care') {
-      const h = hints(s, id).find((x) => x.verb === want);
-      if (!st && open.length > 0 && h && (h.verdict === 'assented' || h.verdict === 'modified'))
-        queueInput(s, { kind: 'ask', cook: id, verb: want });
-      continue;
-    }
-    if (!st && open.length > 0)
-      queueInput(s, { kind: 'ask', cook: id, verb: want, insist: policy === 'insist' });
-  }
+export interface RunOptions {
+  edition?: string;
+  pace?: 'nevin';
+  arm?: Arm;
+  /** Fixed scheduled nights from a matched pass@9 run, including nights after an early loss. */
+  partyNights?: ReadonlySet<number> | readonly number[];
 }
 
-function sunday(s: GameState) {
-  const p = s.sunday;
-  if (!p) return;
-  if (p.candidates[0]) queueInput(s, { kind: 'choose', key: 'hire', value: p.candidates[0] });
-  if (p.offday) queueInput(s, { kind: 'choose', key: 'offday', value: 'yes' });
-  for (const t of p.tabs) queueInput(s, { kind: 'choose', key: `tab:${t}`, value: 'ask' });
-  if (p.sell) queueInput(s, { kind: 'choose', key: 'sell', value: 'keep' });
-}
-
-export function run(seed: number, policy: Policy) {
-  const s = newGame(seed);
-  const t0 = performance.now();
+export function simulate(seed: number, policy: Policy, options: RunOptions = {}) {
+  const s = newGame(seed, options.edition);
+  if (options.pace) queueInput(s, { kind: 'pace', value: options.pace });
+  const nightResults: { night: number; served: number; walked: number; takings: number; till: number }[] = [];
+  const bookings = new Map<string, NonNullable<GameState['bookings']>[number]>();
+  let guard = 0;
   while (s.phase !== 'end') {
-    if (s.phase === 'board') {
-      queueInput(s, { kind: 'board', rows: boardDefaults(s) });
-      queueInput(s, { kind: 'open' });
-      continue;
-    }
-    for (const d of s.staffing ?? []) {
-      if (d.state !== 'asking') continue;
-      queueInput(s, {
-        kind: 'staff',
-        id: d.id,
-        cover: policy === 'none' ? null : (staffingOptions(s, d)[0] ?? null),
+    if (++guard > 100000) throw Error(`Safety bound ${s.version}/${seed}/${policy}`);
+    const reportCount = s.reports.length;
+    advance(s, policy, options.arm);
+    for (const booking of s.bookings ?? []) bookings.set(`${booking.week}:${booking.party}`, { ...booking });
+    for (const report of s.reports.slice(reportCount)) {
+      nightResults.push({
+        night: report.night,
+        served: report.served,
+        walked: report.walked,
+        takings: report.takings,
+        till: s.till,
       });
     }
-    if (s.phase === 'evening') {
-      if (s.night === 3) queueInput(s, { kind: 'jar', choice: 'leave' });
-      queueInput(s, { kind: 'open' });
-      continue;
-    }
-    if (s.phase === 'sunday') {
-      sunday(s);
-      queueInput(s, { kind: 'open' });
-      continue;
-    }
-    if (s.request?.state === 'asking') queueInput(s, { kind: 'answer', choice: 'yes' });
-    bot(s, policy);
-    step(s);
   }
-  const ms = Math.round(performance.now() - t0);
+  return { state: s, nightResults, bookings: [...bookings.values()] };
+}
+
+export function partyAggregate(
+  nightResults: ReturnType<typeof simulate>['nightResults'],
+  partyNights: ReadonlySet<number> | readonly number[],
+) {
+  const scheduled = [...new Set(partyNights)].sort((a, b) => a - b);
+  const results = nightResults.filter((r) => scheduled.includes(r.night));
+  return {
+    scheduledNights: scheduled,
+    completedNights: results.map((r) => r.night),
+    served: results.reduce((n, r) => n + r.served, 0),
+    walked: results.reduce((n, r) => n + r.walked, 0),
+    takings: results.reduce((n, r) => n + r.takings, 0),
+    // Till is a stock, so report each close rather than summing balances.
+    tillAtClose: results.map((r) => ({ night: r.night, till: r.till })),
+  };
+}
+
+export function run(seed: number, policy: Policy, options: RunOptions = {}) {
+  const t0 = performance.now();
+  const { state: s, nightResults, bookings } = simulate(seed, policy, options);
   const bills = s.reports.filter((r) => r.bill).map((r) => r.bill);
+  const partyNights = options.partyNights ?? new Set(bookings.map((b) => b.night));
   return {
     seed,
     policy,
-    ms,
+    edition: s.version,
+    pace: s.pace ?? 'default',
+    arm: options.arm ?? 'promise-none',
+    ms: Math.round(performance.now() - t0),
     lost: s.lost,
+    finalTill: s.till,
+    strikes: s.strikes,
     bills: bills.map((b) => (b ? `${b.paid ? 'paid' : `short ${b.short}`}/${b.amount}` : '')).join(' '),
     weekTakings: [1, 2, 3, 4].map((w) =>
-      s.reports.filter((r) => weekOfNight(r.night) === w).reduce((a, r) => a + r.takings, 0),
+      s.reports.filter((r) => planOf(r.night).week === w).reduce((a, r) => a + r.takings, 0),
     ),
     nights: s.reports.map((r) => `${r.served}/${r.served + r.walked}`).join(' '),
+    nightResults,
+    bookings,
+    promises: s.reports.flatMap((r) => (r.parties ?? []).map((party) => ({ night: r.night, ...party }))),
+    partyNights: partyAggregate(nightResults, partyNights),
     crew: activeCrew(s)
       .map((m) => `${m.id}:${trustOf(personOf(s, m.id)).toFixed(2)}`)
       .join(' '),
@@ -134,15 +93,45 @@ export function run(seed: number, policy: Policy) {
   };
 }
 
-import { planOf } from '../src/sim/campaign.ts';
+export function main(args = process.argv.slice(2)) {
+  const option = (key: string) => args.find((a) => a.startsWith(`${key}=`))?.slice(key.length + 1);
+  const seeds = Number(option('seeds') ?? 10);
+  if (!Number.isSafeInteger(seeds) || seeds < 1) throw Error('seeds must be a positive integer');
+  const policies = (option('p')?.split(',') ?? [
+    'none',
+    'ask',
+    'insist',
+    'care',
+    'flex',
+    'flex-chef',
+  ]) as Policy[];
+  const validPolicies: Policy[] = ['none', 'ask', 'insist', 'care', 'flex', 'push', 'flex-chef'];
+  for (const policy of policies)
+    if (!validPolicies.includes(policy)) throw Error(`Unknown policy: ${policy}`);
+  const explicitArms = option('arms')?.split(',') as Arm[] | undefined;
+  for (const arm of explicitArms ?? [])
+    if (arm !== 'promise-all' && arm !== 'promise-none') throw Error(`Unknown arm: ${arm}`);
+  const pace = option('pace');
+  if (pace !== undefined && pace !== 'nevin') throw Error(`Unknown pace: ${pace}`);
+  const nights = option('partyNights')?.split(',').map(Number);
+  if (nights?.some((n) => !Number.isSafeInteger(n) || n < 1 || n > 18)) throw Error('Invalid partyNights');
+  for (const policy of policies) {
+    const arms: Arm[] =
+      explicitArms ?? (policy === 'flex-chef' ? ['promise-all', 'promise-none'] : ['promise-none']);
+    for (const arm of arms)
+      for (let i = 0; i < seeds; i++)
+        console.log(
+          JSON.stringify(
+            run(1000 + i, policy, {
+              edition: option('edition'),
+              pace,
+              arm,
+              partyNights: nights,
+            }),
+          ),
+        );
+  }
+}
 
-const weekOfNight = (n: number) => planOf(n).week;
-void weekOf;
-
-const seeds = Number(process.argv.find((a) => a.startsWith('seeds='))?.slice(6) ?? 3);
-const policies = (process.argv
-  .find((a) => a.startsWith('p='))
-  ?.slice(2)
-  .split(',') ?? ['none', 'ask', 'insist', 'care', 'flex']) as Policy[];
-for (const policy of policies)
-  for (let i = 0; i < seeds; i++) console.log(JSON.stringify(run(1000 + i, policy)));
+// Importing the policy and runner in parity tests must never start a campaign.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

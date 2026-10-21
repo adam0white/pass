@@ -3,8 +3,8 @@ import { boardDefaults, cookingStep, helpOptions, newGame, queueInput, step } fr
 import { clockPlayback } from '../src/ui/clock.ts';
 
 describe('hands-on playback', () => {
-  it('gives a ready act reading time without changing simulation state', () => {
-    const s = newGame(42);
+  it('gives a pass@8 ready act reading time without changing simulation state', () => {
+    const s = newGame(42, 'pass@8');
     queueInput(s, { kind: 'board', rows: boardDefaults(s) });
     queueInput(s, { kind: 'open' });
     while (!helpOptions(s).length && s.phase === 'service') step(s);

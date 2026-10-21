@@ -15,8 +15,8 @@ const hash = (s: ReturnType<typeof newGame>) =>
     .digest('hex');
 
 describe('game editions', () => {
-  it('starts new runs on pass@8 and retains explicit pass@3 creation', () => {
-    expect(newGame(42).version).toBe('pass@8');
+  it('starts new runs on pass@9 and retains explicit pass@3 creation', () => {
+    expect(newGame(42).version).toBe('pass@9');
     expect(newGame(42, 'pass@3').version).toBe('pass@3');
   });
   for (const row of legacy) {

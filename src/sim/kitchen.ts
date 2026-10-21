@@ -45,8 +45,12 @@ import {
 import {
   isLastOfWeek,
   LAST_NIGHT,
+  NIGHT_PLANS,
   type NightPlan,
   nightStart,
+  PARTIES,
+  PROMISE_WORDS,
+  partyOf,
   planOf,
   REGULARS,
   type RequestPlan,
@@ -83,8 +87,8 @@ import {
 } from './lines.ts';
 import { hashUnit } from './rng.ts';
 
-export const GAME_VERSION = 'pass@8';
-const portionEdition = (s: GameState) => s.version === 'pass@8';
+export const GAME_VERSION = 'pass@9';
+const portionEdition = (s: GameState) => s.version === 'pass@8' || promisesOn(s);
 const handsOn = (s: GameState) => s.version === 'pass@7' || portionEdition(s);
 const chefEdition = (s: GameState) => s.version === 'pass@6' || handsOn(s);
 const hasBoard = (s: GameState) => s.version === 'pass@5' || chefEdition(s);
@@ -174,6 +178,8 @@ export interface Ticket {
   friend?: boolean;
   /** pass@9: a returning party's id (see `PARTIES`). */
   party?: string;
+  /** Actual party payment, including any kept-promise premium. */
+  partyPay?: number;
   /** The wedding order: trays due by this minute; no plates. */
   due?: number;
   status: 'waiting' | 'open' | 'served' | 'walked';
@@ -315,6 +321,10 @@ export interface Booking {
   outcome?: 'kept' | 'broken' | 'served' | 'walked';
   /** The table number that waited longest while the chef cooked the signature. */
   waited?: number;
+  /** Result of the reserved signature alone, independent of other chef portions. */
+  signatureQuality?: 'careful' | 'plain';
+  signatureStartedAt?: number;
+  waitedMinutes?: number;
 }
 
 /** What the Sunday card shows for one offered party (pass@9). */
@@ -359,6 +369,8 @@ export interface GameState {
     announced?: boolean;
     instinct?: boolean;
     plain?: boolean;
+    signature?: boolean;
+    careChosen?: boolean;
   } | null;
   chefNext?: { ticket: number; station: FoodStation } | null;
   chefGrace?: { ticket: number; station: FoodStation; until: number; done?: number }[];
@@ -667,7 +679,9 @@ function startNight(s: GameState, n: number) {
   s.work = { grill: 0, cold: 0, oven: 0 };
   s.oven = { heat: 0 };
   for (const line of pl.intro) say(s, 'narrator', line, 'journal');
+  if (promisesOn(s) && s.pace === 'nevin') for (const t of s.tickets) t.patience = 38;
   if (pl.week >= 2) addRegulars(s, pl);
+  if (promisesOn(s)) addParties(s);
   if (pl.wedding) {
     const w = pl.wedding;
     s.tickets.unshift({
@@ -743,6 +757,7 @@ function addRegulars(s: GameState, pl: NightPlan) {
   let id = Math.max(0, ...s.tickets.map((t) => t.id)) + 1;
   for (const r of REGULARS) {
     if (!r.weekdays.includes(pl.weekday)) continue;
+    if (partiesTonight(s).some((b) => partyOf(b.party)?.regular === r.id)) continue;
     const st = s.regulars[r.id] as RegularState;
     if (st.regard < 0.3) {
       if (st.visits > 0) say(s, 'narrator', `${r.name} didn’t come tonight.`, 'journal');
@@ -758,7 +773,7 @@ function addRegulars(s: GameState, pl: NightPlan) {
       doneGrill: 0,
       doneCold: 0,
       doneOven: 0,
-      patience: r.patience ?? weekOf(pl.week).patience,
+      patience: promisesOn(s) && s.pace === 'nevin' ? 38 : (r.patience ?? weekOf(pl.week).patience),
       price: s.price + PIDE_PRICE * (pl.oven ? (r.order.oven ?? 0) : 0),
       regular: r.id,
       friend,
@@ -1059,6 +1074,9 @@ function applyPending(s: GameState) {
 
 function apply(s: GameState, inp: Input) {
   switch (inp.kind) {
+    case 'pace':
+      if (promisesOn(s) && s.applied === 1 && inp.value === 'nevin') s.pace = 'nevin';
+      return;
     case 'board':
       if (hasBoard(s) && s.phase === 'board') agreeBoard(s, inp.rows);
       return;
@@ -1149,6 +1167,7 @@ function apply(s: GameState, inp: Input) {
         stalePortion(s, inp.ticket);
         return;
       }
+      if (delegateSignature(s)) return;
       s.help.instinct = true;
       s.help.plain = true;
       say(
@@ -1165,6 +1184,7 @@ function apply(s: GameState, inp: Input) {
         stalePortion(s, inp.ticket);
         return;
       }
+      if (inp.instinct && delegateSignature(s)) return;
       if (inp.instinct) {
         s.help.instinct = true;
         s.help.plain = true;
@@ -1194,6 +1214,19 @@ function apply(s: GameState, inp: Input) {
       if (portionEdition(s) && s.help && s.phase === 'service') {
         if (!helpOptions(s).some((o) => o.ticket === inp.ticket && o.station === inp.station)) {
           stalePortion(s, inp.ticket);
+          return;
+        }
+        if (
+          promisesOn(s) &&
+          signaturePending(s, s.chefNext?.ticket) &&
+          (s.chefNext?.ticket !== inp.ticket || s.chefNext.station !== inp.station)
+        ) {
+          say(
+            s,
+            'narrator',
+            'The promised signature is Chef’s next. It stays behind my current portion.',
+            'answer',
+          );
           return;
         }
         s.chefNext = { ticket: inp.ticket, station: inp.station };
@@ -1231,6 +1264,11 @@ function apply(s: GameState, inp: Input) {
         begin(s.chef, aff, decide(s.chef, [aff]));
         const t = s.tickets.find((t) => t.id === inp.ticket);
         if (!t) return;
+        const booking = signaturePending(s, t.id);
+        if (booking && booking.signature === inp.station) {
+          s.help.signature = true;
+          booking.signatureStartedAt = s.minute;
+        }
         say(
           s,
           'narrator',
@@ -1471,7 +1509,7 @@ export function step(s: GameState): void {
       }
       continue;
     }
-    const patience = t.patience + (s.apron ? 12 : 0);
+    const patience = t.patience + (bookingOf(s, t.id)?.promised ? 0 : s.apron ? 12 : 0);
     if (m - t.at > patience) walk(s, t);
   }
   s.plates.dirty = s.plates.dirty.filter((d) => {
@@ -1498,6 +1536,23 @@ function arrive(s: GameState, t: Ticket) {
     }
   }
   t.status = 'open';
+  const booking = bookingOf(s, t.id);
+  if (booking) {
+    const p = partyOf(booking.party);
+    const regular = p?.regular ? s.regulars[p.regular] : undefined;
+    if (regular) regular.visits += 1;
+    if (p) say(s, 'narrator', p.sits, 'journal');
+    if (booking.promised) {
+      s.chefNext = { ticket: t.id, station: booking.signature };
+      say(
+        s,
+        'narrator',
+        `Table ${t.table}'s ${p?.signature.words} is promised. Chef’s next, by ${clock(booking.servedBy)}.`,
+        'call',
+      );
+    }
+    return;
+  }
   if (t.regular) {
     const r = regularOf(t.regular);
     const st = s.regulars[t.regular];
@@ -1511,7 +1566,12 @@ function arrive(s: GameState, t: Ticket) {
 }
 
 function walk(s: GameState, t: Ticket) {
+  if (bookingOf(s, t.id) && t.platedAt !== undefined) s.plates.dirty.push({ at: s.minute + 18 });
   t.status = 'walked';
+  if (bookingOf(s, t.id)) {
+    finishParty(s, t);
+    return;
+  }
   const r = t.regular ? regularOf(t.regular) : undefined;
   if (r && !t.friend) {
     const st = s.regulars[r.id] as RegularState;
@@ -1945,13 +2005,16 @@ function produce(s: GameState) {
   // Portions go to the oldest table first.
   for (const t of allocationOrder(s)) {
     if (t.status !== 'open') continue;
-    const reserved = (st: FoodStation) =>
-      (chefEdition(s) && s.help?.ticket === t.id && s.help.station === st ? 1 : 0) +
-      (portionEdition(s) && s.chefNext?.ticket === t.id && s.chefNext.station === st ? 1 : 0) +
-      (portionEdition(s) &&
-      s.chefGrace?.some((g) => g.ticket === t.id && g.station === st && g.until > s.minute)
-        ? 1
-        : 0);
+    const reserved = (st: FoodStation) => {
+      const held =
+        (chefEdition(s) && s.help?.ticket === t.id && s.help.station === st ? 1 : 0) +
+        (portionEdition(s) && s.chefNext?.ticket === t.id && s.chefNext.station === st ? 1 : 0) +
+        (portionEdition(s) &&
+        s.chefGrace?.some((g) => g.ticket === t.id && g.station === st && g.until > s.minute)
+          ? 1
+          : 0);
+      return signaturePending(s, t.id)?.signature === st ? Math.max(1, held) : held;
+    };
     while (t.doneGrill < t.grill - reserved('grill') && s.work.grill >= GRILL_WORK) {
       s.work.grill -= GRILL_WORK;
       t.doneGrill += 1;
@@ -1979,6 +2042,10 @@ function pass(s: GameState) {
       ? s.tickets.find((t) => t.id === s.passDecision?.ticket && t.status === 'open')
       : undefined;
   for (const t of allocationOrder(s)) {
+    if (t.status === 'open' && bookingOf(s, t.id)?.promised && s.minute - t.at > 35) {
+      walk(s, t);
+      continue;
+    }
     if (
       priority?.status === 'open' &&
       t.id !== priority.id &&
@@ -2063,7 +2130,8 @@ function pass(s: GameState) {
     let pay = t.price;
     const r = t.regular ? regularOf(t.regular) : undefined;
     const st = t.regular ? s.regulars[t.regular] : undefined;
-    if (r && st && !t.friend) {
+    if (bookingOf(s, t.id)) pay = finishParty(s, t);
+    else if (r && st && !t.friend) {
       if (st.tab === 'open') pay = 0;
       if (st.tab === 'asked') {
         const part = Math.min(r.owes, 300);
@@ -2160,7 +2228,11 @@ function closeNight(s: GameState) {
   const n = s.night;
   const pl = plan(s);
   const skimBefore = s.jarSkimmed;
-  for (const t of s.tickets) if (t.status === 'open' || t.status === 'waiting') t.status = 'walked';
+  for (const t of s.tickets)
+    if (t.status === 'open' || t.status === 'waiting') {
+      t.status = 'walked';
+      if (bookingOf(s, t.id)) finishParty(s, t);
+    }
   for (const c of s.cooks) {
     const p = personOf(s, c.id);
     if (c.here && p.activity) endActivity(p, 'completed', s.minute, s, c);
@@ -2179,7 +2251,8 @@ function closeNight(s: GameState) {
     served: served.filter((t) => t.due === undefined).length,
     walked,
     takings: served.reduce(
-      (a, t) => a + (t.regular && s.regulars[t.regular]?.tab === 'open' && !t.friend ? 0 : t.price),
+      (a, t) =>
+        a + (t.partyPay ?? (t.regular && s.regulars[t.regular]?.tab === 'open' && !t.friend ? 0 : t.price)),
       0,
     ),
     tips: s.jar,
@@ -2196,6 +2269,13 @@ function closeNight(s: GameState) {
         pleased: t.status === 'served' && (t.servedAt ?? 0) - t.at <= 25,
       })),
   };
+  if (promisesOn(s) && pl.week >= 2)
+    report.parties = partiesTonight(s).map((b) => ({
+      party: b.party,
+      promised: b.promised,
+      outcome: b.outcome,
+      ...(b.waited === undefined ? {} : { waited: b.waited }),
+    }));
   void skimBefore;
   if (critic)
     report.critic =
@@ -2252,18 +2332,25 @@ function settle(s: GameState, week: number): BillResult {
     s.tickets.filter((t) => t.status === 'walked' && t.due === undefined).length;
   if (walks === 0) stamp(s, 'clean-week');
   if (s.cooks.every((c) => c.week.insisted === 0)) stamp(s, 'no-push');
+  const promiseBroken =
+    promisesOn(s) && (s.bookings ?? []).some((b) => b.week === week && b.promised && b.outcome === 'broken');
+  const promiseField = promisesOn(s) && week >= 2 ? { promiseBroken } : {};
   if (s.till >= amount) {
+    if (promiseBroken) {
+      s.strikes += 1;
+      if (s.strikes >= 2) s.lost = true;
+    }
     s.till -= amount;
     s.carry = 0;
     stamp(s, `bill-${week}`);
-    return { week, owed: w.owed, amount, paid: true, short: 0 };
+    return { week, owed: w.owed, amount, paid: true, short: 0, ...promiseField };
   }
   const short = amount - s.till;
   s.till = 0;
   s.strikes += 1;
   s.carry = Math.round((short * 1.1) / 10) * 10;
   if (s.strikes >= 2 || week === 4) s.lost = true;
-  return { week, owed: w.owed, amount, paid: false, short };
+  return { week, owed: w.owed, amount, paid: false, short, ...promiseField };
 }
 
 function nextNight(s: GameState) {
@@ -2326,6 +2413,7 @@ function enterSunday(s: GameState) {
     if (!page.stamps.includes('unprompted')) page.stamps.push('unprompted');
   }
   s.sunday = page;
+  if (promisesOn(s) && week < 4) bookParties(s, page);
 }
 
 function weekStamps(s: GameState, week: number): string[] {
@@ -2415,6 +2503,15 @@ function candidates(s: GameState, week: number): string[] {
 function choose(s: GameState, key: string, value: string) {
   const page = s.sunday as SundayPage;
   if (page.chosen[key] !== undefined) return;
+  if (promisesOn(s) && key.startsWith('promise:')) {
+    const id = key.slice(8);
+    if (!page.parties?.includes(id) || !['promise', 'plain'].includes(value)) return;
+    const b = s.bookings?.find((b) => b.party === id && b.week === page.week + 1);
+    if (!b) return;
+    b.promised = value === 'promise';
+    page.chosen[key] = value;
+    return;
+  }
   page.chosen[key] = value;
   if (key === 'hire' && value !== 'none') {
     const t = hireTemplate(value);
@@ -2536,6 +2633,7 @@ export function replay(
 
 /** Whether an export or save can be replayed by this edition of the game. */
 export const canReplay = (game: string | undefined): boolean =>
+  game === 'pass@9' ||
   game === 'pass@8' ||
   game === 'pass@7' ||
   game === 'pass@6' ||
@@ -3157,6 +3255,7 @@ function stalePortion(s: GameState, id: number) {
 }
 
 function performCookingStep(s: GameState, instinct: boolean, skipped = false) {
+  if (promisesOn(s)) trackSignatureWait(s);
   const h = s.help;
   const action = cookingStep(s);
   if (!h || !action?.ready) return;
@@ -3191,6 +3290,10 @@ function performCookingStep(s: GameState, instinct: boolean, skipped = false) {
   if (h.station === 'grill') t.doneGrill = Math.min(t.grill, t.doneGrill + 1);
   else if (h.station === 'cold') t.doneCold = Math.min(t.cold, t.doneCold + 1);
   else t.doneOven = Math.min(t.oven, t.doneOven + 1);
+  if (promisesOn(s) && h.signature) {
+    const b = bookingOf(s, t.id);
+    if (b) b.signatureQuality = h.careChosen && !h.plain ? 'careful' : 'plain';
+  }
   if (portionEdition(s)) {
     t.chefPortions ??= [];
     t.chefPortions.push({ station: h.station, quality: h.plain ? 'plain' : 'careful' });
@@ -3265,6 +3368,7 @@ function chooseCooking(s: GameState, choice: 'now' | 'careful') {
   const option = cookingChoice(s);
   if (!h || !option) return;
   const t = s.tickets.find((t) => t.id === h.ticket);
+  if (promisesOn(s) && h.signature) h.careChosen = choice === 'careful';
   h.plain ||= choice === 'now';
   h.act = COOK_ACTS[h.station].length - 1;
   h.readyAt = s.minute + (choice === 'careful' ? 3 : 0);
@@ -3306,6 +3410,17 @@ function startNextPortion(s: GameState) {
 }
 
 function prepareChefClaims(s: GameState) {
+  if (promisesOn(s)) {
+    trackSignatureWait(s);
+    const pending = partiesTonight(s).find(
+      (b) =>
+        b.promised &&
+        b.signatureQuality === undefined &&
+        s.tickets.some((t) => t.id === b.ticket && t.status === 'open') &&
+        !(s.help?.signature && s.help.ticket === b.ticket),
+    );
+    if (pending?.ticket !== undefined) s.chefNext = { ticket: pending.ticket, station: pending.signature };
+  }
   if (s.chefNext) {
     const t = s.tickets.find((t) => t.id === s.chefNext?.ticket);
     if (t?.status !== 'open') {
@@ -3345,22 +3460,219 @@ function prepareChefClaims(s: GameState) {
   }
 }
 
-// ---------- pass@9 interface (stubs; the engine worker implements) ----------
+// ---------- pass@9: returning parties and promises ----------
 
 export const PROMISE_EDITION = 'pass@9';
 export const promisesOn = (s: Pick<GameState, 'version'>): boolean => s.version === PROMISE_EDITION;
 
 /** The Sunday card for one offered party. */
-export function partyCard(_s: GameState, _party: string): PartyCard | null {
-  return null;
+export function partyCard(s: GameState, party: string): PartyCard | null {
+  if (!promisesOn(s)) return null;
+  const b = [...(s.bookings ?? [])].reverse().find((b) => b.party === party);
+  const p = partyOf(party);
+  if (!b || !p) return null;
+  const cook = activeCrew(s).find(
+    (m) => (s.board?.rows.find((r) => r.cook === m.id && r.accepted)?.station ?? m.home) === b.signature,
+  );
+  const trust = cook ? trustOf(personOf(s, cook.id)) : 0.5;
+  const band = trust > 0.55 ? 'warm' : trust < 0.42 ? 'cool' : 'even';
+  const words = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  return {
+    party,
+    host: p.host,
+    night: planOf(b.night).title,
+    at: b.at,
+    servedBy: b.servedBy,
+    order: (['grill', 'cold', 'oven'] as const)
+      .filter((st) => b.order[st] > 0)
+      .map((st) => `${words[b.order[st]] ?? b.order[st]} ${st === 'oven' ? 'pide' : st}`)
+      .join(', '),
+    signature: p.signature.words,
+    cook: cook
+      ? {
+          who: cook.id,
+          text: (PROMISE_WORDS[cook.founder ? cook.id : 'hire']?.[band] ?? '')
+            .replaceAll('{host}', p.host)
+            .replaceAll('{signature}', p.signature.words),
+        }
+      : null,
+  };
 }
 
 /** Tonight's returning parties, booked earlier. */
-export function partiesTonight(_s: GameState): Booking[] {
-  return [];
+export function partiesTonight(s: GameState): Booking[] {
+  return promisesOn(s) ? (s.bookings ?? []).filter((b) => b.night === s.night) : [];
 }
 
 /** The booking a ticket belongs to, if any. */
-export function bookingOf(_s: GameState, _ticket: number): Booking | undefined {
-  return undefined;
+export function bookingOf(s: GameState, ticket: number): Booking | undefined {
+  return promisesOn(s) ? s.bookings?.find((b) => b.ticket === ticket && b.night === s.night) : undefined;
+}
+
+/** Stable Sunday guests; only the food writer's earned invitation is conditional. */
+export function partyChoices(seed: number, week: number, criticSmiled = false): string[] {
+  if (week < 1 || week > 3) return [];
+  const pool = PARTIES.filter((p) => !p.critic).sort(
+    (a, b) => hashUnit(seed, 51, week, PARTIES.indexOf(a)) - hashUnit(seed, 51, week, PARTIES.indexOf(b)),
+  );
+  const first = week === 1 && criticSmiled ? partyOf('writer') : pool[0];
+  const second = pool.find((p) => p.id !== first?.id && p.weekday !== first?.weekday);
+  return [first, second].flatMap((p) => (p ? [p.id] : []));
+}
+
+function bookParties(s: GameState, page: SundayPage) {
+  const smiled = s.reports.some((r) => r.night === 5 && r.critic === 'pleased');
+  page.parties = partyChoices(s.seed, page.week, smiled);
+  s.bookings ??= [];
+  const clean = s.reports.filter((r) => planOf(r.night).week === page.week).every((r) => r.walked === 0);
+  const bonus = Number(clean) + Math.min(2, s.bookings.filter((b) => b.outcome === 'kept').length);
+  for (const id of page.parties) {
+    const p = partyOf(id);
+    const night = NIGHT_PLANS.find((n) => n.week === page.week + 1 && n.weekday === p?.weekday);
+    if (!p || !night) continue;
+    const order = { grill: p.order.grill ?? 0, cold: p.order.cold ?? 0, oven: p.order.oven ?? 0 };
+    order[p.grows] += bonus;
+    const at = nightStart(night.n) + p.at;
+    s.bookings.push({
+      party: id,
+      week: page.week + 1,
+      night: night.n,
+      at,
+      servedBy: at + 25,
+      order,
+      signature: p.signature.station,
+      promised: false,
+    });
+  }
+}
+
+/** Only the promised signature is reserved, rather than all food at its station. */
+function signaturePending(s: GameState, ticket: number | undefined): Booking | undefined {
+  const b = ticket === undefined ? undefined : bookingOf(s, ticket);
+  return b?.promised && b.signatureQuality === undefined ? b : undefined;
+}
+
+function addParties(s: GameState) {
+  let id = Math.max(0, ...s.tickets.map((t) => t.id)) + 1;
+  for (const b of partiesTonight(s)) {
+    const p = partyOf(b.party);
+    if (!p) continue;
+    const t: Ticket = {
+      id: id++,
+      table: 1 + Math.floor(hashUnit(s.seed, 52, b.night, PARTIES.indexOf(p)) * 9),
+      at: b.at,
+      ...b.order,
+      doneGrill: 0,
+      doneCold: 0,
+      doneOven: 0,
+      patience: b.promised ? 35 : s.pace === 'nevin' ? 38 : weekOf(b.week).patience,
+      price: s.price + PIDE_PRICE * b.order.oven,
+      party: b.party,
+      status: 'waiting',
+    };
+    if (p.regular) t.regular = p.regular;
+    b.ticket = t.id;
+    s.tickets.push(t);
+  }
+  s.tickets.sort((a, b) => a.at - b.at || a.id - b.id);
+}
+
+/** Instinct releases this signature to the ordinary crew allocation at plain quality. */
+function delegateSignature(s: GameState): boolean {
+  const h = s.help;
+  if (!promisesOn(s) || !h?.signature) return false;
+  const b = bookingOf(s, h.ticket);
+  if (!b) return false;
+  b.signatureQuality = 'plain';
+  if (s.chef.activity) endActivity(s.chef, 'interrupted', s.minute);
+  s.help = null;
+  say(
+    s,
+    'narrator',
+    'I handed the promised signature to the crew on instinct. Plain food; the promise is broken.',
+    'journal',
+  );
+  startNextPortion(s);
+  return true;
+}
+
+function trackSignatureWait(s: GameState) {
+  if (!s.help?.signature) return;
+  const b = bookingOf(s, s.help.ticket);
+  if (!b) return;
+  for (const t of s.tickets)
+    if (t.status === 'open' && t.id !== b.ticket && t.due === undefined) {
+      const wait = s.minute - Math.max(t.at, b.signatureStartedAt ?? s.minute);
+      if (b.waited === undefined || wait > (b.waitedMinutes ?? -1)) {
+        b.waited = t.table;
+        b.waitedMinutes = wait;
+      }
+    }
+}
+
+export const PROMISE_PREMIUM = 650;
+
+function finishParty(s: GameState, t: Ticket): number {
+  const b = bookingOf(s, t.id);
+  const p = b ? partyOf(b.party) : undefined;
+  if (!b || !p) return t.price;
+  if (b.outcome) return t.partyPay ?? t.price;
+  const kept =
+    b.promised &&
+    t.status === 'served' &&
+    (t.servedAt ?? Infinity) <= b.servedBy &&
+    b.signatureQuality === 'careful';
+  b.outcome = b.promised ? (kept ? 'kept' : 'broken') : t.status === 'served' ? 'served' : 'walked';
+  const st = p.regular ? s.regulars[p.regular] : undefined;
+  if (st) {
+    if (b.promised || t.status === 'walked') st.regard = clamp(st.regard + (kept ? 0.15 : -0.2));
+    if (kept) st.friendNext = true;
+  }
+  say(
+    s,
+    'narrator',
+    t.status === 'walked' ? p.walked : b.promised ? (kept ? p.kept : p.broken) : p.served,
+    'journal',
+  );
+  if (b.promised && t.status === 'walked') say(s, 'narrator', p.broken, 'journal');
+  if (kept)
+    say(
+      s,
+      'narrator',
+      b.waited === undefined
+        ? 'No other table waited while I cooked the promised signature.'
+        : `Table ${b.waited} waited longest while I cooked the promised signature.`,
+      'journal',
+    );
+  t.partyPay = t.status === 'served' ? partyBasePay(s, t, b) + (kept ? PROMISE_PREMIUM : 0) : 0;
+  return t.partyPay;
+}
+
+/** A returning regular still has their tab; an ordinary party keeps their usual response to the wait. */
+function partyBasePay(s: GameState, t: Ticket, b: Booking): number {
+  let pay = t.price;
+  const r = t.regular ? regularOf(t.regular) : undefined;
+  const st = t.regular ? s.regulars[t.regular] : undefined;
+  if (!r || !st) return pay;
+  if (st.tab === 'open') pay = 0;
+  if (st.tab === 'asked') {
+    const part = Math.min(r.owes, 300);
+    pay += part;
+    st.tab = 'paying';
+    say(
+      s,
+      'narrator',
+      `${capital(r.name)} put ₺${part} on the pass without a word. Then the price of supper.`,
+      'journal',
+    );
+  }
+  if (!b.promised) {
+    const wait = (t.servedAt ?? s.minute) - t.at;
+    st.regard = clamp(st.regard + (wait < 15 ? 0.1 : wait > 25 ? -0.05 : 0.03));
+    if (st.regard > 0.8 && !st.friendNext) {
+      st.friendNext = true;
+      stamp(s, 'friend');
+    }
+  }
+  return pay;
 }
