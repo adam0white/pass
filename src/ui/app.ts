@@ -363,7 +363,7 @@ function title() {
 function replayNight(sv: Save): number {
   let n = 1;
   let sunday = false;
-  let atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9'].includes(sv.game);
+  let atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10'].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
     if (atBoard) {
@@ -374,7 +374,7 @@ function replayNight(sv: Save): number {
     else {
       sunday = false;
       n = Math.min(LAST_NIGHT, n + 1);
-      atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9'].includes(sv.game);
+      atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10'].includes(sv.game);
     }
   }
   return n;

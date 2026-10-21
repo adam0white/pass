@@ -4,6 +4,7 @@
  * reviews and chronicle; these lines are chosen from what actually happened tonight (who refused what, at what
  * time, who was pushed), never at random, and a line is not repeated for the same cook.
  */
+import type { Activity, Person, SuggestionResolution } from '@adam0white/human-framework';
 import { hashUnit } from './rng.ts';
 
 export const VERB_WORD: Record<string, string> = {
@@ -361,4 +362,96 @@ export function resolveSeen(name: string, key: string): string | null {
     return `${name} left the plates to the dish pit, as he said he would.`;
   if (key === 'my shift') return `${name} stayed on the line, as they said they would.`;
   return null;
+}
+
+/** pass@10: translate HF's deciding source once for captions, board replies and job buttons.
+ * No score, source id or unrecognised commitment label is player-facing.
+ */
+export function suggestionWords(
+  p: Person,
+  r: SuggestionResolution,
+  verb: string,
+  activity: Activity | null = p.activity,
+): { text: string; short: string } | null {
+  if (r.verdict === 'refused' && r.reason === 'rule:my rule about the plates' && p.id === 'selim')
+    return { text: 'Twenty years on Nevin’s grill. I don’t wash plates in the rush.', short: 'no' };
+  if (r.verdict !== 'deferred' && r.verdict !== 'modified') return null;
+  const neutral = { text: 'Not now, Chef.', short: 'not now' };
+  const why = r.decidedBy;
+  if (!why) return neutral;
+  if (why.kind === 'inertia') {
+    const job = VERB_WORD[verb] ?? 'that job';
+    switch (activity?.affordanceId) {
+      case 'eat':
+        return { text: `Leave my plate for ${job}? Let me eat first.`, short: 'let me eat first' };
+      case 'smoke':
+        return {
+          text: `Off my cigarette for ${job}? Let me finish it.`,
+          short: 'let me finish my cigarette',
+        };
+      case 'phone':
+        return { text: `Off the phone for ${job}? One minute.`, short: 'let me finish my call' };
+      case 'break':
+        return { text: `Off my ten for ${job}? Let me have my ten.`, short: 'let me have my ten' };
+      default:
+        return { text: 'Let me finish what I’m doing first, Chef.', short: 'let me finish this' };
+    }
+  }
+  const source = why.source;
+  if (source === 'forecast:body')
+    return {
+      text: 'That job would leave me spent for the rest of the service, Chef.',
+      short: 'I’d be spent later',
+    };
+  if (source === 'habit')
+    return { text: 'I’d rather keep at what I’m doing, Chef.', short: 'rather keep at this' };
+  if (source?.startsWith('abstain:') || source?.startsWith('commitment:')) {
+    const id = source.slice(source.indexOf(':') + 1);
+    const label = p.agenda.commitments.find((c) => c.id === id)?.label;
+    const rules: Record<string, { text: string; short: string }> = {
+      'my rule about the plates': {
+        text: 'I said I wouldn’t wash plates in the rush, Chef.',
+        short: 'my rule about the plates',
+      },
+      'my rule about smoking': {
+        text: 'I said I wouldn’t smoke in the rush, Chef.',
+        short: 'I said I wouldn’t smoke',
+      },
+      'my rule about the jar': {
+        text: 'I said I’d leave the jar alone, Chef.',
+        short: 'I said I’d leave the jar',
+      },
+      'my shift': { text: 'I said I’d stay until the service is done, Chef.', short: 'I said I’d stay' },
+      'being home for my boys': {
+        text: 'I promised my boys I’d be home, Chef.',
+        short: 'my boys are waiting',
+      },
+      'going to my mother': { text: 'I have to get to my mother, Chef.', short: 'my mother needs me' },
+      'going at nine': { text: 'You said I could go at nine, Chef.', short: 'we agreed on nine' },
+    };
+    return (label && rules[label]) || neutral;
+  }
+  if (source === 'norm:theft') return { text: 'I won’t take what isn’t mine, Chef.', short: 'it isn’t mine' };
+  const needs: Record<string, { text: string; short: string }> = {
+    'need:food': { text: 'I need to eat first, Chef.', short: 'I’m hungry' },
+    'need:water': { text: 'I need a drink first, Chef.', short: 'I need a drink' },
+    'need:rest': { text: 'I need to sit down first, Chef.', short: 'I need a sit down' },
+    'need:sleep': { text: 'I’m too tired for that now, Chef.', short: 'I’m tired' },
+    'need:leisure': { text: 'I need a little time to myself, Chef.', short: 'a minute to myself' },
+    'need:relief': { text: 'Let me catch my breath first, Chef.', short: 'let me catch my breath' },
+    'need:meaning': {
+      text: 'There’s work waiting here, Chef. I’d rather see to it.',
+      short: 'work waiting here',
+    },
+    'need:competence': { text: 'I’d rather do the work I know well, Chef.', short: 'rather the work I know' },
+    'need:esteem': {
+      text: 'I know my station, Chef. I’d rather stay with it.',
+      short: 'rather my own station',
+    },
+    'need:belonging': {
+      text: 'I’d rather stay here with the crew, Chef.',
+      short: 'rather stay with the crew',
+    },
+  };
+  return (source && needs[source]) || neutral;
 }
