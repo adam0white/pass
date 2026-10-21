@@ -23,13 +23,16 @@ test('first party start shows both Sunday choices and hands over the service bef
   // Reload on Sunday must preserve the shortcut intent.
   await page.reload();
   await page.locator('#cont').click();
-  await page.getByRole('button', { name: 'Open on Wednesday', exact: true }).click();
+  await page.getByRole('button', { name: 'Open on Friday', exact: true }).click();
   await expect(page.locator('#board-form')).toBeVisible();
   await page.locator('#open-service').click();
   await expect(page.locator('#caption')).toContainText('You promised');
+  await expect(page.locator('#caption')).toContainText('The steady hand ran the service until now.');
+  await expect(page.locator('#caption')).toContainText(/You take over table|Your hands are empty/);
   await expect(page.locator('#caption')).toContainText('You have the pass.');
+  const handover = await page.locator('#caption .hand').first().textContent();
   await page.reload();
   await page.locator('#cont').click();
-  await expect(page.locator('#caption')).toContainText('You have the pass.');
-  await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/labplay-fix/pass/first-party-phone.png' });
+  await expect(page.locator('#caption .hand').first()).toHaveText(handover ?? '');
+  await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-213/shots/first-party-phone.png' });
 });

@@ -1126,3 +1126,29 @@ button.party-slip {
     font-size: 18px;
   }
 }
+
+/* Keep the guest and promise beside the dish on phones, even when the rail scrolls. */
+.active-party {
+  display: none;
+}
+@media (max-width: 600px) {
+  .party-night .active-party {
+    display: block;
+    min-height: 68px;
+    font-size: 13px;
+    line-height: 17px;
+    overflow-wrap: anywhere;
+  }
+  .active-party b,
+  .active-party span {
+    display: block;
+  }
+  .service.hands-on.party-night:has(.active-portion):not(.responding):not(.inspecting):has(.chef-work)
+    .food-surface {
+    min-height: 44px;
+    padding: 6px;
+  }
+  .party-night .food-drawing {
+    display: none;
+  }
+}

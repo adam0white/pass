@@ -1,6 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { type GameState, newGame, queueInput, replay, step } from '../src/sim/kitchen.ts';
+import {
+  boardDefaults,
+  type GameState,
+  helpOptions,
+  newGame,
+  queueInput,
+  replay,
+  step,
+} from '../src/sim/kitchen.ts';
 import { clockPlayback } from '../src/ui/clock.ts';
 import { legacyHash } from './hash.ts';
 
@@ -13,6 +21,26 @@ const baseline = JSON.parse(
 const hash = (s: GameState) => legacyHash(s, '2.8.0');
 
 describe('clock playback', () => {
+  it('keeps Fast through an unanswered chef offer while Slow and Steady still slow down', () => {
+    const s = newGame(42, 'pass@9');
+    queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+    queueInput(s, { kind: 'open' });
+    while (!s.chefGrace?.some((claim) => claim.until > s.minute)) step(s);
+    const offer = s.chefGrace.find((claim) => claim.until > s.minute);
+    if (!offer) throw new Error('Expected a chef offer');
+    const before = JSON.stringify(s);
+    const reason = 'A cook is holding a portion for you: Yours, Chef?';
+    expect(clockPlayback(s, 0)).toMatchObject({ rate: 0.1, label: 'Slow · 0.1 min/s', reason });
+    expect(clockPlayback(s, 1)).toMatchObject({ rate: 0.1, label: 'Slow · 0.1 min/s', reason });
+    expect(clockPlayback(s, 2)).toMatchObject({ rate: 3.5, label: 'Fast · 3.5 min/s', reason });
+    expect(JSON.stringify(s)).toBe(before);
+    expect(helpOptions(s)).toContainEqual(
+      expect.objectContaining({ ticket: offer.ticket, station: offer.station }),
+    );
+    queueInput(s, { kind: 'help', ticket: offer.ticket, station: offer.station });
+    expect(s.help).toMatchObject({ ticket: offer.ticket, station: offer.station });
+  });
+
   it('names the actual chosen and clear-rail rates without changing state', () => {
     const s = newGame(42, 'pass@4');
     for (const t of s.tickets) t.at += 30;
