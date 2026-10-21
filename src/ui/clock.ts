@@ -30,8 +30,10 @@ export function clockPlayback(s: GameState, speed: number) {
             ? `${nameOf(s, s.request.who)} needs an answer.`
             : 'A station needs a cook.';
   } else if (portionEdition(s) && !s.help && s.chefGrace?.some((claim) => claim.until > s.minute)) {
-    rate = 0.1;
-    label = 'Slow';
+    if (speed !== 2) {
+      rate = 0.1;
+      label = 'Slow';
+    }
     reason = 'A cook is holding a portion for you: Yours, Chef?';
   } else if (
     (s.version === 'pass@7' || portionEdition(s)) &&

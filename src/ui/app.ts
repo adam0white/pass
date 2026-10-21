@@ -66,6 +66,7 @@ import {
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
 import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { portionEdition } from './editions.ts';
+import { handoverContext, sundayOpenLabel } from './first-party.ts';
 import { lab } from './lab.ts';
 import { compactRun } from './run.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
@@ -79,6 +80,7 @@ interface PartyStart {
   night: number;
   at: number;
   promised: boolean;
+  hands?: string;
 }
 let firstPartyStart = false;
 let partyHandover: PartyStart | null = null;
@@ -549,7 +551,10 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     if (changed) return;
     if (!st.board?.agreed) queueInput(st, { kind: 'board', rows });
     queueInput(st, { kind: 'open' });
-    if (partyHandover && st.night === partyHandover.night) runToSeating(st, partyHandover);
+    if (partyHandover && st.night === partyHandover.night) {
+      runToSeating(st, partyHandover);
+      partyHandover.hands = handoverContext(st);
+    }
     writeSave();
     enter();
   });
@@ -1043,7 +1048,7 @@ function drawCaption() {
   if (partyHandover && s.night === partyHandover.night && s.minute <= partyHandover.at - HANDOVER_LEAD + 10) {
     const party = partyOf(partyHandover.party);
     if (party)
-      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} You have the pass.`)}</span>`;
+      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} ${partyHandover.hands ?? handoverContext(s)} You have the pass.`)}</span>`;
   }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
@@ -1396,7 +1401,14 @@ function drawChefWork() {
     el.classList.toggle('crowded-pass', plates.length > 2);
     const active = act && st.help && !st.help.instinct;
     const station = act?.station ?? st.help?.station;
-    const table = st.tickets.find((t) => t.id === st.help?.ticket)?.table;
+    const activeTicket = st.tickets.find((t) => t.id === st.help?.ticket);
+    const table = activeTicket?.table;
+    const activeParty = activeTicket?.party ? partyOf(activeTicket.party) : undefined;
+    const activeBooking = activeTicket ? bookingOf(st, activeTicket.id) : undefined;
+    const partyContext =
+      activeParty && activeBooking
+        ? `<b>${esc(activeParty.host)}</b><span>${activeBooking.promised ? `Promised: ${esc(activeParty.signature.words)}.` : 'As it comes; no promise.'} · out by ${clock(activeBooking.servedBy)}</span>`
+        : '';
     const next = portionEdition(st) ? st.chefNext : null;
     const choice = portionEdition(st) ? cookingChoice(st) : null;
     const actText =
@@ -1410,7 +1422,7 @@ function drawChefWork() {
         : '';
     renderPanel(
       el,
-      `${active ? `<section class="active-portion" aria-label="Your active portion"><div class="portion-heading"><b>Table ${table} · ${station === 'cold' ? 'cold side' : station}</b><span class="work-duration">${st.chef.body.exertion > 0.45 ? 'My arms are tired.' : 'Working my arms.'}</span></div><div class="food-surface food-${station}"><div class="food-drawing" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="food-acts">${actControl}</div></div>${portionEdition(st) ? `<button class="finish-portion" data-finish-portion="${st.help?.ticket}">Finish on instinct<span class="work-duration">Plain food. Keep the room’s speed.</span></button>` : ''}</section>` : `<div class="chef-line">${esc(st.help?.instinct ? 'My hands finish this portion on instinct. Plain food.' : chefLine(st))}</div>`}
+      `${active ? `<section class="active-portion" aria-label="Your active portion"><div class="portion-heading"><b>Table ${table} · ${station === 'cold' ? 'cold side' : station}</b><span class="work-duration">${st.chef.body.exertion > 0.45 ? 'My arms are tired.' : 'Working my arms.'}</span></div><div class="active-party">${partyContext}</div><div class="food-surface food-${station}"><div class="food-drawing" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="food-acts">${actControl}</div></div>${portionEdition(st) ? `<button class="finish-portion" data-finish-portion="${st.help?.ticket}">Finish on instinct<span class="work-duration">Plain food. Keep the room’s speed.</span></button>` : ''}</section>` : `<div class="chef-line">${esc(st.help?.instinct ? 'My hands finish this portion on instinct. Plain food.' : chefLine(st))}</div>`}
       ${next ? `<div class="chef-next">Chef’s next: table ${st.tickets.find((t) => t.id === next.ticket)?.table} · ${next.station === 'cold' ? 'cold side' : next.station}</div>` : ''}
       <div class="chef-stations">${(['grill', 'cold', 'oven'] as const)
         .filter((place) => stationsTonight(st).includes(place))
@@ -1822,7 +1834,7 @@ function sunday() {
     ${stamps ? `<p class="soft">This week in the notebook:</p>${stamps}` : ''}
     ${nextWeek ? `<p>Next week: ${lira(nextWeek.bill)} for ${esc(nextWeek.owed)}${st.carry ? `, and ${lira(st.carry)} carried over` : ''}${st.seen ? `, and ${lira(st.seen)} more: ${esc(SEEN_WHO[pg.week] ?? 'they')} saw the queue on Saturday` : ''}.</p>` : ''}
     <div class="actions">
-      <button class="primary" id="open">${pg.week < 4 ? 'Open on Wednesday' : 'Close the notebook'}</button>
+      <button class="primary" id="open">${esc(sundayOpenLabel(st, firstPartyStart))}</button>
     </div>
     ${footer()}
   </div>`;

@@ -24,15 +24,16 @@ function quiet(s: ReturnType<typeof opening>) {
 }
 
 describe('pass@9 cooking playback', () => {
-  it('slows a portion invitation at Fast and restores the chosen speed when it expires', () => {
+  it('keeps Fast during a portion invitation and clears its reason when it expires', () => {
     const s = opening();
     while (!s.chefGrace?.some((claim) => claim.until > s.minute)) step(s);
     quiet(s);
     const before = JSON.stringify(s);
-    expect(clockPlayback(s, 2)).toMatchObject({ rate: 0.1, reason: expect.stringContaining('Yours, Chef?') });
+    expect(clockPlayback(s, 2)).toMatchObject({ rate: 3.5, reason: expect.stringContaining('Yours, Chef?') });
     expect(JSON.stringify(s)).toBe(before);
     for (const claim of s.chefGrace ?? []) claim.until = s.minute;
     expect(clockPlayback(s, 2).rate).toBe(3.5);
+    expect(clockPlayback(s, 2).reason).not.toContain('Yours, Chef?');
   });
 
   it('slows ready acts at Steady and keeps the care decision readable even at Fast', () => {
