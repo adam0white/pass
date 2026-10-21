@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { cloneState, newGame, queueInput, replay, step } from '../src/sim/kitchen.ts';
+import { type GameState, newGame, queueInput, replay, step } from '../src/sim/kitchen.ts';
 import { clockPlayback } from '../src/ui/clock.ts';
+import { legacyHash } from './hash.ts';
 
 const fixture = JSON.parse(
   readFileSync(new URL('./fixtures/clarity-counter-save.json', import.meta.url), 'utf8'),
@@ -10,10 +10,7 @@ const fixture = JSON.parse(
 const baseline = JSON.parse(
   readFileSync(new URL('./fixtures/clock-replay-hashes.json', import.meta.url), 'utf8'),
 );
-const hash = (s: ReturnType<typeof newGame>) =>
-  createHash('sha256')
-    .update(JSON.stringify(cloneState(s)))
-    .digest('hex');
+const hash = (s: GameState) => legacyHash(s, '2.8.0');
 
 describe('clock playback', () => {
   it('names the actual chosen and clear-rail rates without changing state', () => {

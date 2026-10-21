@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
@@ -11,6 +10,7 @@ import {
   restoreState,
   step,
 } from '../src/sim/kitchen.ts';
+import { legacyHash, legacyState } from './hash.ts';
 
 interface Checkpoint {
   night: number;
@@ -30,10 +30,7 @@ interface Baseline {
 const baseline: Baseline = JSON.parse(
   readFileSync(new URL('./fixtures/edition9-live-pattern-hashes.json', import.meta.url), 'utf8'),
 );
-const hash = (s: GameState) =>
-  createHash('sha256')
-    .update(JSON.stringify(cloneState(s)))
-    .digest('hex');
+const hash = (s: GameState) => legacyHash(s, baseline.framework);
 const serializedExport = (s: GameState, framework: string): Export =>
   JSON.parse(JSON.stringify(exportRun(s, framework)));
 const replayNotebook = (notebook: Export) =>
@@ -66,8 +63,11 @@ describe('pass@10 preserves live pass@9 production notebooks', () => {
       expect(notebook.framework).toBe(baseline.framework);
       expect(notebook.inputs).toEqual(notebook.state.inputs);
       const replayed = replayNotebook(notebook);
-      expect(cloneState(replayed)).toEqual(notebook.state);
-      expect(serializedExport(replayed, notebook.framework)).toEqual(notebook);
+      expect(legacyState(replayed, notebook.framework)).toEqual(notebook.state);
+      expect({
+        ...serializedExport(replayed, notebook.framework),
+        state: legacyState(replayed, notebook.framework),
+      }).toEqual(notebook);
     }
   });
 

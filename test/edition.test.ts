@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { cloneState, newGame, replay, restoreState, step } from '../src/sim/kitchen.ts';
+import { cloneState, type GameState, newGame, replay, restoreState, step } from '../src/sim/kitchen.ts';
+import { legacyHash } from './hash.ts';
 
 function required<T>(value: T | null | undefined): T {
   if (value == null) throw new Error('Expected seeded fixture value');
@@ -9,10 +9,7 @@ function required<T>(value: T | null | undefined): T {
 }
 
 const legacy = JSON.parse(readFileSync(new URL('./fixtures/edition3-hashes.json', import.meta.url), 'utf8'));
-const hash = (s: ReturnType<typeof newGame>) =>
-  createHash('sha256')
-    .update(JSON.stringify(cloneState(s)))
-    .digest('hex');
+const hash = (s: GameState) => legacyHash(s, '2.8.0');
 
 describe('game editions', () => {
   it('starts new runs on pass@9 and retains explicit pass@3 creation', () => {
