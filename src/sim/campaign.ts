@@ -321,3 +321,188 @@ export const STAMPS: Record<string, string> = {
   dark: 'Fed them through the dark',
   unprompted: 'Someone did it without being told',
 };
+
+// ---------- returning parties (pass@9) ----------
+
+export type FoodStationId = 'grill' | 'cold' | 'oven';
+
+/**
+ * A party that comes back because the kitchen fed someone well. Host-side guests, not HF people. Offered on the
+ * Sunday page for next week; the chef decides only what to promise them. Weekday 2..5 is Wednesday..Saturday.
+ */
+export interface Party {
+  id: string;
+  /** Who booked, as the notebook names them. */
+  host: string;
+  /** A regular whose own ticket this party replaces on its night. */
+  regular?: string;
+  weekday: number;
+  /** Seating, minute of the day. */
+  at: number;
+  /** Base order, before word gets around. */
+  order: Partial<Record<FoodStationId, number>>;
+  /** The station that gets the extra portions when word gets around. */
+  grows: FoodStationId;
+  /** The portion the chef promises to do with care. */
+  signature: { station: FoodStationId; words: string };
+  /** Offered only if the food writer smiled in week 1. */
+  critic?: boolean;
+  /** Sunday card: how the booking came. */
+  booked: string;
+  /** Journal lines. */
+  sits: string;
+  kept: string;
+  broken: string;
+  served: string;
+  walked: string;
+}
+
+export const PARTIES: readonly Party[] = [
+  {
+    id: 'writer',
+    host: 'the food writer',
+    weekday: 3,
+    at: 19 * 60 + 50,
+    order: { grill: 2, cold: 2 },
+    grows: 'grill',
+    signature: { station: 'grill', words: 'the lamb, rested properly' },
+    critic: true,
+    booked:
+      'The food writer rang on Saturday. She is bringing her editor on Thursday, “for the lamb I keep describing to him”.',
+    sits: 'The food writer and her editor took the corner table. She had her notebook out before the bread.',
+    kept: 'The editor asked who rested the lamb. The writer just smiled at him.',
+    broken: 'The editor ate the lamb and said it was fine. The writer did not write anything down.',
+    served: 'The food writer and her editor ate, paid, and talked about something else.',
+    walked: 'The food writer and her editor left before the lamb. She looked back at the pass once.',
+  },
+  {
+    id: 'hasan',
+    host: 'Hasan Bey',
+    regular: 'hasan',
+    weekday: 5,
+    at: 19 * 60 + 55,
+    order: { grill: 2, cold: 1 },
+    grows: 'grill',
+    signature: { station: 'grill', words: 'the lamb, rested properly' },
+    booked:
+      'Hasan Bey stopped at the door after supper. “Saturday, my brother is up from İzmir. He ate here in Nevin’s time. Make it the lamb.”',
+    sits: 'Hasan Bey came in with his brother, both in jackets. The brother looked at the photo of Nevin by the till for a long time.',
+    kept: 'Hasan Bey’s brother cut the lamb and was quiet. “Like hers,” he said.',
+    broken: '“It was good,” Hasan Bey said to his brother, not quite looking at me.',
+    served: 'Hasan Bey and his brother ate and talked about İzmir.',
+    walked: 'Hasan Bey and his brother put their jackets back on. He did not say anything at the door.',
+  },
+  {
+    id: 'arslan',
+    host: 'Mrs Arslan',
+    regular: 'arslan',
+    weekday: 3,
+    at: 18 * 60 + 20,
+    order: { oven: 2, cold: 1 },
+    grows: 'oven',
+    signature: { station: 'oven', words: 'the egg pide, its crust given another minute' },
+    booked:
+      'Mrs Arslan left a note on the pass: the grandson is seven on Thursday. Early, before his bedtime. “The pide with the egg, the way it was.”',
+    sits: 'Mrs Arslan brought the grandson and two school friends. They sat on their hands, nearly.',
+    kept: 'The grandson ate the crust first. Mrs Arslan put her hand flat on the ledger as she left.',
+    broken: 'The boys ate everything. Mrs Arslan said thank you the way you thank the post office.',
+    served: 'The boys ate and were loud. Mrs Arslan took the last slice home in a napkin.',
+    walked: 'Mrs Arslan took three hungry boys home past the window.',
+  },
+  {
+    id: 'kemal',
+    host: 'Kemal',
+    regular: 'kemal',
+    weekday: 4,
+    at: 20 * 60 + 10,
+    order: { grill: 2, cold: 1 },
+    grows: 'grill',
+    signature: { station: 'cold', words: 'the shepherd’s salad, dressed carefully' },
+    booked:
+      'Kemal leaned in from the taxi rank: Friday, him and three drivers, between fares. “My wife says Nevin’s salad. Do the salad properly and they’ll all come back.”',
+    sits: 'Kemal and three drivers came in together, keys on the table, engines ticking outside.',
+    kept: 'The drivers ate the salad first and argued about the dressing. Kemal paid for all of them.',
+    broken: 'Kemal looked at the salad, then at me. “My wife makes it better,” he said, kindly.',
+    served: 'The drivers ate fast and left one by one as the fares came.',
+    walked: 'A horn outside, then another. Kemal’s drivers left one by one, unfed.',
+  },
+  {
+    id: 'aksoy',
+    host: 'the Aksoy sisters',
+    regular: 'aksoy',
+    weekday: 2,
+    at: 19 * 60 + 45,
+    order: { cold: 2, oven: 1 },
+    grows: 'cold',
+    signature: { station: 'cold', words: 'the cacık, done Nevin’s way' },
+    booked:
+      'The Aksoy sisters booked Wednesday for their reading group. “All of us. We will be discussing the cacık as well as the book.”',
+    sits: 'The Aksoy sisters arrived with their reading group and a book nobody had finished.',
+    kept: 'The reading group discussed the cacık longer than the book. The elder sister asked for the recipe; I said no.',
+    broken: 'The sisters agreed the cacık was not Nevin’s. They agreed loudly.',
+    served: 'The reading group ate and discussed the book, mostly.',
+    walked: 'The reading group left for the place on the corner, still talking about the book.',
+  },
+  {
+    id: 'ilyas',
+    host: 'Ilyas',
+    regular: 'ilyas',
+    weekday: 5,
+    at: 20 * 60 + 15,
+    order: { grill: 1, cold: 2 },
+    grows: 'cold',
+    signature: { station: 'grill', words: 'the köfte, rested before the plate' },
+    booked:
+      'Ilyas asked for Saturday, early, before the depot: the whole night shift, for the foreman who is retiring. “He ate Nevin’s köfte for thirty years.”',
+    sits: 'Ilyas brought the night shift in their jackets, and the foreman in a tie.',
+    kept: 'The foreman ate his köfte slowly and told a story about Nevin and a broken boiler.',
+    broken: 'The foreman said the köfte was good. Ilyas said nothing on the way out.',
+    served: 'The night shift ate and went to the depot together.',
+    walked: 'The night shift went to the depot hungry, with the foreman in his tie.',
+  },
+  {
+    id: 'demir',
+    host: 'the Demirs',
+    weekday: 4,
+    at: 19 * 60 + 40,
+    order: { cold: 2, oven: 1, grill: 1 },
+    grows: 'oven',
+    signature: { station: 'oven', words: 'the cheese pide, its crust given another minute' },
+    booked:
+      'A young man came to the back door with his fiancée’s mother: an engagement supper on Friday. “She says this was the place, when she was young.”',
+    sits: 'The Demirs came in dressed for photographs. The mother pointed at the table she used to sit at.',
+    kept: 'The mother tore the crust and said “yes” to nobody in particular.',
+    broken: 'The mother ate politely and told her daughter it had changed.',
+    served: 'The Demirs took photographs and ate.',
+    walked: 'The Demirs left for somewhere with a reservation book.',
+  },
+];
+
+export const partyOf = (id: string): Party | undefined => PARTIES.find((p) => p.id === id);
+
+/**
+ * The signature station's cook on the Sunday card, by how much they trust the chef (warm above 0.55, cool below
+ * 0.42). `{host}` and `{signature}` are filled in. A hire uses the hire pool.
+ */
+export const PROMISE_WORDS: Record<string, Record<'warm' | 'even' | 'cool', string>> = {
+  selim: {
+    warm: 'Promise {host}. I’ll keep the grill clear for you.',
+    even: 'You want to promise {signature}? Then you’ll be the one resting it, Chef.',
+    cool: 'Your promise, Chef. Not mine.',
+  },
+  dilek: {
+    warm: 'Go on, promise {host}. I’ll keep the cold side out of your way.',
+    even: '{signature}. Fine. Don’t promise my break away with it.',
+    cool: 'You promise things. I do them. We’ll see.',
+  },
+  rafi: {
+    warm: 'I’ll have clean plates ready for {host}. Promise it.',
+    even: 'Is that a lot of plates? It sounds like a lot of plates.',
+    cool: 'Okay. Whatever you promise.',
+  },
+  hire: {
+    warm: 'I can hold my side for {host}. Promise it.',
+    even: 'It’s your name on it, Chef.',
+    cool: 'I didn’t promise anybody anything.',
+  },
+};

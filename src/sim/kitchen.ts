@@ -143,6 +143,7 @@ export type Input =
   | { at: number; kind: 'jar'; choice: 'move' | 'talk' | 'leave' }
   | { at: number; kind: 'answer'; choice: 'yes' | 'no' }
   | { at: number; kind: 'choose'; key: string; value: string }
+  | { at: number; kind: 'pace'; value: 'nevin' }
   | { at: number; kind: 'open' };
 
 type DistOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -171,6 +172,8 @@ export interface Ticket {
   critic?: boolean;
   regular?: string;
   friend?: boolean;
+  /** pass@9: a returning party's id (see `PARTIES`). */
+  party?: string;
   /** The wedding order: trays due by this minute; no plates. */
   due?: number;
   status: 'waiting' | 'open' | 'served' | 'walked';
@@ -257,6 +260,8 @@ export interface BillResult {
   amount: number;
   paid: boolean;
   short: number;
+  /** pass@9: a promise was broken this week (one strike with any shortfall). */
+  promiseBroken?: boolean;
 }
 
 export interface NightReport {
@@ -275,6 +280,8 @@ export interface NightReport {
   bill?: BillResult;
   stamps: string[];
   regulars: { id: string; came: boolean; pleased: boolean }[];
+  /** pass@9: tonight's returning parties. */
+  parties?: { party: string; promised: boolean; outcome: Booking['outcome']; waited?: number }[];
 }
 
 export interface SundayPage {
@@ -287,8 +294,42 @@ export interface SundayPage {
   price: boolean;
   letgo: boolean;
   sell: boolean;
+  /** pass@9: party ids offered for next week; chosen keys are `promise:<id>` = 'promise' | 'plain'. */
+  parties?: string[];
   chosen: Record<string, string>;
   stamps: string[];
+}
+
+/** pass@9: a returning party booked for a night of next week. */
+export interface Booking {
+  party: string;
+  week: number;
+  night: number;
+  /** Absolute minutes. */
+  at: number;
+  servedBy: number;
+  order: { grill: number; cold: number; oven: number };
+  signature: FoodStation;
+  promised: boolean;
+  ticket?: number;
+  outcome?: 'kept' | 'broken' | 'served' | 'walked';
+  /** The table number that waited longest while the chef cooked the signature. */
+  waited?: number;
+}
+
+/** What the Sunday card shows for one offered party (pass@9). */
+export interface PartyCard {
+  party: string;
+  host: string;
+  /** e.g. 'Thursday'. */
+  night: string;
+  at: number;
+  servedBy: number;
+  /** e.g. 'two grill, two cold, one pide'. */
+  order: string;
+  signature: string;
+  /** The signature station's cook, by trust; null when nobody holds that station. */
+  cook: { who: CookId; text: string } | null;
 }
 
 export interface GameState {
@@ -347,6 +388,10 @@ export interface GameState {
   lastAnswer: PassAnswer | null;
   usedLines: string[];
   sunday: SundayPage | null;
+  /** pass@9: returning parties, booked on Sunday pages. */
+  bookings?: Booking[];
+  /** pass@9: Nevin's pace (week-1 patience all month), set by the first input. */
+  pace?: 'nevin';
   said: Said[];
   reports: NightReport[];
   inputs: Input[];
@@ -3298,4 +3343,24 @@ function prepareChefClaims(s: GameState) {
       );
     }
   }
+}
+
+// ---------- pass@9 interface (stubs; the engine worker implements) ----------
+
+export const PROMISE_EDITION = 'pass@9';
+export const promisesOn = (s: Pick<GameState, 'version'>): boolean => s.version === PROMISE_EDITION;
+
+/** The Sunday card for one offered party. */
+export function partyCard(_s: GameState, _party: string): PartyCard | null {
+  return null;
+}
+
+/** Tonight's returning parties, booked earlier. */
+export function partiesTonight(_s: GameState): Booking[] {
+  return [];
+}
+
+/** The booking a ticket belongs to, if any. */
+export function bookingOf(_s: GameState, _ticket: number): Booking | undefined {
+  return undefined;
 }
