@@ -58,6 +58,7 @@ import {
   queueInput,
   replay,
   requestText,
+  type Said,
   staffingOptions,
   stationOf,
   stationRequestLine,
@@ -67,12 +68,13 @@ import {
   type Verb,
 } from '../sim/kitchen.ts';
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
-import { clockPlayback, SPEED_NAMES } from './clock.ts';
+import { automaticClockPlayback } from './clock.ts';
 import { portionEdition } from './editions.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab } from './lab.ts';
 import { endingTally, START_APPROACHES } from './notebook.ts';
 import { compactRun } from './run.ts';
+import { unseenSpeech } from './speech.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
 
@@ -103,18 +105,18 @@ interface Save {
 const app = document.getElementById('app') as HTMLElement;
 let s: GameState | null = null;
 let pages: { week: number; k: number }[] = [];
-let speed = 1;
+let readingUntil = 0;
+const READING_MS = 8_000;
 let selected: CookId | null = null;
 let cachedHints: { at: number; id: CookId; list: Hint[] } | null = null;
 let raf = 0;
 let last = 0;
 let carry = 0;
-let shownSaid = 0;
+let shownSaid: Said | undefined;
 const bubbles: Record<string, { text: string; until: number; minute: number }> = {};
 let wake: { release(): Promise<void> } | null = null;
 const seenHint = { tap: false, job: false };
 let menuOpen = false;
-let keepTally = false;
 let menuOrigin: HTMLElement | null = null;
 let boardActionsObserver: ResizeObserver | null = null;
 
@@ -199,12 +201,7 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<h2>Game menu</h2><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><p><label><input type="checkbox" id="keep-tally" ${keepTally ? 'checked' : ''} /> Keep a tally in the notebook</label></p><p class="soft">Show the kitchen’s game reckoning only at the end. This choice lasts until this page is reloaded.</p><div class="actions"><button id="save-kitchen" ${s ? '' : 'disabled'}>Save this kitchen</button><button id="download-run" ${s ? '' : 'disabled'}>Download this run</button><button id="send-run" ${s ? '' : 'disabled'}>Send this run to the notebook</button><button id="menu-back">Back to the kitchen</button></div><p id="save-result" role="status">${s ? 'The kitchen waits while this menu is open.' : 'Open a kitchen to save or share a run.'}</p><a href="https://human.adamwhite.work/games/">All games</a>`;
-  dialog.querySelector<HTMLInputElement>('#keep-tally')?.addEventListener('change', (event) => {
-    keepTally = (event.currentTarget as HTMLInputElement).checked;
-    const tally = document.getElementById('ending-tally');
-    if (tally && s) tally.innerHTML = endingTally(s, keepTally);
-  });
+  dialog.innerHTML = `<h2>Game menu</h2><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><div class="actions"><button id="save-kitchen" ${s ? '' : 'disabled'}>Save this kitchen</button><button id="download-run" ${s ? '' : 'disabled'}>Download this run</button><button id="send-run" ${s ? '' : 'disabled'}>Send this run to the notebook</button><button id="menu-back">Back to the kitchen</button></div><p id="save-result" role="status">${s ? 'The kitchen waits while this menu is open.' : 'Open a kitchen to save or share a run.'}</p><a href="https://human.adamwhite.work/games/">All games</a>`;
   let sendSheet = false;
   const close = () => dialog.close();
   dialog.addEventListener('close', () => {
@@ -292,11 +289,11 @@ function title() {
       <button class="quiet" id="load">Load a playtest run</button>
       <input type="file" id="file" accept="application/json" hidden />
     </div>
-    <details><summary>More about the kitchen</summary>
+    <button type="button" class="info-button" popovertarget="kitchen-help" aria-label="More about the kitchen">i</button><div id="kitchen-help" popover="auto" class="info-popover"><h2>More about the kitchen</h2>
       <p>Tap a cook, then a job. Hold the job to insist. They can say no. The job dot marks their current station.</p>
       <p>Promises put a party first; the crew must send the whole order out on time. Nevin's pace gives tables longer to wait; Begin at the second week runs the first week for me.</p>
       <p>Each ticket lists what the grill and the cold side owe it; ● is ready. Money is in Turkish lira (${lira(1)}).</p>
-    </details>
+    </div>
     ${footer()}
   </div>`;
   document.getElementById('cont')?.addEventListener('click', () => {
@@ -403,7 +400,7 @@ function replayNight(sv: Save): number {
 function enter() {
   if (!s) return;
   boardActionsObserver?.disconnect();
-  shownSaid = s.said.length;
+  shownSaid = s.said.at(-1);
   if (s.phase === 'service') service();
   else if (s.phase === 'board') board();
   else if (s.phase === 'sunday') sunday();
@@ -505,7 +502,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     })
     .join(
       '',
-    )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form><details><summary>About the board</summary><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></details>${footer()}</div>`;
+    )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form><button type="button" class="info-button" popovertarget="board-help" aria-label="About the board">i</button><div id="board-help" popover="auto" class="info-popover"><h2>About the board</h2><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></div>${footer()}</div>`;
   const actions = app.querySelector<HTMLElement>('#board-form > .actions');
   if (actions) {
     const measure = () =>
@@ -591,11 +588,11 @@ function service() {
   sheetKey = '';
   captionKey = '';
   cachedHints = null;
-  shownSaid = Math.max(0, s.said.length - 3);
+  shownSaid = s.said.at(-4);
   requestWake();
   app.innerHTML = `<div class="service ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? 'hands-on' : ''} ${partiesTonight(s).length ? 'party-night' : ''}" style="--sheet-height:${s.version === 'pass@5' || (!peopleRun(s) && s.version === 'pass@6') || (!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) || stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
-    <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
+    <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
     <div class="service-status" id="status" role="status" aria-live="polite"></div>
     ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
@@ -605,17 +602,6 @@ function service() {
     <div class="caption" id="caption"></div>
     <div class="sheet" id="sheet"></div>
   </div>`;
-  const sp = document.getElementById('speed') as HTMLElement;
-  sp.innerHTML = SPEED_NAMES.map(
-    (n, i) => `<button data-i="${i}" aria-label="${n.toLowerCase()}">${['▸', '▸▸', '▸▸▸'][i]}</button>`,
-  ).join(' ');
-  sp.addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest('button');
-    if (!b) return;
-    speed = Number(b.dataset.i);
-    drawTop();
-    drawChefWork();
-  });
   document.getElementById('scene')?.addEventListener('click', (e) => {
     const g = (e.target as Element).closest('[data-cook]');
     const id = g?.getAttribute('data-cook') as CookId | null;
@@ -661,25 +647,33 @@ function service() {
 
 function frame(t: number) {
   if (!s) return;
-  const dt = Math.min(0.25, (t - last) / 1000);
+  const elapsed = Math.max(0, t - last);
+  const dt = Math.min(0.25, elapsed / 1000);
   last = t;
-  if (s.phase === 'service' && !menuOpen && !document.querySelector('.hflab-veil')) {
-    const { rate } = clockPlayback(s, speed);
+  const held = menuOpen || !!document.querySelector('.hflab-veil, :popover-open');
+  if (held) {
+    if (readingUntil > t - elapsed) readingUntil += elapsed;
+    for (const bubble of Object.values(bubbles)) if (bubble.until > t - elapsed) bubble.until += elapsed;
+  }
+  if (s.phase === 'service' && !held) {
+    const { rate } = automaticClockPlayback(s, { reading: t < readingUntil, inspecting: selected !== null });
     carry += dt * rate;
     let stepped = false;
     while (carry >= 1 && s.phase === 'service') {
       carry -= 1;
-      const act = cookingStep(s);
-      if (
-        ((!peopleRun(s) && s.version === 'pass@7') || portionEdition(s)) &&
-        speed > 1 &&
-        act &&
-        !(portionEdition(s) && cookingChoice(s)) &&
-        !s.inputs.slice(s.applied).some((input) => input.kind === 'cook-step')
-      )
-        queueInput(s, { kind: 'cook-step', ticket: act.ticket, instinct: true });
+      const saidBefore = s.said.at(-1);
       step(s);
       stepped = true;
+      const speaking = unseenSpeech(s.said, saidBefore).some(
+        (line) => line.who !== 'narrator' && line.kind !== 'journal',
+      );
+      if (speaking) readingUntil = t + READING_MS;
+      const next = automaticClockPlayback(s, { reading: speaking, inspecting: selected !== null });
+      if (speaking || next.rate < rate) {
+        // Carry earned through an empty stretch cannot cross the first conversation or decision.
+        carry = 0;
+        break;
+      }
     }
     if (stepped) {
       collectSaid();
@@ -698,11 +692,11 @@ function frame(t: number) {
 
 function collectSaid() {
   if (!s) return;
-  for (const x of s.said.slice(shownSaid)) {
+  for (const x of unseenSpeech(s.said, shownSaid)) {
     if (x.who !== 'narrator' && x.kind !== 'journal')
-      bubbles[x.who] = { text: x.text, until: performance.now() + 4000, minute: x.at };
+      bubbles[x.who] = { text: x.text, until: performance.now() + READING_MS, minute: x.at };
   }
-  shownSaid = s.said.length;
+  shownSaid = s.said.at(-1);
 }
 
 function drawAll(force = false) {
@@ -723,12 +717,12 @@ function drawTop() {
   (document.getElementById('clock') as HTMLElement).textContent = clock(s.minute);
   (document.getElementById('till') as HTMLElement).innerHTML =
     `till <b>${lira(s.till)}</b> <span class="soft">/ ${lira(billNow(s))} by Sat</span>`;
-  const playback = clockPlayback(s, speed);
+  const playback = automaticClockPlayback(s, {
+    reading: performance.now() < readingUntil,
+    inspecting: selected !== null,
+  });
   const rate = document.getElementById('clock-rate') as HTMLElement;
   rate.innerHTML = `<span>${esc(playback.label)}</span><span>${esc(playback.reason)}</span>`;
-  document.querySelectorAll<HTMLButtonElement>('#speed button').forEach((b) => {
-    b.classList.toggle('on', Number(b.dataset.i) === speed);
-  });
 }
 
 function drawStatus() {
@@ -1937,7 +1931,7 @@ function ending() {
     <h2>${esc(head)}</h2>
     <p>${esc(body)}</p>
     <p>${esc(together)}</p>
-    <div id="ending-tally">${endingTally(st, keepTally)}</div>
+    <details class="ending-reckoning"><summary>See the tally</summary><div id="ending-tally">${endingTally(st, true)}</div></details>
     ${gone.length ? `<p class="soft">Gone from the kitchen: ${gone.map((m) => esc(m.name)).join(', ')}.</p>` : ''}
     <h2 class="hand" style="font-size:28px">What the crew said about me</h2>
     ${lastLines.map((l) => `<div class="cookline"><b>${esc(nameOf(st, l.id))}</b><div class="hand">“${esc(l.t)}”</div></div>`).join('')}

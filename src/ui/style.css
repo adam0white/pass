@@ -1152,3 +1152,32 @@ button.party-slip {
     display: none;
   }
 }
+
+/* Native helpers preserve their text without expanding the page. */
+button.info-button {
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  font:
+    italic bold 16px Georgia,
+    serif;
+}
+.info-popover {
+  box-sizing: border-box;
+  width: min(32rem, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid currentColor;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 6px;
+}
+.info-popover::backdrop {
+  background: rgb(0 0 0 / 0.2);
+}
+.ending-reckoning {
+  margin: 16px 0;
+}

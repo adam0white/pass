@@ -9,7 +9,7 @@ import {
   replay,
   step,
 } from '../src/sim/kitchen.ts';
-import { clockPlayback } from '../src/ui/clock.ts';
+import { automaticClockPlayback, clockPlayback } from '../src/ui/clock.ts';
 import { legacyHash } from './hash.ts';
 
 const fixture = JSON.parse(
@@ -119,4 +119,15 @@ describe('clock playback', () => {
     }
     expect(hash(s)).toBe(baseline.after60);
   });
+});
+
+it('automatically protects a current decision, conversation and cook account without mutating state', () => {
+  const s = newGame(42, 'pass@4');
+  const before = JSON.stringify(s);
+  const quiet = automaticClockPlayback(s);
+  expect(automaticClockPlayback(s, { reading: true }).rate).toBe(0.1);
+  expect(automaticClockPlayback(s, { inspecting: true }).rate).toBeLessThan(quiet.rate);
+  expect(JSON.stringify(s)).toBe(before);
+  s.request = { kind: 'phone', who: 'dilek', state: 'asking', at: s.minute };
+  expect(automaticClockPlayback(s)).toMatchObject({ rate: 0.1, reason: 'Dilek needs an answer.' });
 });

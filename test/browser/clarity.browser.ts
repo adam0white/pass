@@ -55,7 +55,7 @@ test('DL-5 shows what is waiting before and immediately after a job request', as
   await expect(page.locator('#status')).toContainText('answer');
 });
 
-test('DL-3 marks an unanswered request while speed selection stays neutral', async ({ page }) => {
+test('DL-3 marks an unanswered request while pacing stays automatic', async ({ page }) => {
   const s = newGame(42);
   while (s.night < 5) {
     if (s.phase === 'evening') queueInput(s, { kind: 'open' });
@@ -67,11 +67,7 @@ test('DL-3 marks an unanswered request while speed selection stays neutral', asy
   await expect(page.locator('#status')).toHaveClass(/needs-response/);
   await expect(page.locator('#yes')).toHaveClass(/primary/);
   await expect(page.locator('#no')).toHaveClass(/primary/);
-  const colors = await page.locator('.speed button.on').evaluate((b) => ({
-    color: getComputedStyle(b).color,
-    ink: getComputedStyle(document.body).color,
-  }));
-  expect(colors.color).toBe(colors.ink);
+  await expect(page.locator('#speed')).toHaveCount(0);
   await onScreen(page, '#status, #yes, #no, #sheet .card');
 });
 
