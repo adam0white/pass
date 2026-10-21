@@ -122,8 +122,9 @@ test('a promised ticket names its host, chef signature and served-by time', asyn
   const { booking } = await savedParty(page, 'service');
   const party = partyOf(booking.party);
   if (!party) throw new Error('Expected party words');
-  const ticket = page.getByRole('button', { name: `Work ${party.host}`, exact: true });
+  const ticket = page.getByRole('button', { name: new RegExp(`^Work ${party.host}, table \\d+$`) });
   await expect(ticket).toContainText('promised:');
+  await expect(ticket.locator('.t')).toContainText(/· table \d+$/);
   await expect(ticket.locator('.chef-signature')).toContainText(`${party.signature.words} (Chef’s)`);
   await expect(ticket).toContainText('out by');
   await expect(ticket).toHaveAccessibleDescription(/promised:.*Chef’s.*out by/);
@@ -134,7 +135,9 @@ test('a promised ticket names its host, chef signature and served-by time', asyn
 test('an unpromised ticket says as it comes', async ({ page }) => {
   const { partyOf } = await import('../../src/sim/campaign.ts');
   const { booking } = await savedParty(page, 'service', false);
-  const ticket = page.getByRole('button', { name: `Work ${partyOf(booking.party)?.host}`, exact: true });
+  const ticket = page.getByRole('button', {
+    name: new RegExp(`^Work ${partyOf(booking.party)?.host}, table \\d+$`),
+  });
   await expect(ticket).toContainText('as it comes');
   await expect(ticket).not.toContainText('promised:');
 });
