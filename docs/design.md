@@ -181,11 +181,11 @@ Adaeze **F-277**: “There is no chopping or serving action to perform while it 
 
 1. **Week 1 is unchanged.** Every rule and seeded table of pass@8 holds through Saturday close of week 1. Only the version string differs.
 2. **Returning parties.** Each Sunday page of weeks 1, 2 and 3 names two parties coming next week (`PARTIES` in `src/sim/campaign.ts`). They are chosen from the seed and the week, never by input; the food writer is one of week 1's two if she smiled on Friday. A party has a host, a night, a seating time, an order and one **signature portion** (a station and how it should be done: "the lamb, rested properly"). They come whatever the chef decides. A party that is a regular's replaces that regular's own ticket on that night, so nobody comes twice.
-3. **Word gets around.** A party's order is its base size, plus one portion if last week had no walkouts, plus one per promise kept so far (at most two). A kitchen that is winning gets larger parties in its busiest hours. A kept promise also sets the regular's existing `friendNext`.
+3. **Word gets around.** A party's order is its base size (two or three portions), plus one portion if last week had no walkouts, plus one per promise kept so far (at most two). A kitchen that is winning gets larger parties in its busiest hours. A kept promise also sets the regular's existing `friendNext`. And whoever is owed next week saw the queue: after a paid bill with nothing carried, next week's bill rises by half of what is left in the till (`SEEN_SHARE`), shown on the Sunday page ("and ₺260 more: Ahmet saw the queue on Saturday"). A winner cannot sit on a cushion; a kitchen that only just pays sees almost nothing.
 4. **The promise.** On Sunday, each party gets one choice: **Promise it** (the signature portion done with care, the whole order out by the served-by time) or **As it comes** (ordinary service). Leaving Sunday without choosing means as it comes. The card shows the night, seating, order in words, the signature, the served-by time, and one line from the cook of the signature's station, chosen by how much they trust the chef.
-5. **Promised service.** When a promised party sits, its signature portion is the chef's: the crew never takes it, and it waits behind the chef's current portion as Chef's next. Kept means the chef chose care on that portion and the whole order was served by the served-by time (seating plus 25 minutes). A promised party waits up to 35 minutes before leaving. Finishing the signature on instinct hands it to the crew at plain quality and breaks the promise. A kept promise pays a premium and raises the regular's regard; the journal names the table that waited longest while the chef cooked it. A broken promise costs regard and is written down.
+5. **Promised service.** When a promised party sits, it comes first: its portions and its clean plate go before every other table at every station and at the pass (ahead of a pass-priority choice). Its signature portion is the chef's: the crew never takes it, and it waits behind the chef's current portion as Chef's next. Kept means the chef chose care on that portion and the whole order was served by the served-by time (seating plus 25 minutes). A promised party waits up to 35 minutes before leaving. Finishing the signature on instinct hands it to the crew at plain quality and breaks the promise. A kept promise pays a premium and raises the regular's regard; the journal names the table that waited longest while the chef cooked it. A broken promise costs regard and is written down.
 6. **The stake.** At Saturday close a broken promise is a strike. A short bill and a broken promise in the same week together make one strike, not two. Two strikes lose the lokanta, as before. In week 4, a short bill still loses at once; a broken promise alone is a strike.
-7. **Nevin's pace (opt-in, easier).** On the title page, before a new notebook, "Nevin's pace": every week keeps week 1's table patience (38 minutes). It is recorded as the notebook's first input, so a notebook replays with it. The default stays hard. Parties and promises are unchanged by it.
+7. **Nevin's pace (opt-in, easier).** On the title page, before a new notebook, "Nevin's pace": every week keeps week 1's table patience (38 minutes), and nobody adds to a bill for having seen the queue. It is recorded as the notebook's first input, so a notebook replays with it. The default stays hard. Parties and promises are unchanged by it.
 8. **Begin at week two (opt-in).** On the title page, "Begin at the second week": a steady hand runs week 1 (a fixed host policy, recorded as ordinary inputs, so the notebook replays exactly) and the chef takes over on Sunday of week 1, with the first two parties on the page. For a player who has already played week 1, and for playtests.
 
 ### HF made visible by it
@@ -202,3 +202,33 @@ The promise rests on pass@8's chef cooking, whose feel is not yet accepted (defe
 
 ### Revert
 Set `GAME_VERSION` in `src/sim/kitchen.ts` back to `'pass@8'`; keep pass@9 in `canReplay` for existing notebooks.
+
+### As built (pass@9, 2026-10-20)
+
+Engine by a Codex worker (`327eb11` live pass@8 fixture, captured before any simulation edit from the live asset of 5a2a449; `432a01d` engine; `3984766` party-first rule), UI by a Codex worker (`dbbc313`), lead's taste and tuning pass on top. Values: premium ₺650 per kept promise; served-by seating + 25 minutes; promised patience 35; `SEEN_SHARE` 0.5. Seatings sit in the rush as booked (Aksoy 19:45, Demirs 19:40, writer 19:50, Hasan 19:55, Kemal 20:10, Ilyas 20:15; Mrs Arslan 18:20 before the grandson's bedtime, against the early meal breaks). Base orders are small (two or three portions) and grow with success.
+
+**Lead's changes to the review's plan, and why.** Round 1 had promised parties wait their turn: the careful bot broke 29 of 44 promises (the signature was always careful; the rest of the order was late) and lost every campaign, so promising was a trap. A promise now puts the party first, and the price is paid by the other tables, which the journal names ("Table 6 waited longest while I rested the lamb."). The worker's tuning then moved every seating to 19:00; the lead restored the booked times, because seven parties at the same minute read as a timer, and the bookings' own words give their times. Round 1 also left a winner who declines every promise with the same game as pass@8 (flex lost ₺22 of margin), so the lead added "they saw the queue".
+
+**Measure** (`scripts/measure.ts`, seeds 1000-1009, bots act every five game minutes with no reading delay; builder evidence, not enjoyment):
+
+| Policy | pass@8 | pass@9 |
+|---|---|---|
+| flex (never cooks) | 10/10 won, mean till left ₺2,522 | 10/10 won, ₺1,303 left |
+| flex-chef, promise none | - | 10/10 won, ₺1,698 left |
+| flex-chef, promise the first party each Sunday | - | 8/10 won; 23 of 30 promises kept; a strike on 5 seeds; ₺2,531 left |
+| flex-chef, promise every party | - | 3/10 won; 39 of 58 kept; ₺3,028 left |
+| ask / care (never cook, ask for stations) | 1/10, 1/10 won | 0/10, 0/10 won |
+| ask / care under Nevin's pace | - | 2/10, 2/10 won |
+
+Reading it: a strong kitchen still wins without promises, with half the cushion. Promising one party a week is a bet a careful chef wins most weeks and that pays; promising everything usually loses the lokanta. Weak play loses more than before, and Nevin's pace gives it back some. Week 1 is exactly pass@8 (full-state hashes through Saturday close, 28 seed-policy cases). A source-unread tester has not yet played it; the owner has not.
+
+**Unmet or open.** The review's target "ask wins more under Nevin's pace" is met only against pass@9 default (0 → 2 of 10), not against pass@8 (1 of 10). The promise rests on chef cooking, whose feel is unaccepted (see above).
+
+## What is new since the week you played (for the owner)
+
+You played the first week of pass@1 on 2026-10-19. Since then, in order:
+- **Four weeks, not one** (pass@2): 18 services, a Sunday page between weeks, a bill each Saturday (the bank, Ahmet the butcher, the landlord, the bank again), strikes and carried debt, hiring and quitting, Nevin's regulars and their tabs, the pide oven, the anniversary, the night the gas fails, the Yıldız wedding.
+- **Cooks who say no and remember it** (pass@2-3): insisting is visible pressure and comes back in the evening and on Sunday; cooks go where work waits; requests expire.
+- **A rota board before each service** (pass@5): each cook agrees a station, a meal break and who covers it; "Same as last night" in one tap.
+- **The chef cooks** (pass@6-8): take a portion, rest the lamb or pull it now, call a table first at the pass, finish on instinct.
+- **They came back** (pass@9, new): parties return because you fed someone well, larger the better you do; on Sunday you choose what to promise them; whoever you owe sees the queue. Start with "Begin at the second week" to skip the week you know; "Nevin's pace" is the easier way in.

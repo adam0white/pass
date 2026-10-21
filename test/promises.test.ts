@@ -697,3 +697,23 @@ describe('returning parties and the promises the chef makes', () => {
       }
   }, 120000);
 });
+
+describe('pass@9 word gets around: the creditor saw the queue', () => {
+  it('adds half of what was left after a paid bill to next week, once, and not under Nevin’s pace', () => {
+    const s = beginAtWeekTwo(42);
+    expect(s.phase).toBe('sunday');
+    expect(s.carry).toBe(0);
+    expect(s.seen).toBe(Math.round((s.till * 0.5) / 10) * 10);
+    const easy = beginAtWeekTwo(42, 'nevin');
+    expect(easy.seen).toBeUndefined();
+  });
+  it('charges the seen amount in the next bill and clears it', () => {
+    const s = beginAtWeekTwo(42);
+    const seen = required(s.seen);
+    let guard = 0;
+    while (!s.reports.some((r) => r.bill?.week === 2) && guard++ < 50000) advance(s, 'flex-chef');
+    const bill = required(s.reports.find((r) => r.bill?.week === 2)?.bill);
+    expect(bill.amount).toBeGreaterThanOrEqual(3000 + seen);
+    expect(s.seen ?? 0).toBe(0);
+  });
+});

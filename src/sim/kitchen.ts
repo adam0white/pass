@@ -287,7 +287,13 @@ export interface NightReport {
   stamps: string[];
   regulars: { id: string; came: boolean; pleased: boolean }[];
   /** pass@9: tonight's returning parties. */
-  parties?: { party: string; promised: boolean; outcome: Booking['outcome']; waited?: number }[];
+  parties?: {
+    party: string;
+    promised: boolean;
+    outcome: Booking['outcome'];
+    waited?: number;
+    walked?: boolean;
+  }[];
 }
 
 export interface SundayPage {
@@ -402,6 +408,8 @@ export interface GameState {
   sunday: SundayPage | null;
   /** pass@9: returning parties, booked on Sunday pages. */
   bookings?: Booking[];
+  /** pass@9: added to next week's bill because whoever is owed saw the kitchen doing well. */
+  seen?: number;
   /** pass@9: Nevin's pace (week-1 patience all month), set by the first input. */
   pace?: 'nevin';
   said: Said[];
@@ -2285,6 +2293,9 @@ function closeNight(s: GameState) {
       promised: b.promised,
       outcome: b.outcome,
       ...(b.waited === undefined ? {} : { waited: b.waited }),
+      ...(b.ticket !== undefined && s.tickets.find((x) => x.id === b.ticket)?.status === 'walked'
+        ? { walked: true }
+        : {}),
     }));
   void skimBefore;
   if (critic)
@@ -2334,8 +2345,9 @@ function closeNight(s: GameState) {
 /** Saturday close: the week's bill comes out of the till. */
 function settle(s: GameState, week: number): BillResult {
   const w = weekOf(week);
-  const amount = w.bill + s.wagesDue + s.carry;
+  const amount = w.bill + s.wagesDue + s.carry + (promisesOn(s) ? (s.seen ?? 0) : 0);
   s.wagesDue = 0;
+  if (s.seen) s.seen = 0;
   const weekReports = [...s.reports.filter((r) => planOf(r.night).week === week)];
   const walks =
     weekReports.reduce((a, r) => a + r.walked, 0) +
@@ -2389,6 +2401,9 @@ function enterSunday(s: GameState) {
   }
   s.minute = sunday * 1440 + 12 * 60;
   s.phase = 'sunday';
+  // pass@9: word gets around. Whoever is owed next week saw the queue, and asks half of what was left over.
+  if (promisesOn(s) && s.pace !== 'nevin' && pl.week < 4 && s.carry === 0 && !s.lost)
+    s.seen = Math.round((s.till * SEEN_SHARE) / 10) * 10;
   const week = pl.week;
   const quits = week < 4 ? decideQuits(s, week) : [];
   const page: SundayPage = {
@@ -3480,6 +3495,8 @@ function prepareChefClaims(s: GameState) {
 // ---------- pass@9: returning parties and promises ----------
 
 export const PROMISE_EDITION = 'pass@9';
+/** pass@9: share of the till left after a paid bill that next week's creditor adds, having seen the queue. */
+export const SEEN_SHARE = 0.5;
 export const promisesOn = (s: Pick<GameState, 'version'>): boolean => s.version === PROMISE_EDITION;
 
 /** The Sunday card for one offered party. */

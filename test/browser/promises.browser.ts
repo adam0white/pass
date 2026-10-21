@@ -209,7 +209,7 @@ for (const width of [360, 1280]) {
         const { partyOf } = await import('../../src/sim/campaign.ts');
         if (!outcome?.outcome) throw new Error('Expected reported party outcome');
         await expect(page.locator('.party-outcome')).toContainText(
-          partyOf(booking.party)?.[outcome.outcome] ?? '',
+          partyOf(booking.party)?.[outcome.walked ? 'walked' : outcome.outcome] ?? '',
         );
       }
     });
@@ -242,7 +242,7 @@ test('evening and loss pages name a broken promise without claiming a short bill
     };
     app.refresh();
   });
-  await expect(page.locator('.party-outcome')).toContainText('Table 7 waited while I cooked it.');
+  await expect(page.locator('.party-outcome')).toContainText(/Table 7 waited longest while I /);
   await expect(page.locator('.page')).toContainText('A promise broken this week: one strike.');
   await page.evaluate(() => {
     const app = Reflect.get(window, '__pass');

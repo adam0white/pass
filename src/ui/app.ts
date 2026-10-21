@@ -388,7 +388,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
       const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
         (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
       );
-      return `<p>${esc(party.host)} at ${clock(booking.at)} · ${changed ? 'Proposed breaks: ' : ''}${overlaps.length ? `${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')} overlaps.` : 'No breaks overlap.'}</p>`;
+      return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))} at ${clock(booking.at)} · ${changed ? 'Proposed breaks: ' : ''}${overlaps.length ? `${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')} overlaps.` : 'No breaks overlap.'}</p>`;
     })
     .join('');
   const chips = (
@@ -1535,7 +1535,7 @@ function evening() {
     .map((result) => {
       const party = partyOf(result.party);
       if (!party || !result.outcome) return '';
-      return `<p class="party-outcome">${esc(party[result.outcome])}${(result.outcome === 'kept' || result.outcome === 'broken') && result.waited !== undefined ? ` Table ${result.waited} waited while I cooked it.` : ''}</p>`;
+      return `<p class="party-outcome">${result.walked ? `${esc(party.walked)}${result.promised ? ' I had promised them.' : ''}` : `${esc(party[result.outcome])}${(result.outcome === 'kept' || result.outcome === 'broken') && result.waited !== undefined ? ` Table ${result.waited} waited longest while I ${esc(party.doing)}.` : ''}`}</p>`;
     })
     .join('');
   const reviews = r.reviews
@@ -1622,6 +1622,8 @@ function paceLine(st: GameState, night: number): string {
 }
 
 // ---------- Sunday ----------
+
+const SEEN_WHO: Record<number, string> = { 1: 'Ahmet', 2: 'the landlord', 3: 'the bank' };
 
 function sunday() {
   if (!s?.sunday) return;
@@ -1756,7 +1758,7 @@ function sunday() {
     <p class="soft">${esc(weekOf(pg.week).title)}. The lokanta is closed. I sit at the staff table with the notebook.</p>
     ${parts.join('')}
     ${stamps ? `<p class="soft">This week in the notebook:</p>${stamps}` : ''}
-    ${nextWeek ? `<p>Next week: ${lira(nextWeek.bill)} for ${esc(nextWeek.owed)}${st.carry ? `, and ${lira(st.carry)} carried over` : ''}.</p>` : ''}
+    ${nextWeek ? `<p>Next week: ${lira(nextWeek.bill)} for ${esc(nextWeek.owed)}${st.carry ? `, and ${lira(st.carry)} carried over` : ''}${st.seen ? `, and ${lira(st.seen)} more: ${esc(SEEN_WHO[pg.week] ?? 'they')} saw the queue on Saturday` : ''}.</p>` : ''}
     <div class="actions">
       <button class="primary" id="open">${pg.week < 4 ? 'Open on Wednesday' : 'Close the notebook'}</button>
     </div>
