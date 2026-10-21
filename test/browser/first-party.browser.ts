@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('first party start shows both Sunday choices and hands over after the player opens its board', async ({
+test('first party start shows both Sunday choices and hands over the service before the party sits', async ({
   page,
 }) => {
   await page.clock.install({ time: new Date('2026-10-20T12:00:00Z') });

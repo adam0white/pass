@@ -24,8 +24,7 @@ export function beginAtWeekTwo(seed: number, pace?: 'nevin'): GameState {
 /**
  * After the player's first Sunday choices, run the preceding nights with ordinary host inputs.
  * Stop at the earliest promised party's board (or the earliest party if none was promised).
- * The player owns that board and service. The mid-service shortcut cannot guarantee free hands
- * before seating minus five: the unchanged host policy can chain reserved portions.
+ * The player owns that board; `runToSeating` then hands them the service shortly before the party sits.
  */
 export function firstPartyBoard(s: GameState): Booking {
   const parties = (s.bookings ?? []).filter((b) => b.week === 2);
@@ -36,6 +35,23 @@ export function firstPartyBoard(s: GameState): Booking {
     if (s.phase === 'board' && s.night === target.night) return target;
     if (s.lost || s.phase === 'end' || s.night > target.night)
       throw new Error('The host did not reach the first party board.');
+    advance(s, 'flex-chef', 'promise-none');
+  }
+  throw new Error('The first-party host run exceeded 10000 turns.');
+}
+
+/** Minutes before the party's seating at which the player takes the pass. */
+export const HANDOVER_LEAD = 20;
+
+/**
+ * Once the player has set the target night's board and opened the doors, the steady hand runs the
+ * service with ordinary host inputs until HANDOVER_LEAD minutes before the party's seating. The chef
+ * may be mid-portion at the hand-over; the player carries on from there. Rules are untouched.
+ */
+export function runToSeating(s: GameState, target: Pick<Booking, 'night' | 'at'>): void {
+  const until = target.at - HANDOVER_LEAD;
+  for (let turns = 0; turns < 10000; turns++) {
+    if (s.phase !== 'service' || s.night !== target.night || s.minute >= until) return;
     advance(s, 'flex-chef', 'promise-none');
   }
   throw new Error('The first-party host run exceeded 10000 turns.');

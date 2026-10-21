@@ -16,7 +16,7 @@ import {
   weekOf,
 } from '../sim/campaign.ts';
 import { type CookId, hireTemplate, STATIONS, type Station } from '../sim/cooks.ts';
-import { beginAtWeekTwo, firstPartyBoard } from '../sim/firstweek.ts';
+import { beginAtWeekTwo, firstPartyBoard, HANDOVER_LEAD, runToSeating } from '../sim/firstweek.ts';
 import {
   activeCrew,
   type BoardRow,
@@ -549,6 +549,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     if (changed) return;
     if (!st.board?.agreed) queueInput(st, { kind: 'board', rows });
     queueInput(st, { kind: 'open' });
+    if (partyHandover && st.night === partyHandover.night) runToSeating(st, partyHandover);
     writeSave();
     enter();
   });
@@ -1039,10 +1040,10 @@ function drawCaption() {
   const el = document.getElementById('caption');
   if (!el) return;
   let handover = '';
-  if (partyHandover && s.night === partyHandover.night && s.minute <= openAt(s.night) + 10) {
+  if (partyHandover && s.night === partyHandover.night && s.minute <= partyHandover.at - HANDOVER_LEAD + 10) {
     const party = partyOf(partyHandover.party);
     if (party)
-      handover = `<span class="hand">${esc(`${party.host} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} You have the pass.`)}</span>`;
+      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} You have the pass.`)}</span>`;
   }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
