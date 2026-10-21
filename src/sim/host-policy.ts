@@ -71,7 +71,7 @@ export function bot(s: GameState, policy: Policy) {
   }
 }
 
-export type Arm = 'promise-all' | 'promise-none';
+export type Arm = 'promise-all' | 'promise-none' | 'promise-first';
 
 export function sunday(s: GameState, arm: Arm = 'promise-none') {
   const p = s.sunday;
@@ -83,7 +83,8 @@ export function sunday(s: GameState, arm: Arm = 'promise-none') {
     queueInput(s, {
       kind: 'choose',
       key: `promise:${id}`,
-      value: arm === 'promise-all' ? 'promise' : 'plain',
+      value:
+        arm === 'promise-all' || (arm === 'promise-first' && id === p.parties?.[0]) ? 'promise' : 'plain',
     });
   if (p.sell) queueInput(s, { kind: 'choose', key: 'sell', value: 'keep' });
 }

@@ -110,14 +110,16 @@ export function main(args = process.argv.slice(2)) {
     if (!validPolicies.includes(policy)) throw Error(`Unknown policy: ${policy}`);
   const explicitArms = option('arms')?.split(',') as Arm[] | undefined;
   for (const arm of explicitArms ?? [])
-    if (arm !== 'promise-all' && arm !== 'promise-none') throw Error(`Unknown arm: ${arm}`);
+    if (arm !== 'promise-all' && arm !== 'promise-none' && arm !== 'promise-first')
+      throw Error(`Unknown arm: ${arm}`);
   const pace = option('pace');
   if (pace !== undefined && pace !== 'nevin') throw Error(`Unknown pace: ${pace}`);
   const nights = option('partyNights')?.split(',').map(Number);
   if (nights?.some((n) => !Number.isSafeInteger(n) || n < 1 || n > 18)) throw Error('Invalid partyNights');
   for (const policy of policies) {
     const arms: Arm[] =
-      explicitArms ?? (policy === 'flex-chef' ? ['promise-all', 'promise-none'] : ['promise-none']);
+      explicitArms ??
+      (policy === 'flex-chef' ? ['promise-all', 'promise-none', 'promise-first'] : ['promise-none']);
     for (const arm of arms)
       for (let i = 0; i < seeds; i++)
         console.log(

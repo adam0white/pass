@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { PROMISE_WORDS, partyOf, planOf } from '../src/sim/campaign.ts';
+import { PARTIES, PROMISE_WORDS, partyOf, planOf } from '../src/sim/campaign.ts';
 import { beginAtWeekTwo } from '../src/sim/firstweek.ts';
-import { advance } from '../src/sim/host-policy.ts';
+import { advance, sunday as hostSunday } from '../src/sim/host-policy.ts';
 import {
   type Booking,
   boardDefaults,
+  bookingOf,
   canReplay,
   cloneState,
   closeAt,
@@ -103,6 +104,233 @@ function finishOrder(s: GameState, t: GameState['tickets'][number]) {
 }
 
 describe('returning parties and the promises the chef makes', () => {
+  it.each(['grill', 'cold', 'oven'] as const)(
+    'gives promised orders %s portions before an older chosen normal table',
+    (station) => {
+      const { s, t } = service();
+      const other = required(s.tickets.find((other) => other.id !== t.id));
+      Object.assign(other, {
+        status: 'open',
+        at: s.minute - 10,
+        grill: 0,
+        cold: 0,
+        oven: 0,
+        doneGrill: 0,
+        doneCold: 0,
+        doneOven: 0,
+        patience: 1000,
+      });
+      t[station] = 2;
+      other[station] = 2;
+      const done = station === 'grill' ? 'doneGrill' : station === 'cold' ? 'doneCold' : 'doneOven';
+      t[done] = 0;
+      s.passDecision = { state: 'chosen', at: s.minute, tickets: [other.id, t.id], ticket: other.id };
+      s.oven.heat = 1;
+      s.work[station] = station === 'grill' ? 5 : station === 'cold' ? 3.5 : 6;
+      step(s);
+      expect(t[done]).toBe(1);
+      expect(other[done]).toBe(0);
+      if (station === 'grill') {
+        s.work.grill = 100;
+        step(s);
+        expect(t.doneGrill).toBe(t.grill - 1);
+      }
+    },
+  );
+  it('gives a promised party the last clean plate before a chosen normal table', () => {
+    const { s, t } = service();
+    cookSignature(s, t.id, 'careful');
+    const other = required(s.tickets.find((other) => other.id !== t.id));
+    Object.assign(other, {
+      status: 'open',
+      at: s.minute - 10,
+      grill: 0,
+      cold: 0,
+      oven: 0,
+      doneGrill: 0,
+      doneCold: 0,
+      doneOven: 0,
+      patience: 1000,
+    });
+    Object.assign(t, { doneGrill: t.grill, doneCold: t.cold, doneOven: t.oven });
+    s.plates.clean = 1;
+    s.passDecision = { state: 'chosen', at: s.minute, tickets: [other.id, t.id], ticket: other.id };
+    step(s);
+    expect(t.platedAt).toBeDefined();
+    expect(other.platedAt).toBeUndefined();
+    expect(t.status).toBe('open');
+  });
+  it('keeps promised priority while plated and waiting for the runner', () => {
+    const { s, b, t } = service();
+    cookSignature(s, t.id, 'careful');
+    const other = required(s.tickets.find((other) => other.id !== t.id));
+    Object.assign(other, {
+      status: 'open',
+      table: 90,
+      at: b.at - 5,
+      grill: 0,
+      cold: 0,
+      oven: 0,
+      doneGrill: 0,
+      doneCold: 0,
+      doneOven: 0,
+      patience: 1000,
+      platedAt: b.at + 12,
+    });
+    Object.assign(t, { doneGrill: t.grill, doneCold: t.cold, doneOven: t.oven, platedAt: b.at + 12 });
+    s.minute = b.at + 24;
+    s.passDecision = { state: 'chosen', at: s.minute, tickets: [other.id, t.id], ticket: other.id };
+    const before = s.said.length;
+    step(s);
+    const dispatch = s.said.slice(before).filter((line) => line.text.startsWith('The runner called table'));
+    expect(dispatch[0]?.text).toContain(`table ${t.table}.`);
+    expect(t.status).toBe('served');
+  });
+  it('restores the chosen normal tables last-plate reservation immediately after the promised party is served', () => {
+    const { s, t } = service();
+    cookSignature(s, t.id, 'careful');
+    const others = s.tickets.filter((other) => other.id !== t.id);
+    const chosen = required(others[0]);
+    const later = required(others[1]);
+    for (const other of [chosen, later])
+      Object.assign(other, {
+        status: 'open',
+        at: s.minute - 1,
+        grill: 0,
+        cold: 0,
+        oven: 0,
+        doneGrill: 0,
+        doneCold: 0,
+        doneOven: 0,
+        patience: 1000,
+      });
+    chosen.cold = 30;
+    Object.assign(t, { doneGrill: t.grill, doneCold: t.cold, doneOven: t.oven, called: true });
+    s.plates.clean = 2;
+    s.passDecision = { state: 'chosen', at: s.minute, tickets: [chosen.id, later.id], ticket: chosen.id };
+    step(s);
+    expect(t.status).toBe('served');
+    expect(chosen.platedAt).toBeUndefined();
+    expect(later.platedAt).toBeUndefined();
+    expect(s.plates.clean).toBe(1);
+  });
+  it('preserves the pass@8 captured priority after serving the first of two tickets with a legacy duplicate ID', () => {
+    const s = newGame(42, 'pass@8');
+    queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+    queueInput(s, { kind: 'open' });
+    const base = {
+      at: s.minute,
+      grill: 0,
+      cold: 0,
+      oven: 0,
+      doneGrill: 0,
+      doneCold: 0,
+      doneOven: 0,
+      patience: 1000,
+      price: 40,
+    };
+    s.tickets = [
+      { ...base, id: 1, table: 1, status: 'open', called: true },
+      { ...base, id: 1, table: 2, status: 'open', cold: 30 },
+      { ...base, id: 3, table: 3, status: 'open' },
+    ];
+    s.plates.clean = 2;
+    s.passDecision = { state: 'chosen', at: s.minute, tickets: [1, 3], ticket: 1 };
+    step(s);
+    expect(s.tickets[0]?.status).toBe('served');
+    expect(s.tickets[1]?.status).toBe('open');
+    expect(s.tickets[1]?.platedAt).toBeUndefined();
+    expect(s.tickets[2]?.platedAt).toBeDefined();
+    expect(s.plates.clean).toBe(0);
+  });
+  it('keeps the wedding ticket distinct from a later promised party and never starts its signature early', () => {
+    const s = newGame(42, 'pass@9');
+    const b = booked('hasan', true, 4);
+    b.night = 18;
+    b.at = planOf(18).day * 1440 + 1195;
+    b.servedBy = b.at + 25;
+    s.night = 17;
+    s.phase = 'evening';
+    s.minute = closeAt(17);
+    s.till = 100000;
+    s.bookings = [b];
+    queueInput(s, { kind: 'open' });
+    expect([s.night, s.phase]).toEqual([18, 'board']);
+    const wedding = required(s.tickets.find((t) => t.due !== undefined));
+    const party = required(s.tickets.find((t) => t.party === 'hasan'));
+    expect.soft(new Set(s.tickets.map((t) => t.id)).size).toBe(s.tickets.length);
+    expect.soft(wedding.id).not.toBe(party.id);
+    expect.soft(bookingOf(s, wedding.id)).toBeUndefined();
+    queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+    queueInput(s, { kind: 'open' });
+    s.minute = wedding.at;
+    step(s);
+    expect(s.minute).toBeLessThan(party.at);
+    expect.soft(b.signatureStartedAt).toBeUndefined();
+    expect.soft(s.help?.signature && s.help.ticket === party.id).not.toBe(true);
+    expect.soft(s.chefNext?.ticket).not.toBe(party.id);
+  });
+  it('names the actual signature work on each party', () => {
+    const doing = {
+      writer: 'rested the lamb',
+      hasan: 'rested the lamb',
+      arslan: 'gave the pide its minute',
+      demir: 'gave the pide its minute',
+      kemal: 'dressed the salad',
+      aksoy: 'made the cacık',
+      ilyas: 'rested the köfte',
+    };
+    expect(Object.fromEntries(PARTIES.map((p) => [p.id, p.doing]))).toEqual(doing);
+  });
+  it('says nobody else waited when a kept signature delayed nobody', () => {
+    const { s, t } = service();
+    cookSignature(s, t.id, 'careful');
+    finishOrder(s, t);
+    expect(s.said.some((line) => line.text === 'Nobody else was waiting while I rested the lamb.')).toBe(
+      true,
+    );
+  });
+  it('records a walked promise with the walk line and the chefs admission only', () => {
+    const { s, b } = service();
+    const p = required(partyOf(b.party));
+    const before = s.said.length;
+    s.minute = b.at + 36;
+    step(s);
+    const texts = s.said.slice(before).map((line) => line.text);
+    expect(texts.filter((text) => text === p.walked || text === 'I had promised them.')).toEqual([
+      p.walked,
+      'I had promised them.',
+    ]);
+    expect(texts).not.toContain(p.broken);
+  });
+  it.each([1, 2, 3])(
+    'the promise-first host arm promises only the first offered party in Sunday week %i',
+    (week) => {
+      const s = sunday(42, week);
+      const ids = required(s.sunday?.parties);
+      hostSunday(s, 'promise-first');
+      expect(s.sunday?.chosen[`promise:${required(ids[0])}`]).toBe('promise');
+      expect(s.sunday?.chosen[`promise:${required(ids[1])}`]).toBe('plain');
+    },
+  );
+  it.each(['promise-all', 'promise-none', 'promise-first'] as const)(
+    'the %s host arm follows offer order rather than service order',
+    (arm) => {
+      const s = sunday(42);
+      const page = required(s.sunday);
+      page.parties = [...required(page.parties)].sort(
+        (a, b) => required(partyOf(b)).weekday - required(partyOf(a)).weekday,
+      );
+      hostSunday(s, arm);
+      expect(page.parties.map((id) => page.chosen[`promise:${id}`])).toEqual(
+        arm === 'promise-all'
+          ? ['promise', 'promise']
+          : arm === 'promise-none'
+            ? ['plain', 'plain']
+            : ['promise', 'plain'],
+      );
+    },
+  );
   it('chooses two distinct nights from seed and week, with the writer conditional on Friday', () => {
     for (let seed = 0; seed < 100; seed++)
       for (const week of [1, 2, 3]) {
@@ -180,7 +408,9 @@ describe('returning parties and the promises the chef makes', () => {
     expect(required(s.regulars.hasan).regard).toBeGreaterThan(regard);
     expect(s.till - till).toBeGreaterThan(t.price);
     expect(b.waited).toBe(waiting.table);
-    expect(s.said.some((line) => line.text.includes(`Table ${waiting.table} waited longest`))).toBe(true);
+    expect(
+      s.said.some((line) => line.text === `Table ${waiting.table} waited longest while I rested the lamb.`),
+    ).toBe(true);
   });
   it('holds a promised signature behind the chef current portion', () => {
     const { s, t } = service(true, true);
@@ -286,7 +516,9 @@ describe('returning parties and the promises the chef makes', () => {
     finishOrder(s, t);
     expect(b.outcome).toBe('kept');
     expect(b.waited).toBe(full.table);
-    expect(s.said.some((line) => line.text.includes(`Table ${full.table} waited longest`))).toBe(true);
+    expect(
+      s.said.some((line) => line.text === `Table ${full.table} waited longest while I rested the lamb.`),
+    ).toBe(true);
   });
   it('replays and restores queued signatures, active signatures and resolved parties exactly in week two', () => {
     const s = beginAtWeekTwo(42);

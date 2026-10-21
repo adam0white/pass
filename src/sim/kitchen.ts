@@ -685,7 +685,10 @@ function startNight(s: GameState, n: number) {
   if (pl.wedding) {
     const w = pl.wedding;
     s.tickets.unshift({
-      id: (s.tickets.at(-1)?.id ?? firstId) + 1,
+      id:
+        (promisesOn(s)
+          ? Math.max(firstId, ...s.tickets.map((t) => t.id))
+          : (s.tickets.at(-1)?.id ?? firstId)) + 1,
       table: 0,
       at: openAt(n),
       grill: w.grill,
@@ -2037,8 +2040,9 @@ function produce(s: GameState) {
 const ready = (t: Ticket) => t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven;
 
 function pass(s: GameState) {
-  const priority =
-    chefEdition(s) && s.passDecision?.state === 'chosen'
+  // Older notebooks retain the exact once-per-dispatch priority object, including legacy ticket IDs.
+  const legacyPriority =
+    !promisesOn(s) && chefEdition(s) && s.passDecision?.state === 'chosen'
       ? s.tickets.find((t) => t.id === s.passDecision?.ticket && t.status === 'open')
       : undefined;
   for (const t of allocationOrder(s)) {
@@ -2046,6 +2050,12 @@ function pass(s: GameState) {
       walk(s, t);
       continue;
     }
+    const priority = promisesOn(s)
+      ? (promisedPriority(s) ??
+        (s.passDecision?.state === 'chosen'
+          ? s.tickets.find((t) => t.id === s.passDecision?.ticket && t.status === 'open')
+          : undefined))
+      : legacyPriority;
     if (
       priority?.status === 'open' &&
       t.id !== priority.id &&
@@ -2793,12 +2803,19 @@ function chefMinute(s: GameState) {
   s.help = null;
 }
 
-/** A selected table receives portions and the next available plate ahead of the ordinary rail. */
+/** The seated promise takes precedence over the chef's separate pass-priority call. */
+function promisedPriority(s: GameState): Ticket | undefined {
+  if (!promisesOn(s)) return undefined;
+  return s.tickets.find((t) => t.status === 'open' && bookingOf(s, t.id)?.promised);
+}
+
+/** A promised party comes first, followed by the selected table and then the ordinary rail. */
 function allocationOrder(s: GameState): Ticket[] {
-  const id = chefEdition(s) && s.passDecision?.state === 'chosen' ? s.passDecision.ticket : undefined;
-  return id === undefined
-    ? s.tickets
-    : [...s.tickets].sort((a, b) => Number(b.id === id) - Number(a.id === id));
+  const promised = promisedPriority(s)?.id;
+  const chosen = chefEdition(s) && s.passDecision?.state === 'chosen' ? s.passDecision.ticket : undefined;
+  if (promised === undefined && chosen === undefined) return s.tickets;
+  const rank = (t: Ticket) => (t.id === promised ? 2 : t.id === chosen ? 1 : 0);
+  return [...s.tickets].sort((a, b) => rank(b) - rank(a));
 }
 
 export function priorityOptions(s: GameState): { ticket: number; text: string }[] {
@@ -3634,14 +3651,14 @@ function finishParty(s: GameState, t: Ticket): number {
     t.status === 'walked' ? p.walked : b.promised ? (kept ? p.kept : p.broken) : p.served,
     'journal',
   );
-  if (b.promised && t.status === 'walked') say(s, 'narrator', p.broken, 'journal');
+  if (b.promised && t.status === 'walked') say(s, 'narrator', 'I had promised them.', 'journal');
   if (kept)
     say(
       s,
       'narrator',
       b.waited === undefined
-        ? 'No other table waited while I cooked the promised signature.'
-        : `Table ${b.waited} waited longest while I cooked the promised signature.`,
+        ? `Nobody else was waiting while I ${p.doing}.`
+        : `Table ${b.waited} waited longest while I ${p.doing}.`,
       'journal',
     );
   t.partyPay = t.status === 'served' ? partyBasePay(s, t, b) + (kept ? PROMISE_PREMIUM : 0) : 0;
