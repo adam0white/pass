@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { NIGHT_PLANS, nightStart } from '../src/sim/campaign.ts';
 import type { Station } from '../src/sim/cooks.ts';
 import { cookOf, newGame, personOf, queueInput, type Ticket } from '../src/sim/kitchen.ts';
-import { serviceStatus } from '../src/ui/status.ts';
+import { journalWords, serviceStatus, tableAboutToLeave } from '../src/ui/status.ts';
 
 function setup() {
   const s = newGame(42, 'pass@4');
@@ -184,5 +184,63 @@ describe('serviceStatus', () => {
     const before = JSON.stringify(s);
     expect(serviceStatus(s).text).toBe('Grill needs a cook; select a cook.');
     expect(JSON.stringify(s)).toBe(before);
+  });
+});
+
+describe('display-only service cues', () => {
+  it('names only the closest walkout within eight minutes, including apron patience', () => {
+    const s = setup();
+    s.minute = 100;
+    s.tickets = [
+      ticket({ at: 49 }),
+      ticket({ id: 2, at: 47 }),
+      ticket({ id: 3, at: 45, due: 130 }),
+      ticket({ id: 4, at: 40, platedAt: 99 }),
+      ticket({ id: 5, at: 40, status: 'served' }),
+    ];
+    const before = JSON.stringify(s);
+    expect(tableAboutToLeave(s)).toBe(2);
+    expect(JSON.stringify(s)).toBe(before);
+    s.apron = 'selim';
+    expect(tableAboutToLeave(s)).toBeNull();
+    s.apron = null;
+    const second = s.tickets[1];
+    if (!second) throw new Error('Expected second ticket');
+    second.status = 'walked';
+    expect(tableAboutToLeave(s)).toBeNull();
+    s.minute++;
+    expect(tableAboutToLeave(s)).toBe(1);
+    s.tickets.push(ticket({ id: 6, at: 49 }));
+    expect(tableAboutToLeave(s)).toBe(1);
+  });
+
+  it('explains only an autonomous move to the refused board station, without changing the journal', () => {
+    const s = setup();
+    s.board = {
+      agreed: true,
+      rows: [{ cook: 'selim', station: 'oven', breakAt: 1200, cover: null, accepted: false, answer: 'No.' }],
+    };
+    const line = {
+      at: s.minute,
+      who: 'narrator' as const,
+      kind: 'journal' as const,
+      text: 'Selim left the grill for the oven, where more was waiting.',
+    };
+    const before = JSON.stringify(s);
+    expect(journalWords(s, line)).toBe(
+      'Selim: “I said no to the oven for the whole night. I can take a short stretch now. I left the grill for the oven, where more was waiting.”',
+    );
+    expect(JSON.stringify(s)).toBe(before);
+    expect(line.text).toBe('Selim left the grill for the oven, where more was waiting.');
+    expect(journalWords(s, { ...line, text: 'Selim left the grill for the cold side.' })).toBe(
+      'Selim left the grill for the cold side.',
+    );
+    const row = s.board.rows[0];
+    if (!row) throw new Error('Expected board row');
+    row.accepted = true;
+    expect(journalWords(s, line)).toBe(line.text);
+    row.accepted = false;
+    expect(journalWords(s, { ...line, kind: 'answer' })).toBe(line.text);
+    expect(journalWords(s, { ...line, who: 'selim' })).toBe(line.text);
   });
 });

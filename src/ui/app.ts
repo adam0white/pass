@@ -16,7 +16,7 @@ import {
   weekOf,
 } from '../sim/campaign.ts';
 import { type CookId, hireTemplate, STATIONS, type Station } from '../sim/cooks.ts';
-import { beginAtWeekTwo } from '../sim/firstweek.ts';
+import { beginAtWeekTwo, firstPartyBoard } from '../sim/firstweek.ts';
 import {
   activeCrew,
   type BoardRow,
@@ -68,13 +68,24 @@ import { clockPlayback, SPEED_NAMES } from './clock.ts';
 import { portionEdition } from './editions.ts';
 import { lab } from './lab.ts';
 import { compactRun } from './run.ts';
-import { serviceStatus } from './status.ts';
+import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
 
 const SAVE = 'pass-save-v3';
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
 
+interface PartyStart {
+  party: string;
+  night: number;
+  at: number;
+  promised: boolean;
+}
+let firstPartyStart = false;
+let partyHandover: PartyStart | null = null;
+
 interface Save {
+  firstPartyStart?: boolean;
+  partyHandover?: PartyStart | null;
   game: string;
   seed: number;
   inputs: Input[];
@@ -126,7 +137,15 @@ function writeSave() {
     pages.push({ week: s.sunday.week, k });
   }
   try {
-    const sv: Save = { game: s.version, seed: s.seed, inputs: s.inputs, minute: s.minute, pages };
+    const sv: Save = {
+      game: s.version,
+      seed: s.seed,
+      inputs: s.inputs,
+      minute: s.minute,
+      pages,
+      firstPartyStart,
+      partyHandover,
+    };
     localStorage.setItem(SAVE, JSON.stringify(sv));
     return true;
   } catch {
@@ -135,6 +154,8 @@ function writeSave() {
 }
 function clearSave() {
   pages = [];
+  firstPartyStart = false;
+  partyHandover = null;
   try {
     localStorage.removeItem(SAVE);
     for (const k of OLD_SAVES) localStorage.removeItem(k);
@@ -255,6 +276,7 @@ function title() {
       <div class="start-option"><button class="quiet" id="pace" aria-label="Nevin's pace" aria-pressed="false" aria-describedby="pace-note">Nevin's pace</button><p id="pace-note" class="soft">Tables wait as long as in the first week, all month. Easier.</p></div>
       <button class="${save ? '' : 'primary'}" id="new">${save ? 'A new notebook' : 'Open the doors'}</button>
       <div class="start-option"><button class="quiet" id="week-two" aria-describedby="week-two-note">Begin at the second week</button><p id="week-two-note" class="soft">A steady hand runs the first week for you. You take over on its Sunday.</p></div>
+      <div class="start-option"><button class="quiet" id="first-party" aria-describedby="first-party-note">Begin at the first party</button><p id="first-party-note" class="soft">A steady hand runs the first week and the evening up to your first party. You choose the promises on Sunday and take the pass before they sit.</p></div>
       <button class="quiet" id="load">Load a playtest run</button>
       <input type="file" id="file" accept="application/json" hidden />
     </div>
@@ -267,6 +289,8 @@ function title() {
   </div>`;
   document.getElementById('cont')?.addEventListener('click', () => {
     if (!save) return;
+    firstPartyStart = save.firstPartyStart ?? false;
+    partyHandover = save.partyHandover ?? null;
     pages = save.pages ?? [];
     s = replay(save.seed, save.inputs, save.minute, save.game);
     enter();
@@ -278,6 +302,8 @@ function title() {
       const page = save.pages.find((p) => p.week === week);
       if (!page) return;
       if (!confirm(`Turn back to Sunday of week ${week}? Everything after that page is torn out.`)) return;
+      firstPartyStart = save.firstPartyStart ?? false;
+      partyHandover = null;
       pages = save.pages.filter((p) => p.week <= week);
       s = replay(save.seed, save.inputs.slice(0, page.k), undefined, save.game);
       writeSave();
@@ -288,9 +314,10 @@ function title() {
     nevin = !nevin;
     (event.currentTarget as HTMLButtonElement).setAttribute('aria-pressed', String(nevin));
   });
-  const begin = (secondWeek: boolean) => {
+  const begin = (secondWeek: boolean, firstParty = false) => {
     if (save && !confirm('Start a new notebook? This one is put away for good.')) return;
     clearSave();
+    firstPartyStart = firstParty;
     const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
     s = secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed);
     if (!secondWeek && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
@@ -299,6 +326,7 @@ function title() {
   };
   document.getElementById('new')?.addEventListener('click', () => begin(false));
   document.getElementById('week-two')?.addEventListener('click', () => begin(true));
+  document.getElementById('first-party')?.addEventListener('click', () => begin(true, true));
   const file = document.getElementById('file') as HTMLInputElement;
   document.getElementById('load')?.addEventListener('click', () => file.click());
   file.addEventListener('change', async () => {
@@ -315,6 +343,8 @@ function title() {
       const r = replay(ex.seed, ex.inputs, ex.state?.minute ?? ex.minute, ex.game);
       const same = ex.state ? fingerprint(r) === fingerprint(ex.state) : true;
       s = r;
+      firstPartyStart = false;
+      partyHandover = null;
       pages = [];
       writeSave();
       alert(
@@ -698,6 +728,7 @@ function drawRail() {
   railOrder = railOrder.filter((id) => active.some((t) => t.id === id));
   for (const ticket of active) if (!railOrder.includes(ticket.id)) railOrder.push(ticket.id);
   const open = railOrder.flatMap((id) => active.filter((t) => t.id === id));
+  const leaving = tableAboutToLeave(st);
   const rail = document.getElementById('rail') as HTMLElement;
   if (open.length === 0) {
     renderPanel(rail, '');
@@ -742,8 +773,8 @@ function drawRail() {
         const priority =
           st.passDecision?.ticket === t.id ? '<div class="priority-mark">First on the pass</div>' : '';
         if (st.version === 'pass@6' || st.version === 'pass@7' || portionEdition(st))
-          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Work ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st">${option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
-        return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}</div>${dish}<div class="st">${wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
+          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Work ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
+        return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg ? 'regular' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}</div>${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
       })
       .join(''),
   );
@@ -1007,18 +1038,24 @@ function drawCaption() {
   if (!s) return;
   const el = document.getElementById('caption');
   if (!el) return;
+  let handover = '';
+  if (partyHandover && s.night === partyHandover.night && s.minute <= openAt(s.night) + 10) {
+    const party = partyOf(partyHandover.party);
+    if (party)
+      handover = `<span class="hand">${esc(`${party.host} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? `You promised ${party.signature.words}.` : 'You promised nothing; they come anyway.'} You have the pass.`)}</span>`;
+  }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
-  const key = fresh && a ? `${a.at}${a.who}${a.counter ?? ''}${s.inputs.length}` : '';
+  const key = handover + (fresh && a ? `${a.at}${a.who}${a.counter ?? ''}${s.inputs.length}` : '');
   if (key === captionKey) return;
   captionKey = key;
   if (!fresh || !a) {
-    el.innerHTML = '';
+    el.innerHTML = handover;
     return;
   }
   const taken = s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
   const canTake = a.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
-  el.innerHTML = `<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(gloss(a.text))}”</span>${canTake ? `<button data-counter="${a.counter}">Take it: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
+  el.innerHTML = `${handover}<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(gloss(a.text))}”</span>${canTake ? `<button data-counter="${a.counter}">Take it: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
 }
 
 function select(id: CookId | null) {
@@ -1196,7 +1233,7 @@ function drawSheet() {
       `${crewHeader()}${tipLine(st)}${st.version === 'pass@6' || (st.version === 'pass@7' || portionEdition(st)) ? '' : foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
         .map((x) =>
           x.who === 'narrator'
-            ? `<div>${esc(gloss(x.text))}</div>`
+            ? `<div>${esc(gloss(journalWords(st, x)))}</div>`
             : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`,
         )
         .join('')}${openingNotes ? '</details>' : ''}</div>`,
@@ -1366,7 +1403,7 @@ function drawChefWork() {
         ? 'Waiting for the oven. Nobody is on it to warm it.'
         : (act?.text ?? '');
     const actControl = choice
-      ? `<div class="food-choices"><button class="primary" data-cook-choice="now" data-choice-ticket="${choice.ticket}">${esc(choice.plain)}<span class="work-duration">Plain. Ready sooner.</span></button><button class="primary" data-cook-choice="careful" data-choice-ticket="${choice.ticket}">${esc(choice.careful)}<span class="work-duration">${choice.minutes} more kitchen minutes. Other tables wait.</span></button></div>`
+      ? `<div class="food-choices"><button class="primary" data-cook-choice="now" data-choice-ticket="${choice.ticket}">${esc(choice.plain)}<span class="work-duration">Plain. Ready sooner.</span></button><button class="primary" data-cook-choice="careful" data-choice-ticket="${choice.ticket}">${esc(gloss(choice.careful))}<span class="work-duration">${choice.minutes} more kitchen minutes. Other tables wait.</span></button></div>`
       : act
         ? `<button class="portion-act ${act.ready ? 'ready' : ''}" data-cook-step="${act.ticket}" aria-label="${esc(actText)}" ${act.ready ? '' : 'disabled'}>${esc(actText)}</button>`
         : '';
@@ -1662,6 +1699,10 @@ function sunday() {
       )
       .join('')}</div></div>`;
   };
+  const partyLinks = (pg.parties ?? []).flatMap((id) => {
+    const detail = partyCard(st, id);
+    return detail ? [`<a href="#party-${esc(id)}">${esc(detail.host)} (${esc(detail.night)})</a>`] : [];
+  });
   const parts: string[] = [];
   if (pg.parties?.length) {
     parts.push(
@@ -1673,7 +1714,7 @@ function sunday() {
       if (!party || !detail) continue;
       const key = `promise:${id}`;
       parts.push(
-        `<section class="card party-card" aria-label="${esc(detail.host)}"><p>${esc(party.booked)}</p><p class="party-time">${esc(detail.night)} · ${clock(detail.at)} · out by ${clock(detail.servedBy)}</p><p>${esc(detail.order)}</p><p>Promise: ${esc(detail.signature)}</p>${detail.cook ? `<p class="hand"><b>${esc(nameOf(st, detail.cook.who))}</b>: “${esc(detail.cook.text)}”</p>` : ''}<div class="row">${[
+        `<section class="card party-card" id="party-${esc(id)}" tabindex="-1" aria-label="${esc(detail.host)}"><p>${esc(party.booked)}</p><p class="party-time">${esc(detail.night)} · ${clock(detail.at)} · out by ${clock(detail.servedBy)}</p><p>${esc(detail.order)}</p><p>Promise: ${esc(detail.signature)}</p>${detail.cook ? `<p class="hand"><b>${esc(nameOf(st, detail.cook.who))}</b>: “${esc(detail.cook.text)}”</p>` : ''}<div class="row">${[
           ['promise', 'Promise it'],
           ['plain', 'As it comes'],
         ]
@@ -1774,6 +1815,7 @@ function sunday() {
   app.innerHTML = `<div class="page">
     ${markLink}
     <h2>Sunday, week ${pg.week}</h2>
+    ${partyLinks.length ? `<nav class="party-jumps" aria-label="Next week’s parties">Two parties next week: ${partyLinks.join(' and ')}. Choose on each card.</nav>` : ''}
     <p class="soft">${esc(weekOf(pg.week).title)}. The lokanta is closed. I sit at the staff table with the notebook.</p>
     ${parts.join('')}
     ${stamps ? `<p class="soft">This week in the notebook:</p>${stamps}` : ''}
@@ -1793,6 +1835,10 @@ function sunday() {
     });
   document.getElementById('open')?.addEventListener('click', () => {
     queueInput(st, { kind: 'open' });
+    if (firstPartyStart && pg.week === 1) {
+      const target = firstPartyBoard(st);
+      partyHandover = { party: target.party, night: target.night, at: target.at, promised: target.promised };
+    }
     writeSave();
     enter();
   });

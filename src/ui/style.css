@@ -1090,3 +1090,39 @@ button.party-slip {
 .service.hands-on.party-night .service-status {
   min-height: 56px;
 }
+
+.leaving {
+  color: var(--rope);
+  font-weight: 700;
+}
+.party-jumps {
+  display: none;
+}
+@media (max-width: 600px) {
+  .page:has(> .party-jumps) {
+    gap: 8px;
+  }
+  .party-card button {
+    scroll-margin-block: 8px;
+  }
+  .party-jumps {
+    display: block;
+    margin-bottom: 12px;
+  }
+  .party-jumps a {
+    display: inline-block;
+    padding-block: 8px;
+    text-decoration: underline;
+  }
+  .party-card {
+    gap: 6px;
+    scroll-margin-top: 12px;
+  }
+  .party-card p {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+  .party-card .hand {
+    font-size: 18px;
+  }
+}

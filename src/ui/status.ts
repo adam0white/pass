@@ -1,14 +1,17 @@
-import type { Station } from '../sim/cooks.ts';
+import { STATIONS, type Station } from '../sim/cooks.ts';
 import {
+  bookingOf,
   type GameState,
   gasOut,
   nameOf,
   OVEN_HOT,
   onShift,
   owed,
+  type Said,
   stationOf,
   stationsTonight,
 } from '../sim/kitchen.ts';
+import { VERB_WORD } from '../sim/lines.ts';
 
 export interface ServiceStatus {
   text: string;
@@ -90,4 +93,34 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (needed.length) return status('Waiting for cooking.');
 
   return status('Food is ready for the pass.');
+}
+
+/** Only the nearest walkout is named; patience stays in the world's words. */
+export function tableAboutToLeave(s: GameState): number | null {
+  let nearest: { id: number; left: number } | null = null;
+  for (const ticket of s.tickets) {
+    if (ticket.status !== 'open' || ticket.due !== undefined || ticket.platedAt !== undefined) continue;
+    const left =
+      ticket.patience + (bookingOf(s, ticket.id)?.promised ? 0 : s.apron ? 12 : 0) - (s.minute - ticket.at);
+    if (left <= 8 && (!nearest || left < nearest.left)) nearest = { id: ticket.id, left };
+  }
+  return nearest?.id ?? null;
+}
+
+/** Explain a recorded autonomous move after a refused whole-night board assignment. */
+export function journalWords(s: GameState, line: Said): string {
+  if (line.who !== 'narrator' || line.kind !== 'journal') return line.text;
+  for (const row of s.board?.rows ?? []) {
+    if (row.accepted !== false) continue;
+    const name = nameOf(s, row.cook);
+    const prefix = `${name} left `;
+    if (!line.text.startsWith(prefix)) continue;
+    const station = VERB_WORD[row.station];
+    const from = STATIONS.find((place) =>
+      line.text.startsWith(`${prefix}${VERB_WORD[place]} for ${station}`),
+    );
+    if (!from || !new RegExp(` for ${station}(?:[;,.])`, 'u').test(line.text)) continue;
+    return `${name}: “I said no to ${station} for the whole night. I can take a short stretch now. I left ${line.text.slice(prefix.length)}”`;
+  }
+  return line.text;
 }

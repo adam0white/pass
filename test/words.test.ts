@@ -30,3 +30,10 @@ it('routes every interpolated monetary value through lira instead of a bare numb
     expect(lira(amount)).toMatch(/^₺\d{1,3}(?:,\d{3})*$/u);
   }
 });
+
+it('glosses the oven choice consistently without changing its recorded words', () => {
+  const recorded = 'Another minute for the crust';
+  expect(gloss(recorded)).toBe('Leave it in for the crust');
+  expect(gloss(`I chose: ${recorded}.`)).toBe('I chose: Leave it in for the crust.');
+  expect(recorded).toBe('Another minute for the crust');
+});
