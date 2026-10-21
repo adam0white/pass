@@ -3,7 +3,7 @@
  * ordinary inputs, so the notebook replays exactly. Returns the state on Sunday of week 1, phase 'sunday'.
  */
 import { advance } from './host-policy.ts';
-import { type GameState, newGame, queueInput } from './kitchen.ts';
+import { type Booking, type GameState, newGame, queueInput } from './kitchen.ts';
 
 export function beginAtWeekTwo(seed: number, pace?: 'nevin'): GameState {
   const s = newGame(seed);
@@ -19,4 +19,24 @@ export function beginAtWeekTwo(seed: number, pace?: 'nevin'): GameState {
     advance(s, 'flex-chef', 'promise-none');
   }
   throw new Error('The first-week host run did not finish.');
+}
+
+/**
+ * After the player's first Sunday choices, run the preceding nights with ordinary host inputs.
+ * Stop at the earliest promised party's board (or the earliest party if none was promised).
+ * The player owns that board and service. The mid-service shortcut cannot guarantee free hands
+ * before seating minus five: the unchanged host policy can chain reserved portions.
+ */
+export function firstPartyBoard(s: GameState): Booking {
+  const parties = (s.bookings ?? []).filter((b) => b.week === 2);
+  const promised = parties.filter((b) => b.promised);
+  const target = [...(promised.length ? promised : parties)].sort((a, b) => a.at - b.at)[0];
+  if (!target) throw new Error('No first party is booked.');
+  for (let turns = 0; turns < 10000; turns++) {
+    if (s.phase === 'board' && s.night === target.night) return target;
+    if (s.lost || s.phase === 'end' || s.night > target.night)
+      throw new Error('The host did not reach the first party board.');
+    advance(s, 'flex-chef', 'promise-none');
+  }
+  throw new Error('The first-party host run exceeded 10000 turns.');
 }
