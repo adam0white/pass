@@ -3,7 +3,9 @@
  * changes the sim directly. Real time drives sim minutes (continuous, with slowdown while a consequential
  * request is open). The save is the chef's notebook: the seed, the input log, and the Sunday pages to turn back to.
  */
+
 import { FRAMEWORK_VERSION, readPerson } from '@adam0white/human-framework';
+import { telemetryNotice, telemetryToggle } from '@adam0white/lab-kit';
 import {
   isLastOfWeek,
   LAST_NIGHT,
@@ -102,6 +104,9 @@ interface Save {
   pages: { week: number; k: number }[];
 }
 
+const notice = telemetryNotice();
+if (notice) document.body.append(notice);
+
 const app = document.getElementById('app') as HTMLElement;
 let s: GameState | null = null;
 let pages: { week: number; k: number }[] = [];
@@ -120,6 +125,12 @@ const seenHint = { tap: false, job: false };
 let menuOpen = false;
 let menuOrigin: HTMLElement | null = null;
 let boardActionsObserver: ResizeObserver | null = null;
+
+// Full replay snapshots and narration stay outside the deterministic simulation.
+lab.trackRun(() => (s ? exportRun(s, FRAMEWORK_VERSION) : null), {
+  runKey: () => s?.seed ?? 'title',
+  getLogs: () => s?.said.slice(-40).map((line) => line.text) ?? [],
+});
 
 // ---------- save ----------
 
@@ -157,6 +168,7 @@ function writeSave() {
       partyHandover,
     };
     localStorage.setItem(SAVE, JSON.stringify(sv));
+    lab.captureSave(structuredClone(sv));
     return true;
   } catch {
     return false;
@@ -238,6 +250,7 @@ function openGameMenu() {
     });
     observer.observe(document.body, { childList: true });
   });
+  dialog.append(telemetryToggle(lab));
   document.body.appendChild(dialog);
   dialog.showModal();
 }
