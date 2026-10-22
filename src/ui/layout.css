@@ -405,3 +405,31 @@ button.chosen {
   max-width: 480px;
   margin-inline: auto;
 }
+/* Keep the reply and instruction fixed while a crowded job grid scrolls. */
+.people-service.inspecting .sheet {
+  overflow: hidden;
+  gap: 2px;
+}
+.people-service.inspecting .station-duration {
+  min-height: 24px;
+}
+.people-service.inspecting .verbs {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.people-service.inspecting .panel-reply {
+  min-height: 36px;
+  max-height: 48px;
+  overflow: auto;
+}
+@media (min-width: 900px) {
+  .people-service {
+    grid-template-columns: minmax(0, 1fr) 440px;
+  }
+  .people-service .scene {
+    height: 440px;
+    max-height: 100%;
+    align-self: center;
+  }
+}

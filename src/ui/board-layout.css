@@ -240,3 +240,8 @@
     bottom: 0;
   }
 }
+@media (min-width: 900px) {
+  .people-board #board-form {
+    grid-template-columns: minmax(0, 1fr) 440px;
+  }
+}

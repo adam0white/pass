@@ -1366,7 +1366,7 @@ function figure(id: CookId, x: number, y: number): string {
     ? `<path d="M${x - 8} ${y - 16} L${x + 8} ${y - 12} M${x + 8} ${y - 16} L${x - 8} ${y - 12}" stroke="${ink}" stroke-width="1.5"/>`
     : `<path d="M${x} ${y - 18} L${x - 10} ${y - 8} M${x} ${y - 18} L${x + 10} ${y - 9}" stroke="${ink}" stroke-width="1.5"/>`;
   return `<g class="cook" data-cook="${id}">
-    <rect x="${x - 22}" y="${y - 50}" width="44" height="76" fill="transparent"/>
+    <rect x="${x - (peopleRun(s) ? 34 : 22)}" y="${y - 50}" width="${peopleRun(s) ? 68 : 44}" height="76" fill="transparent"/>
     <circle cx="${hx}" cy="${hy - 8}" r="8" stroke="${ink}" stroke-width="1.5" fill="var(--paper)"/>
     <path d="M${hx} ${hy} L${x} ${y}" stroke="${ink}" stroke-width="1.6"/>
     ${arms}${apron}
@@ -1609,16 +1609,21 @@ function drawSheet() {
       .join()}${st.crew.map((m) => cookOf(st, m.id).gone).join()}`;
     if (sheetKey === key) return;
     sheetKey = key;
-    const openingNotes = st.night === 1 && lines.every((x) => x.at === openAt(1) - 5);
+    const lineHTML = (x: Said) =>
+      x.who === 'narrator'
+        ? `<div>${esc(gloss(journalWords(st, x)))}</div>`
+        : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`;
+    const opening = lines.filter((x) => x.at === openAt(st.night) - 5);
+    const legacyOpening = st.night === 1 && lines.slice(-3).every((x) => x.at === openAt(1) - 5);
+    const journal = peopleRun(st)
+      ? `${opening.length ? `<details><summary>Opening notes</summary>${opening.map(lineHTML).join('')}</details>` : ''}${lines
+          .filter((x) => x.at !== openAt(st.night) - 5)
+          .map(lineHTML)
+          .join('')}`
+      : `${legacyOpening ? '<details><summary>Opening notes</summary>' : ''}${lines.slice(-3).map(lineHTML).join('')}${legacyOpening ? '</details>' : ''}`;
     renderPanel(
       el,
-      `${crewHeader()}${tipLine(st)}${(!peopleRun(st) && st.version === 'pass@6') || ((!peopleRun(st) && st.version === 'pass@7') || portionEdition(st)) ? '' : foodWork(st)}<div class="journal">${openingNotes ? '<details><summary>Opening notes</summary>' : ''}${lines
-        .map((x) =>
-          x.who === 'narrator'
-            ? `<div>${esc(gloss(journalWords(st, x)))}</div>`
-            : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`,
-        )
-        .join('')}${openingNotes ? '</details>' : ''}</div>`,
+      `${crewHeader()}${tipLine(st)}${(!peopleRun(st) && st.version === 'pass@6') || ((!peopleRun(st) && st.version === 'pass@7') || portionEdition(st)) ? '' : foodWork(st)}<div class="journal">${journal}</div>`,
     );
     bindCrew(el);
     return;
