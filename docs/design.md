@@ -277,3 +277,5 @@ The useful lesson is about the player’s job: decisions about a person can carr
 Historical simulation rules remain only to replay existing notebooks. Loading or continuing a pass@3–10 notebook appends one `people-run` input and shows one sentence: “The crew now cooks and sends plates; you run the pass through people.” Migration frees unfinished chef work and any plates held at the pass, preserves the seed and earlier inputs, and replays deterministically. Existing party bookings keep their times and choices.
 
 Done for this change means a verified pass@11 build, replay and continuation checks for the owner’s notebook and historical fixtures, and phone checks for the first-party start and migration. The owner accepts the feel after playing the released build; builder tests do not establish that acceptance.
+
+The service clock offers Slow, Steady and Fast. Reading, cook inspection, cooking choices and pending replies keep their existing time protection at every selected speed. Speed is a page-session preference; saves and replay inputs are unchanged.

@@ -68,7 +68,7 @@ import {
   type Verb,
 } from '../sim/kitchen.ts';
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
-import { automaticClockPlayback } from './clock.ts';
+import { automaticClockPlayback, SPEED_NAMES } from './clock.ts';
 import { portionEdition } from './editions.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab } from './lab.ts';
@@ -105,6 +105,7 @@ interface Save {
 const app = document.getElementById('app') as HTMLElement;
 let s: GameState | null = null;
 let pages: { week: number; k: number }[] = [];
+let speed = 1;
 let readingUntil = 0;
 const READING_MS = 8_000;
 let selected: CookId | null = null;
@@ -592,7 +593,7 @@ function service() {
   requestWake();
   app.innerHTML = `<div class="service ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? 'hands-on' : ''} ${partiesTonight(s).length ? 'party-night' : ''}" style="--sheet-height:${s.version === 'pass@5' || (!peopleRun(s) && s.version === 'pass@6') || (!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) || stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
-    <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span></div>
+    <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
     <div class="service-status" id="status" role="status" aria-live="polite"></div>
     ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
@@ -602,6 +603,18 @@ function service() {
     <div class="caption" id="caption"></div>
     <div class="sheet" id="sheet"></div>
   </div>`;
+  const sp = document.getElementById('speed') as HTMLElement;
+  sp.innerHTML = SPEED_NAMES.map(
+    (name, i) => `<button data-i="${i}" aria-label="${name.toLowerCase()}">${['▸', '▸▸', '▸▸▸'][i]}</button>`,
+  ).join(' ');
+  sp.addEventListener('click', (e) => {
+    const button = (e.target as HTMLElement).closest('button');
+    if (!button) return;
+    speed = Number(button.dataset.i);
+    carry = 0;
+    drawTop();
+    drawChefWork();
+  });
   document.getElementById('scene')?.addEventListener('click', (e) => {
     const g = (e.target as Element).closest('[data-cook]');
     const id = g?.getAttribute('data-cook') as CookId | null;
@@ -656,7 +669,11 @@ function frame(t: number) {
     for (const bubble of Object.values(bubbles)) if (bubble.until > t - elapsed) bubble.until += elapsed;
   }
   if (s.phase === 'service' && !held) {
-    const { rate } = automaticClockPlayback(s, { reading: t < readingUntil, inspecting: selected !== null });
+    const { rate } = automaticClockPlayback(
+      s,
+      { reading: t < readingUntil, inspecting: selected !== null },
+      speed,
+    );
     carry += dt * rate;
     let stepped = false;
     while (carry >= 1 && s.phase === 'service') {
@@ -668,7 +685,7 @@ function frame(t: number) {
         (line) => line.who !== 'narrator' && line.kind !== 'journal',
       );
       if (speaking) readingUntil = t + READING_MS;
-      const next = automaticClockPlayback(s, { reading: speaking, inspecting: selected !== null });
+      const next = automaticClockPlayback(s, { reading: speaking, inspecting: selected !== null }, speed);
       if (speaking || next.rate < rate) {
         // Carry earned through an empty stretch cannot cross the first conversation or decision.
         carry = 0;
@@ -717,9 +734,17 @@ function drawTop() {
   (document.getElementById('clock') as HTMLElement).textContent = clock(s.minute);
   (document.getElementById('till') as HTMLElement).innerHTML =
     `till <b>${lira(s.till)}</b> <span class="soft">/ ${lira(billNow(s))} by Sat</span>`;
-  const playback = automaticClockPlayback(s, {
-    reading: performance.now() < readingUntil,
-    inspecting: selected !== null,
+  const playback = automaticClockPlayback(
+    s,
+    {
+      reading: performance.now() < readingUntil,
+      inspecting: selected !== null,
+    },
+    speed,
+  );
+  document.querySelectorAll<HTMLButtonElement>('#speed button').forEach((b) => {
+    b.classList.toggle('on', Number(b.dataset.i) === speed);
+    b.setAttribute('aria-pressed', String(Number(b.dataset.i) === speed));
   });
   const rate = document.getElementById('clock-rate') as HTMLElement;
   rate.innerHTML = `<span>${esc(playback.label)}</span><span>${esc(playback.reason)}</span>`;
@@ -1086,6 +1111,8 @@ function select(id: CookId | null) {
   if (!s) return;
   if (id && (!cookOf(s, id).here || cookOf(s, id).gone)) return;
   selected = selected === id ? null : id;
+  carry = 0;
+  drawTop();
   cachedHints = null;
   seenHint.tap = true;
   drawScene();

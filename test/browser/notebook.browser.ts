@@ -23,7 +23,6 @@ test('opening voices preserve the default and the tally has no pregame preferenc
   await expect(page.locator('#kitchen-help')).not.toBeVisible();
   await page.locator('#new').click();
   await expect(page.locator('#ending-tally')).toHaveCount(0);
-  await expect(page.locator('#speed')).toHaveCount(0);
   const boardHelp = page.getByRole('button', { name: 'About the board', exact: true });
   if (await boardHelp.count()) {
     await boardHelp.click();

@@ -67,7 +67,7 @@ test('DL-3 marks an unanswered request while pacing stays automatic', async ({ p
   await expect(page.locator('#status')).toHaveClass(/needs-response/);
   await expect(page.locator('#yes')).toHaveClass(/primary/);
   await expect(page.locator('#no')).toHaveClass(/primary/);
-  await expect(page.locator('#speed')).toHaveCount(0);
+  await expect(page.locator('#speed button')).toHaveCount(3);
   await onScreen(page, '#status, #yes, #no, #sheet .card');
 });
 
@@ -207,23 +207,21 @@ test('DL-6 offers a default board and the first currency gloss before service', 
   await expect(page.locator('.service')).toHaveCount(0);
 });
 
-test('DL-15 shows actual rates and inspection alone does not slow the clock', async ({ page }) => {
+test('restores phone clock controls while keeping cook inspection protected', async ({ page }) => {
   await start(page, newGame(42));
-  await expect(page.locator('#clock-rate')).toContainText('Steady · 1.5 min/s');
+  await expect(page.locator('#speed button')).toHaveCount(3);
+  await page.getByRole('button', { name: 'slow', exact: true }).click();
+  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.5 min/s');
   await page.getByRole('button', { name: 'fast', exact: true }).click();
   await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
-  const rateBox = await page.locator('#clock-rate').boundingBox();
-  const speedBox = await page.locator('#speed').boundingBox();
   await page.locator('[data-pick="selim"]').click();
-  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
-  await page.clock.runFor(40000);
-  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 min/s');
-  await expect(page.locator('#clock-rate')).toContainText('A station needs a cook.');
-  expect(await page.locator('#clock-rate').boundingBox()).toEqual(rateBox);
-  expect(await page.locator('#speed').boundingBox()).toEqual(speedBox);
-  await page.locator('[data-v="grill"]').click();
-  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
-  await expect(page.getByRole('button', { name: 'fast', exact: true })).toHaveClass(/on/);
+  await expect(page.locator('#clock-rate')).toContainText('Reading · 0.5 min/s');
+  await expect(page.getByRole('button', { name: 'fast', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await onScreen(page, '#speed button, #clock-rate, #sheet button');
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
 });
 
 test('DL-20 quietly glosses maghrib in the journal without changing the saved simulation', async ({

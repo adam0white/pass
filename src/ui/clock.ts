@@ -53,15 +53,21 @@ export function clockPlayback(s: GameState, speed: number) {
 }
 
 /** Live automatic pacing. Legacy clockPlayback remains a pure reader for older playback policies. */
-export function automaticClockPlayback(s: GameState, view: { reading?: boolean; inspecting?: boolean } = {}) {
-  const playback = clockPlayback(s, 1);
+export function automaticClockPlayback(
+  s: GameState,
+  view: { reading?: boolean; inspecting?: boolean } = {},
+  speed = 1,
+) {
+  // Keep live cooking decisions protected at every selected speed.
+  const protectedPlayback = clockPlayback(s, 1);
+  const playback = protectedPlayback.rate === 0.1 ? protectedPlayback : clockPlayback(s, speed);
   if (view.reading && playback.rate > 0.1)
     return { rate: 0.1, label: 'Reading · 0.1 min/s', reason: 'Let them finish speaking.' };
   if (view.inspecting && playback.rate > 0.5)
     return { rate: 0.5, label: 'Reading · 0.5 min/s', reason: 'Reading the cook’s account.' };
   return {
     ...playback,
-    label: playback.label.replace('Steady', 'Running'),
-    reason: playback.reason === 'Your chosen speed.' ? 'The kitchen sets its pace.' : playback.reason,
+    label: playback.label,
+    reason: playback.reason,
   };
 }
