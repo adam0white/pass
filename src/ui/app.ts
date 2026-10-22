@@ -5,7 +5,7 @@
  */
 
 import { FRAMEWORK_VERSION, readPerson } from '@adam0white/human-framework';
-import { telemetryNotice, telemetryToggle } from '@adam0white/lab-kit';
+import { telemetryToggle } from '@adam0white/lab-kit';
 import {
   isLastOfWeek,
   LAST_NIGHT,
@@ -72,10 +72,10 @@ import {
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
 import { automaticClockPlayback, SPEED_NAMES } from './clock.ts';
 import { portionEdition } from './editions.ts';
+import { openFeedback } from './feedback.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab } from './lab.ts';
-import { endingTally, START_APPROACHES } from './notebook.ts';
-import { compactRun } from './run.ts';
+import { endingTally } from './notebook.ts';
 import { unseenSpeech } from './speech.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
@@ -103,9 +103,6 @@ interface Save {
   /** Sunday pages: how many inputs had been given when each week's Sunday opened. */
   pages: { week: number; k: number }[];
 }
-
-const notice = telemetryNotice();
-if (notice) document.body.append(notice);
 
 const app = document.getElementById('app') as HTMLElement;
 let s: GameState | null = null;
@@ -203,55 +200,99 @@ function wob(x1: number, y1: number, x2: number, y2: number, key: number, amp = 
   }
   return d;
 }
-const footer = () =>
-  `<div class="footer"><a href="https://human.adamwhite.work/games/">All games</a><br/>People by the Human Framework ${FRAMEWORK_VERSION}. Everything they say comes from it.</div>`;
-const markLink = '<button class="menu-trigger" id="game-menu" type="button">Game menu</button>';
-
+const footer = () => `<div class="footer">People by the Human Framework ${FRAMEWORK_VERSION}.</div>`;
+const markLink = '<button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button>';
+const INFO: Record<string, [string, string]> = {
+  title: [
+    'The kitchen',
+    'Tap a cook, then a job. Hold the job to insist. They can say no. Promises put a party first. Nevin’s pace gives tables longer to wait. Money is in Turkish lira.',
+  ],
+  board: [
+    'The board',
+    'Each cook gets a station, a twenty-minute break and a cover. While a cook eats, their station waits unless someone covers. The cover’s own station waits instead. Changes are proposals: cooks agree or push back before the doors open.',
+  ],
+  service: [
+    'Running the pass',
+    'Tap a cook and tap a job to ask. Hold to insist; it can cost trust. The pencil under each job is your guess at their answer. Ticket dots: ● is ready. The tick on the till bar is where tonight should end to stay on course for Saturday. The kitchen slows when someone speaks or needs you.',
+  ],
+  evening: [
+    'The night',
+    'The pace line divides the money still needed by the nights left this week. The bill is paid from the till at Saturday close.',
+  ],
+  sunday: [
+    'Sunday',
+    'Promises, a day off, hiring and prices take effect next week. A broken promise is a strike.',
+  ],
+  end: [
+    'The tally',
+    'The tally counts tables served minus tables walked out, plus ten per paid bill. This is the game’s own convention.',
+  ],
+};
+function topBar(label: string, phase: string): string {
+  const [heading, text] = INFO[phase] ?? INFO.title!;
+  return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header><div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${text}</p></div>`;
+}
+let tillStart = { key: '', amount: 0 };
+function tillBar(st: GameState): string {
+  const target = billNow(st);
+  const day = planOf(st.night).weekday;
+  const nights = weekOf(planOf(st.night).week).weekdays.filter((d) => d >= day).length;
+  const start = openAt(st.night) - 5;
+  const before = st.inputs.filter((input) => input.at <= start);
+  const key = JSON.stringify([st.seed, st.version, st.night, before]);
+  if (tillStart.key !== key)
+    tillStart = {
+      key,
+      amount: st.phase === 'board' ? st.till : replay(st.seed, before, start, st.version).till,
+    };
+  const tonight = tillStart.amount;
+  const per = Math.ceil(Math.max(0, target - tonight) / Math.max(1, nights) / 10) * 10;
+  const tick = Math.min(100, Math.max(0, ((tonight + per) / target) * 100));
+  const progress = Math.min(100, Math.max(0, (st.till / target) * 100));
+  return `<div class="till-bar"><span>${lira(st.till)}</span><span class="till-track" aria-label="Progress toward Saturday’s bill"><span style="width:${progress}%"></span><i style="left:${tick}%"></i></span><span class="till-label">${lira(target)} by Sat</span></div>`;
+}
 function openGameMenu() {
   if (menuOpen) return;
+  const saved = writeSave();
   menuOrigin = document.activeElement as HTMLElement;
   menuOpen = true;
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<h2>Game menu</h2><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><div class="actions"><button id="save-kitchen" ${s ? '' : 'disabled'}>Save this kitchen</button><button id="download-run" ${s ? '' : 'disabled'}>Download this run</button><button id="send-run" ${s ? '' : 'disabled'}>Send this run to the notebook</button><button id="menu-back">Back to the kitchen</button></div><p id="save-result" role="status">${s ? 'The kitchen waits while this menu is open.' : 'Open a kitchen to save or share a run.'}</p><a href="https://human.adamwhite.work/games/">All games</a>`;
-  let sendSheet = false;
-  const close = () => dialog.close();
+  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu</h2><button id="menu-close" aria-label="Close menu">×</button></div><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save the kitchen. Keep a copy through Send word.' : 'The kitchen waits while this menu is open.') : 'The kitchen is closed.'}</p><div class="menu-rows"><button id="send-run" ${s ? '' : 'disabled'}>Send word</button><button id="full-screen">Full screen</button><button id="to-title">To the title page</button><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"></div><button class="primary" id="menu-back">Back to the kitchen</button>`;
+  let replacing = false;
   dialog.addEventListener('close', () => {
-    if (sendSheet) return;
+    dialog.remove();
+    if (replacing) return;
     menuOpen = false;
     last = performance.now();
-    dialog.remove();
     menuOrigin?.focus({ preventScroll: true });
   });
-  dialog.querySelector('#menu-back')?.addEventListener('click', close);
-  dialog.querySelector('#save-kitchen')?.addEventListener('click', () => {
-    const result = dialog.querySelector('#save-result');
-    if (result)
-      result.textContent = writeSave()
-        ? 'Kitchen saved on this device.'
-        : 'This device could not save the kitchen. Download this run to keep a copy.';
-  });
-  dialog.querySelector('#download-run')?.addEventListener('click', download);
-  dialog.querySelector('#send-run')?.addEventListener('click', () => {
-    // Replace the system menu with the lab sheet, then return here on cancel or completion.
-    sendSheet = true;
+  for (const id of ['menu-back', 'menu-close'])
+    dialog.querySelector(`#${id}`)?.addEventListener('click', () => dialog.close());
+  dialog.querySelector('#to-title')?.addEventListener('click', () => {
     dialog.close();
-    dialog.remove();
-    sendRun();
-    const observer = new MutationObserver(() => {
-      if (document.querySelector('.hflab-veil')) return;
-      observer.disconnect();
-      document.body.appendChild(dialog);
-      dialog.showModal();
-      sendSheet = false;
-      menuOpen = true;
-      dialog.querySelector<HTMLButtonElement>('#send-run')?.focus();
-    });
-    observer.observe(document.body, { childList: true });
+    title();
   });
-  dialog.append(telemetryToggle(lab));
-  document.body.appendChild(dialog);
+  dialog.querySelector('#full-screen')?.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  });
+  dialog.querySelector('#send-run')?.addEventListener('click', () => {
+    replacing = true;
+    dialog.close();
+    openFeedback({
+      lab,
+      getRun: () => (s ? exportRun(s, FRAMEWORK_VERSION) : null),
+      download,
+      onBack: () => {
+        menuOpen = false;
+        openGameMenu();
+      },
+    });
+  });
+  dialog.querySelector('#record-controls')?.append(telemetryToggle(lab));
+  document.body.append(dialog);
   dialog.showModal();
 }
 document.addEventListener('click', (event) => {
@@ -287,40 +328,70 @@ function title() {
     .map((p) => `<button data-page="${p.week}">Turn back to Sunday, week ${p.week}</button>`)
     .join('');
   app.innerHTML = `<div class="page title-page">
-    ${markLink}
-    <h1>The Pass</h1>
-    <p class="soft">a kitchen, four weeks of dinner services</p>
-    <p>${esc(gloss(w1.intro[0] ?? '', true))}</p>
-    <p>The bank wants ${lira(w1.bill)} (Turkish lira) by Saturday close.</p>
-    ${old ? '<p class="soft">The kitchen has been rebuilt since your last visit, and last week’s notebook can’t be reopened. Start a fresh one.</p>' : ''}
+    ${topBar('The Pass', 'title')}
+    <div class="page-body">
+      <h1>The Pass</h1><p class="soft title-subtitle">a kitchen, four weeks of dinner services</p>
+      <p>${esc(gloss(w1.intro[0] ?? '', true))}</p>
+      <p>The bank wants ${lira(w1.bill)} (Turkish lira) by Saturday close.</p>
+      ${old ? '<p class="soft">The kitchen has been rebuilt since your last visit, and last week’s notebook can’t be reopened. Start a fresh one.</p>' : ''}
+      <fieldset class="start-approaches"><legend>Before the first service</legend>
+        <label><input type="radio" name="pace" value="nevin" /><span>Selim: “I hope the regulars give us time.”<small>More time to get the lamb right. Nevin’s pace lasts all month.</small></span></label>
+        <label><input type="radio" name="pace" value="normal" checked /><span>Dilek: “Leave it as it is.”<small>The usual wait. Learn the rush with the regulars watching.</small></span></label>
+      </fieldset>
+      <button id="other-ways" aria-haspopup="dialog">Other ways in</button>
+      <p id="title-status" role="status" aria-live="polite"></p>
+      <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this notebook</button></div></div>
+    </div>
     <div class="actions">
-      ${save ? `<button class="primary" id="cont">Back to the kitchen <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button>` : ''}
-      ${turnBack}
-      <div class="start-option"><button class="quiet" id="pace" aria-pressed="false" aria-describedby="pace-note">Selim: “I hope the regulars give us time.”</button><p id="pace-note" class="soft">${esc(START_APPROACHES.pace)}</p><p class="soft">${esc(START_APPROACHES.normal)}</p></div>
-      <button class="${save ? '' : 'primary'}" id="new">${save ? 'A new notebook' : 'Open the doors'}</button>
-      <div class="start-option"><button class="quiet" id="week-two" aria-describedby="week-two-note">Begin at the second week</button><p id="week-two-note" class="soft">A steady hand runs the first week for you. You take over on its Sunday.</p></div>
-      <div class="start-option"><button class="quiet" id="first-party" aria-describedby="first-party-note">Begin at the first party</button><p id="first-party-note" class="soft">A steady hand runs the first week and the evening up to your first party. You choose the promises on Sunday and take the pass before they sit.</p></div>
-      <button class="quiet" id="load">Load a playtest run</button>
-      <input type="file" id="file" accept="application/json" hidden />
+      ${save ? `<button class="primary" id="cont">Back to the kitchen <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button><button id="new">A new notebook</button>` : '<button class="primary" id="new">See tonight’s board</button>'}
     </div>
-    <button type="button" class="info-button" popovertarget="kitchen-help" aria-label="More about the kitchen">i</button><div id="kitchen-help" popover="auto" class="info-popover"><h2>More about the kitchen</h2>
-      <p>Tap a cook, then a job. Hold the job to insist. They can say no. The job dot marks their current station.</p>
-      <p>Promises put a party first; the crew must send the whole order out on time. Nevin's pace gives tables longer to wait; Begin at the second week runs the first week for me.</p>
-      <p>Each ticket lists what the grill and the cold side owe it; ● is ready. Money is in Turkish lira (${lira(1)}).</p>
-    </div>
+    <dialog id="other-ways-sheet" class="other-ways-sheet" aria-labelledby="other-ways-heading"><h2 id="other-ways-heading">Other ways in</h2><div class="actions">
+      <button id="week-two">Begin at the second week</button><p class="soft">A steady hand runs the first week. You take over on its Sunday.</p>
+      <button id="first-party">Begin at the first party</button><p class="soft">Choose the promises on Sunday and take the pass before the first party sits.</p>
+      ${turnBack}<button id="load">Load a playtest run</button><button id="close-other-ways">Back</button>
+    </div></dialog>
+    <input type="file" id="file" accept="application/json" hidden />
     ${footer()}
   </div>`;
+  const sheet = document.getElementById('other-ways-sheet') as HTMLDialogElement;
+  const status = (message: string) => {
+    (document.getElementById('title-status') as HTMLElement).textContent = message;
+  };
+  const enterWithStatus = (message = '') => {
+    enter();
+    if (!message) return;
+    const note = document.createElement('p');
+    note.className = 'run-status';
+    note.setAttribute('role', 'status');
+    note.textContent = message;
+    const body = app.querySelector('.page-body, .journal, #sheet') ?? app.querySelector('.page') ?? app;
+    body.prepend(note);
+  };
+  let confirmed: (() => void) | null = null;
+  const ask = (message: string, action: () => void) => {
+    if (sheet.open) sheet.close();
+    confirmed = action;
+    (document.getElementById('title-confirm-message') as HTMLElement).textContent = message;
+    (document.getElementById('title-confirm') as HTMLElement).hidden = false;
+    document.getElementById('title-confirm-yes')?.focus();
+  };
+  document.getElementById('title-confirm-yes')?.addEventListener('click', () => confirmed?.());
+  document.getElementById('title-confirm-no')?.addEventListener('click', () => {
+    confirmed = null;
+    (document.getElementById('title-confirm') as HTMLElement).hidden = true;
+    document.getElementById('new')?.focus();
+  });
+  document.getElementById('other-ways')?.addEventListener('click', () => sheet.showModal());
+  document.getElementById('close-other-ways')?.addEventListener('click', () => sheet.close());
   document.getElementById('cont')?.addEventListener('click', () => {
     if (!save) return;
     firstPartyStart = save.firstPartyStart ?? false;
     partyHandover = save.partyHandover ?? null;
     pages = save.pages ?? [];
     s = replay(save.seed, save.inputs, save.minute, save.game);
-    if (continueThroughPeople(s)) {
-      writeSave();
-      alert(PEOPLE_RUN_NOTE);
-    }
-    enter();
+    const migrated = !['pass@6', 'pass@7'].includes(s.version) && continueThroughPeople(s);
+    if (migrated) writeSave();
+    enterWithStatus(migrated ? PEOPLE_RUN_NOTE : '');
   });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-page]'))
     b.addEventListener('click', () => {
@@ -328,29 +399,29 @@ function title() {
       const week = Number(b.dataset.page);
       const page = save.pages.find((p) => p.week === week);
       if (!page) return;
-      if (!confirm(`Turn back to Sunday of week ${week}? Everything after that page is torn out.`)) return;
-      firstPartyStart = save.firstPartyStart ?? false;
-      partyHandover = null;
-      pages = save.pages.filter((p) => p.week <= week);
-      s = replay(save.seed, save.inputs.slice(0, page.k), undefined, save.game);
-      if (continueThroughPeople(s)) alert(PEOPLE_RUN_NOTE);
+      ask(`Turn back to Sunday of week ${week}? Everything after that page is torn out.`, () => {
+        firstPartyStart = save.firstPartyStart ?? false;
+        partyHandover = null;
+        pages = save.pages.filter((p) => p.week <= week);
+        s = replay(save.seed, save.inputs.slice(0, page.k), undefined, save.game);
+        const migrated = !['pass@6', 'pass@7'].includes(s.version) && continueThroughPeople(s);
+        writeSave();
+        enterWithStatus(migrated ? PEOPLE_RUN_NOTE : '');
+      });
+    });
+  const begin = (secondWeek: boolean, firstParty = false) => {
+    const start = () => {
+      const nevin = app.querySelector<HTMLInputElement>('input[name="pace"]:checked')?.value === 'nevin';
+      clearSave();
+      firstPartyStart = firstParty;
+      const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+      s = secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed);
+      if (!secondWeek && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
       writeSave();
       enter();
-    });
-  let nevin = false;
-  document.getElementById('pace')?.addEventListener('click', (event) => {
-    nevin = !nevin;
-    (event.currentTarget as HTMLButtonElement).setAttribute('aria-pressed', String(nevin));
-  });
-  const begin = (secondWeek: boolean, firstParty = false) => {
-    if (save && !confirm('Start a new notebook? This one is put away for good.')) return;
-    clearSave();
-    firstPartyStart = firstParty;
-    const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
-    s = secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed);
-    if (!secondWeek && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
-    writeSave();
-    enter();
+    };
+    if (save) ask('Start a new notebook? This one is put away for good.', start);
+    else start();
   };
   document.getElementById('new')?.addEventListener('click', () => begin(false));
   document.getElementById('week-two')?.addEventListener('click', () => begin(true));
@@ -360,32 +431,36 @@ function title() {
   file.addEventListener('change', async () => {
     const f = file.files?.[0];
     if (!f) return;
+    if (sheet.open) sheet.close();
     try {
       const ex = JSON.parse(await f.text()) as Export & { minute?: number };
       if (!canReplay(ex.game)) {
-        alert(
+        status(
           `That run is from an earlier edition of The Pass (${ex.game ?? 'unknown'}). This kitchen (${GAME_VERSION}) cooks differently, so it can’t be replayed here.`,
         );
         return;
       }
       const r = replay(ex.seed, ex.inputs, ex.state?.minute ?? ex.minute, ex.game);
       const same = ex.state ? fingerprint(r) === fingerprint(ex.state) : true;
-      s = r;
-      const migrated = continueThroughPeople(s);
-      firstPartyStart = false;
-      partyHandover = null;
-      pages = [];
-      writeSave();
-      alert(
-        migrated
-          ? PEOPLE_RUN_NOTE
-          : same
-            ? 'Replayed the run: it matches the exported state.'
-            : 'Replayed the run, but it differs from the export.',
-      );
-      enter();
+      const load = () => {
+        s = r;
+        const migrated = !['pass@6', 'pass@7'].includes(s.version) && continueThroughPeople(s);
+        firstPartyStart = false;
+        partyHandover = null;
+        pages = [];
+        writeSave();
+        enterWithStatus(
+          migrated
+            ? PEOPLE_RUN_NOTE
+            : same
+              ? 'Replayed the run: it matches the exported state.'
+              : 'Replayed the run, but it differs from the export.',
+        );
+      };
+      if (save) ask('Load this run? It replaces the saved notebook.', load);
+      else load();
     } catch {
-      alert('That file is not a run from The Pass.');
+      status('That file is not a run from The Pass.');
     }
   });
 }
@@ -428,6 +503,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
   if (s?.phase !== 'board') return;
   boardActionsObserver?.disconnect();
   const st = s;
+  if (!peopleRun(st)) return legacyBoard(draft, editing);
   cancelAnimationFrame(raf);
   lab.screen(`night ${st.night}: board`);
   const agreed = boardReplies(st);
@@ -466,7 +542,10 @@ function board(draft?: BoardRow[], editing: string | null = null) {
   const bareNote = bare.length
     ? `<p class="board-uncovered">Nobody is on the ${bare.map((place) => stationName[place]).join(' or the ')} tonight.${bare.includes('oven') ? ' Pide bakes only in a hot oven, and only a cook standing at it keeps it hot; I cannot tend it and cook.' : ''} Change someone’s station, or those tables wait.</p>`
     : '';
-  app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p>${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<form id="board-form"><div class="board-rows">${rows
+  const boardScroll = app.querySelector('.board-body')?.scrollTop ?? 0;
+  const editorScroll = app.querySelector('.board-editor-body')?.scrollTop ?? 0;
+  let editor = '';
+  app.innerHTML = `<div class="board-page people-board">${topBar(`Board · ${planOf(st.night).title.slice(0, 3)} wk ${planOf(st.night).week} · doors ${clock(openAt(st.night))}`, 'board')}${tillBar(st)}<form id="board-form"><div class="board-body">${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<div class="board-rows">${rows
     .map((row) => {
       const answer = agreed.find((r) => r.cook === row.cook);
       const revised = changed;
@@ -496,45 +575,79 @@ function board(draft?: BoardRow[], editing: string | null = null) {
             ? `${nameOf(st, row.cover)} covers`
             : `${nameOf(st, row.cover)} not agreed; ${station} waits`
         : `${station} waits`;
-      const summary = `${VERB_LABEL[row.station]} · break ${breakSlots(row.breakAt).find((slot) => slot.minute === row.breakAt)?.label} · ${coverSummary}`;
-      return `<fieldset class="board-row${editing === row.cook ? ' is-editing' : ''}" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">${editing === row.cook ? 'Done' : 'Change'}</button><div class="board-editor" id="board-fields-${esc(row.cook)}"><div class="board-fields">${chips(
-        row,
-        'station',
-        'Station',
-        stationsTonight(st).map((station) => ({ value: station, label: VERB_LABEL[station] })),
-        row.station,
-      )}${chips(
-        row,
-        'break',
-        'Break · twenty minutes',
-        breakSlots(answer?.breakAt ?? row.breakAt).map((slot) => ({
-          value: String(slot.minute),
-          label: slot.label,
-        })),
-        String(row.breakAt),
-      )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
+      const summary = `${VERB_LABEL[row.station]} · break ${clock(row.breakAt)} · ${coverSummary}`;
+      if (editing === row.cook) {
+        editor = `<div class="board-editor-backdrop"><section class="board-editor" id="board-fields-${esc(row.cook)}" role="dialog" aria-modal="true" aria-labelledby="board-editor-title" data-board-cook="${esc(row.cook)}"><header><h2 id="board-editor-title">${esc(nameOf(st, row.cook))}’s plan</h2><button type="button" class="board-editor-close" aria-label="Close plan">×</button></header><div class="board-editor-body"><div class="board-fields">${chips(
+          row,
+          'station',
+          'Station',
+          stationsTonight(st).map((station) => ({ value: station, label: VERB_LABEL[station] })),
+          row.station,
+        )}${chips(
+          row,
+          'break',
+          'Break · twenty minutes',
+          breakSlots(answer?.breakAt ?? row.breakAt).map((slot) => ({
+            value: String(slot.minute),
+            label: slot.label
+              .replace(' before the rush', ' · before')
+              .replace(' during the rush', ' · rush')
+              .replace(' after the rush', ' · after'),
+          })),
+          String(row.breakAt),
+        )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div><footer><button type="button" id="board-done" class="primary">Done</button></footer></section></div>`;
+      }
+      return `<section class="board-row" data-board-cook="${esc(row.cook)}"><h2>${esc(nameOf(st, row.cook))}</h2><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">Change</button>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</section>`;
     })
     .join(
       '',
-    )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form><button type="button" class="info-button" popovertarget="board-help" aria-label="About the board">i</button><div id="board-help" popover="auto" class="info-popover"><h2>About the board</h2><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></div>${footer()}</div>`;
-  const actions = app.querySelector<HTMLElement>('#board-form > .actions');
-  if (actions) {
-    const measure = () =>
-      document.documentElement.style.setProperty('--board-actions-height', `${actions.offsetHeight}px`);
-    measure();
-    boardActionsObserver = new ResizeObserver(measure);
-    boardActionsObserver.observe(actions);
-  }
+    )}</div></div><div class="actions">${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : '<button class="primary" type="button" id="open-service">Open the doors</button>'}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form>${editor}</div>`;
+  const boardBody = app.querySelector('.board-body');
+  if (boardBody) boardBody.scrollTop = boardScroll;
+  const editorBody = app.querySelector('.board-editor-body');
+  if (editorBody) editorBody.scrollTop = editorScroll;
+  const closeEditor = () => {
+    board(rows);
+    Array.from(app.querySelectorAll<HTMLButtonElement>('.board-change'))
+      .find((button) => button.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook === editing)
+      ?.focus({ preventScroll: true });
+  };
   for (const button of app.querySelectorAll<HTMLButtonElement>('.board-change')) {
     button.addEventListener('click', () => {
       const cook = button.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook ?? null;
-      const top = button.getBoundingClientRect().top;
-      board(rows, editing === cook ? null : cook);
-      const replacement = app.querySelector<HTMLButtonElement>(`[data-board-cook="${cook}"] .board-change`);
-      replacement?.focus({ preventScroll: true });
-      if (replacement) window.scrollBy(0, replacement.getBoundingClientRect().top - top);
+      board(rows, cook);
+      app.querySelector<HTMLButtonElement>('.board-editor-close')?.focus({ preventScroll: true });
     });
   }
+  document.getElementById('board-done')?.addEventListener('click', closeEditor);
+  app.querySelector('.board-editor-close')?.addEventListener('click', closeEditor);
+  const backdrop = app.querySelector('.board-editor-backdrop');
+  backdrop?.addEventListener('click', (event) => {
+    if (event.target === backdrop) closeEditor();
+  });
+  backdrop?.addEventListener('keydown', (event) => {
+    if (!(event instanceof KeyboardEvent)) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeEditor();
+    }
+    if (event.key !== 'Tab') return;
+    const buttons = Array.from(backdrop.querySelectorAll<HTMLButtonElement>('button'));
+    const first = buttons[0];
+    const last = buttons.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  });
+  if (editing) {
+    app.querySelector<HTMLElement>('#board-form')?.setAttribute('inert', '');
+    app.querySelector<HTMLElement>('.lab-topbar')?.setAttribute('inert', '');
+  }
+
   const submit = (next: BoardRow[]) => {
     queueInput(st, { kind: 'board', rows: next });
     writeSave();
@@ -588,6 +701,172 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     enter();
   });
   if (!draft) window.scrollTo(0, 0);
+
+  function legacyBoard(draft?: BoardRow[], editing: string | null = null) {
+    if (s?.phase !== 'board') return;
+    boardActionsObserver?.disconnect();
+    const st = s;
+    cancelAnimationFrame(raf);
+    lab.screen(`night ${st.night}: board`);
+    const agreed = boardReplies(st);
+    const rows =
+      draft ?? agreed.map(({ cook, station, breakAt, cover }) => ({ cook, station, breakAt, cover }));
+    const changed = !sameBoard(rows, agreed);
+    const stationName: Record<Station, string> = {
+      grill: 'grill',
+      cold: 'cold side',
+      dish: 'dish pit',
+      oven: 'oven',
+    };
+    const parties = partiesTonight(st)
+      .map((booking) => {
+        const party = partyOf(booking.party);
+        if (!party) return '';
+        const localAt = booking.at % 1440;
+        const localBy = booking.servedBy % 1440;
+        const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
+          (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
+        );
+        return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))} at ${clock(booking.at)} · ${changed ? 'Proposed breaks: ' : ''}${overlaps.length ? `${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')} overlaps.` : 'No breaks overlap.'}</p>`;
+      })
+      .join('');
+    const chips = (
+      row: BoardRow,
+      field: string,
+      label: string,
+      choices: { value: string; label: string }[],
+      value: string,
+    ) =>
+      `<div class="board-choice" role="group" aria-label="${esc(nameOf(st, row.cook))} ${label}"><span class="board-label">${label}</span><div class="board-chips">${choices.map((choice) => `<button type="button" data-field="${field}" data-value="${esc(choice.value)}" aria-pressed="${value === choice.value}">${esc(choice.label)}</button>`).join('')}</div></div>`;
+    const bare = (['grill', 'cold', 'oven'] as const).filter(
+      (place) => stationsTonight(st).includes(place) && !rows.some((row) => row.station === place),
+    );
+    const bareNote = bare.length
+      ? `<p class="board-uncovered">Nobody is on the ${bare.map((place) => stationName[place]).join(' or the ')} tonight.${bare.includes('oven') ? ' Pide bakes only in a hot oven, and only a cook standing at it keeps it hot; I cannot tend it and cook.' : ''} Change someone’s station, or those tables wait.</p>`
+      : '';
+    app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p>${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<form id="board-form"><div class="board-rows">${rows
+      .map((row) => {
+        const answer = agreed.find((r) => r.cook === row.cook);
+        const revised = changed;
+        const coverRow = rows.find((r) => r.cook === row.cover);
+        const station = stationName[row.station];
+        const tradeoff = coverRow ? `the ${stationName[coverRow.station]} waits` : '';
+        // Keep an imported choice visible even if another edit makes its interval conflict.
+        const covers = rows.filter(
+          (other) =>
+            other.cook !== row.cook &&
+            (other.cook === row.cover || Math.abs(other.breakAt - row.breakAt) >= 20),
+        );
+        const alternatives = covers.map(
+          (other) => `${nameOf(st, other.cook)} could cover; the ${stationName[other.station]} would wait.`,
+        );
+        const gap = row.cover
+          ? revised
+            ? `Ask ${nameOf(st, row.cover)} to cover; ${tradeoff} for twenty minutes.`
+            : answer?.coverAccepted
+              ? `${nameOf(st, row.cover)} covers; ${tradeoff} for twenty minutes.`
+              : `${nameOf(st, row.cover)} has not agreed to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`
+          : `${covers.length ? 'No cover chosen' : 'No one to cover'}; the ${station} waits while ${nameOf(st, row.cook)} eats.${alternatives.length ? ` ${alternatives.join(' ')}` : ''}`;
+        const coverSummary = row.cover
+          ? revised
+            ? `ask ${nameOf(st, row.cover)} to cover`
+            : answer?.coverAccepted
+              ? `${nameOf(st, row.cover)} covers`
+              : `${nameOf(st, row.cover)} not agreed; ${station} waits`
+          : `${station} waits`;
+        const summary = `${VERB_LABEL[row.station]} · break ${breakSlots(row.breakAt).find((slot) => slot.minute === row.breakAt)?.label} · ${coverSummary}`;
+        return `<fieldset class="board-row${editing === row.cook ? ' is-editing' : ''}" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">${editing === row.cook ? 'Done' : 'Change'}</button><div class="board-editor" id="board-fields-${esc(row.cook)}"><div class="board-fields">${chips(
+          row,
+          'station',
+          'Station',
+          stationsTonight(st).map((station) => ({ value: station, label: VERB_LABEL[station] })),
+          row.station,
+        )}${chips(
+          row,
+          'break',
+          'Break · twenty minutes',
+          breakSlots(answer?.breakAt ?? row.breakAt).map((slot) => ({
+            value: String(slot.minute),
+            label: slot.label,
+          })),
+          String(row.breakAt),
+        )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
+      })
+      .join(
+        '',
+      )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form><button type="button" class="info-button" popovertarget="board-help" aria-label="About the board">i</button><div id="board-help" popover="auto" class="info-popover"><h2>About the board</h2><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></div>${footer()}</div>`;
+    const actions = app.querySelector<HTMLElement>('#board-form > .actions');
+    if (actions) {
+      const measure = () =>
+        document.documentElement.style.setProperty('--board-actions-height', `${actions.offsetHeight}px`);
+      measure();
+      boardActionsObserver = new ResizeObserver(measure);
+      boardActionsObserver.observe(actions);
+    }
+    for (const button of app.querySelectorAll<HTMLButtonElement>('.board-change')) {
+      button.addEventListener('click', () => {
+        const cook = button.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook ?? null;
+        const top = button.getBoundingClientRect().top;
+        board(rows, editing === cook ? null : cook);
+        const replacement = app.querySelector<HTMLButtonElement>(`[data-board-cook="${cook}"] .board-change`);
+        replacement?.focus({ preventScroll: true });
+        if (replacement) window.scrollBy(0, replacement.getBoundingClientRect().top - top);
+      });
+    }
+    const submit = (next: BoardRow[]) => {
+      queueInput(st, { kind: 'board', rows: next });
+      writeSave();
+      const scroll = window.scrollY;
+      board();
+      document.getElementById('open-service')?.focus({ preventScroll: true });
+      window.scrollTo(0, scroll);
+    };
+    for (const button of app.querySelectorAll<HTMLButtonElement>('[data-field]')) {
+      button.addEventListener('click', () => {
+        const cook = button.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook;
+        const { field, value = '' } = button.dataset;
+        const next = rows.map((row) =>
+          row.cook !== cook
+            ? row
+            : {
+                ...row,
+                ...(field === 'station'
+                  ? { station: value as Station }
+                  : field === 'break'
+                    ? { breakAt: Number(value) }
+                    : { cover: value || null }),
+              },
+        );
+        const scroll = window.scrollY;
+        board(next, editing);
+        const replacement = Array.from(app.querySelectorAll<HTMLButtonElement>('[data-field]')).find(
+          (el) =>
+            el.closest<HTMLElement>('[data-board-cook]')?.dataset.boardCook === cook &&
+            el.dataset.field === field &&
+            el.dataset.value === value,
+        );
+        replacement?.focus({ preventScroll: true });
+        window.scrollTo(0, scroll);
+      });
+    }
+    document.getElementById('board-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (changed) submit(rows);
+    });
+    document.getElementById('same-board')?.addEventListener('click', () => submit(boardDefaults(st)));
+    document.getElementById('open-service')?.addEventListener('click', () => {
+      if (changed) return;
+      if (!st.board?.agreed) queueInput(st, { kind: 'board', rows });
+      queueInput(st, { kind: 'open' });
+      if (partyHandover && st.night === partyHandover.night) {
+        runToSeating(st, partyHandover);
+        partyHandover.hands = handoverContext(st);
+      }
+      writeSave();
+      enter();
+    });
+    if (!draft) window.scrollTo(0, 0);
+  }
 }
 
 // ---------- service ----------
@@ -604,7 +883,8 @@ function service() {
   cachedHints = null;
   shownSaid = s.said.at(-4);
   requestWake();
-  app.innerHTML = `<div class="service ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? 'hands-on' : ''} ${partiesTonight(s).length ? 'party-night' : ''}" style="--sheet-height:${s.version === 'pass@5' || (!peopleRun(s) && s.version === 'pass@6') || (!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) || stationsTonight(s).length === 4 ? 342 : 276}px">
+  if (!peopleRun(s)) {
+    app.innerHTML = `<div class="service ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? 'hands-on' : ''} ${partiesTonight(s).length ? 'party-night' : ''}" style="--sheet-height:${s.version === 'pass@5' || (!peopleRun(s) && s.version === 'pass@6') || (!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) || stationsTonight(s).length === 4 ? 342 : 276}px">
     <div class="top">${markLink}<span class="grow"></span><span id="night"></span><span class="clock" id="clock"></span></div>
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
@@ -616,18 +896,26 @@ function service() {
     <div class="caption" id="caption"></div>
     <div class="sheet" id="sheet"></div>
   </div>`;
-  const sp = document.getElementById('speed') as HTMLElement;
-  sp.innerHTML = SPEED_NAMES.map(
-    (name, i) => `<button data-i="${i}" aria-label="${name.toLowerCase()}">${['▸', '▸▸', '▸▸▸'][i]}</button>`,
-  ).join(' ');
-  sp.addEventListener('click', (e) => {
-    const button = (e.target as HTMLElement).closest('button');
-    if (!button) return;
-    speed = Number(button.dataset.i);
-    carry = 0;
-    drawTop();
-    drawChefWork();
-  });
+    const sp = document.getElementById('speed') as HTMLElement;
+    sp.innerHTML = SPEED_NAMES.map(
+      (name, i) =>
+        `<button data-i="${i}" aria-label="${name.toLowerCase()}">${['▸', '▸▸', '▸▸▸'][i]}</button>`,
+    ).join(' ');
+    sp.addEventListener('click', (e) => {
+      const button = (e.target as HTMLElement).closest('button');
+      if (!button) return;
+      speed = Number(button.dataset.i);
+      carry = 0;
+      drawTop();
+      drawChefWork();
+    });
+  }
+  if (peopleRun(s))
+    app.innerHTML = `<div class="service people-service">
+    ${topBar('', 'service')}<div class="state-strip" id="till"></div>
+    <div class="rail" id="rail"></div><div class="scene" id="scene"></div>
+    <div class="caption" id="caption" role="status"></div><div class="sheet" id="sheet"></div>
+  </div>`;
   document.getElementById('scene')?.addEventListener('click', (e) => {
     const g = (e.target as Element).closest('[data-cook]');
     const id = g?.getAttribute('data-cook') as CookId | null;
@@ -682,11 +970,7 @@ function frame(t: number) {
     for (const bubble of Object.values(bubbles)) if (bubble.until > t - elapsed) bubble.until += elapsed;
   }
   if (s.phase === 'service' && !held) {
-    const { rate } = automaticClockPlayback(
-      s,
-      { reading: t < readingUntil, inspecting: selected !== null },
-      speed,
-    );
+    const { rate } = automaticClockPlayback(s, { reading: t < readingUntil, inspecting: selected !== null });
     carry += dt * rate;
     let stepped = false;
     while (carry >= 1 && s.phase === 'service') {
@@ -698,7 +982,7 @@ function frame(t: number) {
         (line) => line.who !== 'narrator' && line.kind !== 'journal',
       );
       if (speaking) readingUntil = t + READING_MS;
-      const next = automaticClockPlayback(s, { reading: speaking, inspecting: selected !== null }, speed);
+      const next = automaticClockPlayback(s, { reading: speaking, inspecting: selected !== null });
       if (speaking || next.rate < rate) {
         // Carry earned through an empty stretch cannot cross the first conversation or decision.
         carry = 0;
@@ -742,25 +1026,50 @@ function drawAll(force = false) {
 
 function drawTop() {
   if (!s) return;
+  if (!peopleRun(s)) {
+    const pl = planOf(s.night);
+    (document.getElementById('night') as HTMLElement).textContent = `${pl.title} · wk ${pl.week}`;
+    (document.getElementById('clock') as HTMLElement).textContent = clock(s.minute);
+    (document.getElementById('till') as HTMLElement).innerHTML =
+      `till <b>${lira(s.till)}</b> <span class="soft">/ ${lira(billNow(s))} by Sat</span>`;
+    const playback = automaticClockPlayback(
+      s,
+      {
+        reading: performance.now() < readingUntil,
+        inspecting: selected !== null,
+      },
+      speed,
+    );
+    document.querySelectorAll<HTMLButtonElement>('#speed button').forEach((b) => {
+      b.classList.toggle('on', Number(b.dataset.i) === speed);
+      b.setAttribute('aria-pressed', String(Number(b.dataset.i) === speed));
+    });
+    const rate = document.getElementById('clock-rate') as HTMLElement;
+    rate.innerHTML = `<span>${esc(playback.label)}</span><span>${esc(playback.reason)}</span>`;
+    return;
+  }
   const pl = planOf(s.night);
-  (document.getElementById('night') as HTMLElement).textContent = `${pl.title} · wk ${pl.week}`;
+  const label = `${pl.title} · wk ${pl.week}`;
+  const night = document.getElementById('night');
+  if (night) night.textContent = label;
+  const words = app.querySelector('.people-service .bar-words');
+  if (words) words.textContent = label;
   (document.getElementById('clock') as HTMLElement).textContent = clock(s.minute);
-  (document.getElementById('till') as HTMLElement).innerHTML =
-    `till <b>${lira(s.till)}</b> <span class="soft">/ ${lira(billNow(s))} by Sat</span>`;
-  const playback = automaticClockPlayback(
-    s,
-    {
-      reading: performance.now() < readingUntil,
-      inspecting: selected !== null,
-    },
-    speed,
-  );
-  document.querySelectorAll<HTMLButtonElement>('#speed button').forEach((b) => {
-    b.classList.toggle('on', Number(b.dataset.i) === speed);
-    b.setAttribute('aria-pressed', String(Number(b.dataset.i) === speed));
+  const till = document.getElementById('till') as HTMLElement;
+  till.innerHTML = tillBar(s);
+  const playback = automaticClockPlayback(s, {
+    reading: performance.now() < readingUntil,
+    inspecting: selected !== null,
   });
-  const rate = document.getElementById('clock-rate') as HTMLElement;
-  rate.innerHTML = `<span>${esc(playback.label)}</span><span>${esc(playback.reason)}</span>`;
+  if (playback.rate <= 0.5) {
+    const reason = selected
+      ? `you’re with ${nameOf(s, selected)}`
+      : performance.now() < readingUntil
+        ? `${nameOf(s, s.said.filter((x) => x.who !== 'narrator').at(-1)?.who ?? 'selim')} is answering`
+        : playback.reason;
+    const label = till.querySelector('.till-label');
+    if (label) label.textContent = `slowed: ${reason}`;
+  }
 }
 
 function drawStatus() {
@@ -787,7 +1096,7 @@ function drawRail() {
   const leaving = tableAboutToLeave(st);
   const rail = document.getElementById('rail') as HTMLElement;
   if (open.length === 0) {
-    renderPanel(rail, '');
+    renderPanel(rail, peopleRun(st) ? '<span class="rail-clear">Rail clear</span>' : '');
     rail.classList.add('empty');
     return;
   }
@@ -1108,11 +1417,20 @@ function drawCaption() {
   }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
-  const key = handover + (fresh && a ? `${a.at}${a.who}${a.counter ?? ''}${s.inputs.length}` : '');
+  const key =
+    serviceStatus(s).text +
+    handover +
+    (fresh && a ? `${a.at}${a.who}${a.counter ?? ''}${s.inputs.length}` : '');
   if (key === captionKey) return;
   captionKey = key;
   if (!fresh || !a) {
-    el.innerHTML = handover;
+    el.innerHTML =
+      handover ||
+      esc(
+        peopleRun(s) && serviceStatus(s).text === 'Waiting for the next ticket.'
+          ? 'Rail clear. The kitchen runs; nothing needs you.'
+          : serviceStatus(s).text,
+      );
     return;
   }
   const taken = s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
@@ -1269,7 +1587,7 @@ function drawSheet() {
     renderPanel(
       el,
       `${crewHeader()}<div class="card ink-in"><div class="hand">${esc(nameOf(st, rq.who))}: “${esc(gloss(requestText(st, rq)))}”</div>
-      <div class="row"><button class="primary" id="yes">${esc(yes)}</button><button class="primary" id="no">${esc(no)}</button></div></div>`,
+      <div class="row"><button id="yes">${esc(yes)}</button><button id="no">${esc(no)}</button></div></div>`,
     );
     const answer = (choice: 'yes' | 'no') => {
       for (const b of el.querySelectorAll<HTMLButtonElement>('button')) b.disabled = true;
@@ -1285,7 +1603,7 @@ function drawSheet() {
     return;
   }
   if (!selected) {
-    const lines = st.said.filter((line) => line.at >= openAt(st.night) - 5).slice(-3);
+    const lines = st.said.filter((line) => line.at >= openAt(st.night) - 5);
     const key = `j${st.minute}${st.inputs.length}${st.said.length}${seenHint.tap}${onShift(st)
       .map((id) => placeOf(id))
       .join()}${st.crew.map((m) => cookOf(st, m.id).gone).join()}`;
@@ -1313,7 +1631,8 @@ function drawSheet() {
   const queued = st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected);
   const waiting = !!c.pending || queued;
   const absent = !c.here || c.gone;
-  const key = `c${selected}${h.at}${waiting}${absent}${doing}${st.inputs.length}`;
+  const answer = st.lastAnswer?.who === selected ? st.lastAnswer : null;
+  const key = `c${selected}${h.at}${waiting}${absent}${doing}${st.inputs.length}${answer?.at}${answer?.text}`;
   if (sheetKey === key) return;
   sheetKey = key;
   const guess = h.list.some((v) => v.guess);
@@ -1324,10 +1643,10 @@ function drawSheet() {
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
-          `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(v.short)}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
+          `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(v.short)}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
-    <div class="hint">${
+    <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div><div class="hint">${
       absent
         ? 'This cook has left the kitchen.'
         : guess
@@ -1634,7 +1953,6 @@ function evening() {
   if (!r) return;
   lab.screen(`night ${r.night}: evening`);
   lab.milestone(`service ${r.night} done`);
-  const pl = planOf(r.night);
   const next = r.night < LAST_NIGHT ? planOf(r.night + 1) : null;
   const total = r.served + r.walked;
   const plates = Array.from({ length: total }, (_, i) =>
@@ -1702,12 +2020,14 @@ function evening() {
       : toSunday
         ? '<button class="primary" id="open">Turn to Sunday</button>'
         : `<button class="primary" id="open" ${r.night === 3 ? 'disabled' : ''}>Open on ${esc(next?.title ?? '')}</button>`;
-  app.innerHTML = `<div class="page">
-    ${markLink}
+  app.innerHTML = `<div class="page evening-page">
+    ${topBar(`After close · ${weekTitle(r.night)}`, 'evening')}
+    <div class="page-body">
     <h2>${esc(weekTitle(r.night))}, after close</h2>
     <div class="plates" aria-label="${r.served} tables served, ${r.walked} walked out">${plates}</div>
-    <p>${r.served} of ${total} tables fed. ${lira(r.takings)} in the till tonight.${r.bill ? '' : ` ${lira(st.till)} towards ${lira(billNow(st))} for ${esc(weekOf(pl.week).owed)} on Saturday.`}</p>
-    ${!ended && !r.bill ? `<p class="soft">${paceLine(st, r.night)}</p>` : ''}
+    ${!ended && !r.bill ? `<p class="evening-pace">${paceLine(st, r.night)}</p>` : ''}
+    ${tillBar(st)}
+    <p>${r.served} of ${total} tables fed. ${lira(r.takings)} earned tonight.</p>
     ${lightJar && r.night !== 3 && st.jarPlace === 'counter' ? '<p>The tip jar was lighter than it should have been.</p>' : ''}
     ${crit}${wedding}${parties}
     ${r.apron ? '<p>Selim wore Nevin’s apron until close. Nobody mentioned it.</p>' : ''}
@@ -1715,11 +2035,11 @@ function evening() {
     ${bill}${r.bill?.promiseBroken ? '<p>A promise broken this week: one strike.</p>' : ''}
     ${tonight ? `<p class="soft">In the notebook tonight:</p>${tonight}` : ''}
     ${jarChoice}
+    </div>
     <div class="actions">
       ${nextBtn}
       ${!ended && !toSunday && !st.lost && next ? `<p class="soft" style="font-size:15px">${esc(next.intro.at(-1) ?? '')}</p>` : ''}
     </div>
-    ${footer()}
   </div>`;
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-jar]'))
     b.addEventListener('click', () => {
@@ -1728,7 +2048,7 @@ function evening() {
       app.querySelectorAll<HTMLButtonElement>('[data-jar]').forEach((x) => {
         x.disabled = true;
       });
-      b.classList.add('primary');
+      b.classList.add('chosen');
       (document.getElementById('open') as HTMLButtonElement).disabled = false;
     });
   document.getElementById('open')?.addEventListener('click', () => {
@@ -1777,7 +2097,7 @@ function sunday() {
     return `<div class="card"><div>${prompt}</div><div class="row" style="flex-direction:column">${options
       .map(
         ([v, label]) =>
-          `<button data-key="${esc(key)}" data-val="${esc(v)}" ${chosen !== undefined ? 'disabled' : ''} class="${chosen === v ? 'primary' : ''}">${esc(label)}</button>`,
+          `<button data-key="${esc(key)}" data-val="${esc(v)}" ${chosen !== undefined ? 'disabled' : ''} class="${chosen === v ? 'chosen' : ''}">${esc(label)}</button>`,
       )
       .join('')}</div></div>`;
   };
@@ -1802,7 +2122,7 @@ function sunday() {
         ]
           .map(
             ([value, label]) =>
-              `<button data-key="${esc(key)}" data-val="${value}" aria-pressed="${pg.chosen[key] === value}" ${pg.chosen[key] !== undefined ? 'disabled' : ''} class="${pg.chosen[key] === value ? 'primary' : ''}">${label}</button>`,
+              `<button data-key="${esc(key)}" data-val="${value}" aria-pressed="${pg.chosen[key] === value}" ${pg.chosen[key] !== undefined ? 'disabled' : ''} class="${pg.chosen[key] === value ? 'chosen' : ''}">${label}</button>`,
           )
           .join('')}</div></section>`,
       );
@@ -1844,7 +2164,7 @@ function sunday() {
         .join('')}<div class="row" style="flex-direction:column">${opts
         .map(
           ([v, label]) =>
-            `<button data-key="hire" data-val="${esc(v)}" ${pg.chosen.hire !== undefined ? 'disabled' : ''} class="${pg.chosen.hire === v ? 'primary' : ''}">${esc(label)}</button>`,
+            `<button data-key="hire" data-val="${esc(v)}" ${pg.chosen.hire !== undefined ? 'disabled' : ''} class="${pg.chosen.hire === v ? 'chosen' : ''}">${esc(label)}</button>`,
         )
         .join('')}</div></div>`,
     );
@@ -1894,18 +2214,19 @@ function sunday() {
       ),
     );
   const stamps = stampList(pg.stamps);
-  app.innerHTML = `<div class="page">
-    ${markLink}
+  app.innerHTML = `<div class="page sunday-page">
+    ${topBar(`Sunday · week ${pg.week}`, 'sunday')}
+    <div class="page-body">
     <h2>Sunday, week ${pg.week}</h2>
     ${partyLinks.length ? `<nav class="party-jumps" aria-label="Next week’s parties">Two parties next week: ${partyLinks.join(' and ')}. Choose on each card.</nav>` : ''}
     <p class="soft">${esc(weekOf(pg.week).title)}. The lokanta is closed. I sit at the staff table with the notebook.</p>
     ${parts.join('')}
     ${stamps ? `<p class="soft">This week in the notebook:</p>${stamps}` : ''}
     ${nextWeek ? `<p>Next week: ${lira(nextWeek.bill)} for ${esc(nextWeek.owed)}${st.carry ? `, and ${lira(st.carry)} carried over` : ''}${st.seen ? `, and ${lira(st.seen)} more: ${esc(SEEN_WHO[pg.week] ?? 'they')} saw the queue on Saturday` : ''}.</p>` : ''}
+    </div>
     <div class="actions">
       <button class="primary" id="open">${esc(sundayOpenLabel(st, firstPartyStart))}</button>
     </div>
-    ${footer()}
   </div>`;
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-key]'))
     b.addEventListener('click', () => {
@@ -1966,8 +2287,9 @@ function ending() {
         ? 'After the last close, one of them stayed to help me stack the chairs.'
         : 'After the last close, they left without a word. The kitchen was very quiet.';
   const gone = st.crew.filter((m) => m.left);
-  app.innerHTML = `<div class="page">
-    ${markLink}
+  app.innerHTML = `<div class="page ending-page">
+    ${topBar('The notebook', 'end')}
+    <div class="page-body">
     <h2>${esc(head)}</h2>
     <p>${esc(body)}</p>
     <p>${esc(together)}</p>
@@ -1976,10 +2298,11 @@ function ending() {
     <h2 class="hand" style="font-size:28px">What the crew said about me</h2>
     ${lastLines.map((l) => `<div class="cookline"><b>${esc(nameOf(st, l.id))}</b><div class="hand">“${esc(l.t)}”</div></div>`).join('')}
     ${st.stamps.length ? `<p class="soft">The notebook:</p>${stampList(st.stamps.map((x) => x.id))}` : ''}
+    </div>
     <div class="actions">
+      <div class="end-secondaries"><button id="send">Send word</button><button id="export">Download this run</button></div>
       <button class="primary" id="again">A new notebook</button>
     </div>
-    ${footer()}
   </div>`;
   document.getElementById('export')?.addEventListener('click', download);
   document.getElementById('send')?.addEventListener('click', sendRun);
@@ -1993,12 +2316,15 @@ function ending() {
 
 function sendRun() {
   if (!s) return;
-  const st = s;
-  lab.openSendDialog({
-    getRun: () => exportRun(st, FRAMEWORK_VERSION),
-    compact: (run) => compactRun(run as Export),
-    compactNote:
-      'The seed, inputs, edition and elapsed minute are included; the redundant state snapshot is omitted.',
+  menuOpen = true;
+  openFeedback({
+    lab,
+    getRun: () => (s ? exportRun(s, FRAMEWORK_VERSION) : null),
+    download,
+    onBack: () => {
+      menuOpen = false;
+      last = performance.now();
+    },
   });
 }
 

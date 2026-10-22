@@ -20,21 +20,16 @@ test('continuing a chef notebook migrates once and keeps the cook controls', asy
       pages: [],
     },
   );
-  const notes: string[] = [];
-  page.on('dialog', async (dialog) => {
-    notes.push(dialog.message());
-    await dialog.accept();
-  });
   await page.goto('/');
   await page.locator('#cont').click();
   await expect(page.locator('.crew button').first()).toBeVisible();
   await expect(page.locator('#chef-work, [data-ticket], [data-cook-step]')).toHaveCount(0);
-  expect(notes).toEqual([PEOPLE_RUN_NOTE]);
+  await expect(page.locator('.run-status')).toHaveText(PEOPLE_RUN_NOTE);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3') ?? '{}'));
   expect(saved.inputs.at(-1).kind).toBe('people-run');
   // Reload must use the migrated input without repeating the note or migrating twice.
   await page.reload();
   await page.locator('#cont').click();
   await expect(page.locator('.crew button').first()).toBeVisible();
-  expect(notes).toEqual([PEOPLE_RUN_NOTE]);
+  await expect(page.locator('.run-status')).toHaveCount(0);
 });

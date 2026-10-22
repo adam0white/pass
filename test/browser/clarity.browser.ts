@@ -32,7 +32,7 @@ async function start(page: Page, state?: GameState) {
   await page.goto('/');
   await page.evaluate(() => document.fonts.ready);
   await page
-    .getByRole('button', { name: state === undefined ? 'Open the doors' : /Back to the kitchen/ })
+    .getByRole('button', { name: state === undefined ? 'See tonight’s board' : /Back to the kitchen/ })
     .click();
 }
 
@@ -186,7 +186,7 @@ async function targets(page: Page, selector: string) {
 
 test('DL-23 gives disclosures, links, speed and counteroffers 44px targets', async ({ page }) => {
   await page.goto('/');
-  await targets(page, 'summary, a, button');
+  await targets(page, 'summary:visible, a:visible, button:visible');
   await start(page, replay(counterSave.seed, counterSave.inputs, counterSave.minute));
   await page.addStyleTag({ content: ':root { --safe-t: 20px; --safe-b: 20px; }' });
   await page.locator('[data-pick="selim"]').click();
@@ -196,9 +196,10 @@ test('DL-23 gives disclosures, links, speed and counteroffers 44px targets', asy
 test('DL-6 offers a default board and the first currency gloss before service', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.page')).toContainText('₺5,200 (Turkish lira)');
-  await page.getByText('More about the kitchen', { exact: true }).click();
-  await expect(page.locator('details')).toContainText('Turkish lira');
-  await page.getByRole('button', { name: 'Open the doors', exact: true }).click();
+  await page.getByRole('button', { name: 'Information', exact: true }).click();
+  await expect(page.locator('#phase-help')).toContainText('Turkish lira');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'See tonight’s board', exact: true }).click();
   await expect(page.locator('.board-row')).toHaveCount(2);
   await expect(page.locator('.board-answer')).toHaveCount(2);
   await expect(page.locator('#ask-board')).toHaveCount(0);

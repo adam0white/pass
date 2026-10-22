@@ -9,6 +9,7 @@ test('first party start shows both Sunday choices and hands over the service bef
     Math.random = () => 0;
   });
   await page.goto('/');
+  await page.locator('#other-ways').click();
   await page.getByRole('button', { name: 'Begin at the first party', exact: true }).click();
   const nav = page.getByRole('navigation', { name: 'Next week’s parties' });
   await expect(nav).toBeInViewport({ ratio: 1 });

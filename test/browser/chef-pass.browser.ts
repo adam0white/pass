@@ -32,19 +32,20 @@ async function onScreen(page: Page, selector: string) {
   }
 }
 
-test('Game menu keeps save, download and send together during service', async ({ page }) => {
+test('Game menu autosaves and offers feedback with a downloadable copy', async ({ page }) => {
   await start(page);
   await onScreen(page, '#game-menu');
   await page.getByRole('button', { name: 'Game menu', exact: true }).click();
   const menu = page.getByRole('dialog', { name: 'Game menu', exact: true });
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole('button', { name: 'Save this kitchen', exact: true })).toBeVisible();
-  await expect(menu.getByRole('button', { name: 'Download this run', exact: true })).toBeVisible();
-  await expect(
-    menu.getByRole('button', { name: 'Send this run to the notebook', exact: true }),
-  ).toBeVisible();
-  await menu.getByRole('button', { name: 'Save this kitchen', exact: true }).click();
-  await expect(menu).toContainText('Kitchen saved');
+  await expect(menu.getByRole('button', { name: 'Save this kitchen', exact: true })).toHaveCount(0);
+  await expect(menu.getByRole('button', { name: 'Download this run', exact: true })).toHaveCount(0);
+  await menu.getByRole('button', { name: 'Send word', exact: true }).click();
+  const feedback = page.getByRole('dialog', { name: 'Send word', exact: true });
+  await expect(feedback).toBeVisible();
+  await expect(feedback.getByRole('button', { name: 'Keep a copy of this run', exact: true })).toBeVisible();
+  await feedback.getByRole('button', { name: 'Back to the menu', exact: true }).click();
+  await expect(menu).toBeVisible();
   await menu.getByRole('button', { name: 'Back to the kitchen', exact: true }).click();
   await expect(page.locator('#game-menu')).toBeFocused();
 });
@@ -82,14 +83,14 @@ test('real touch and desktop renders show station work and the Game menu', async
 test('send cancellation returns to Game menu and keeps service time still', async ({ page }) => {
   await start(page);
   await page.getByRole('button', { name: 'Game menu', exact: true }).click();
-  await page.getByRole('button', { name: 'Send this run to the notebook', exact: true }).click();
-  await expect(page.locator('.hflab-veil')).toBeVisible();
+  await page.getByRole('button', { name: 'Send word', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Send word', exact: true })).toBeVisible();
   const before = await page.locator('#clock').textContent();
   await page.clock.runFor(30000);
   expect(await page.locator('#clock').textContent()).toBe(before);
-  await page.getByRole('button', { name: 'Not now', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to the menu', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Game menu', exact: true })).toBeVisible();
-  await expect(page.locator('#send-run')).toBeFocused();
+  await expect(page.locator('#send-run')).toBeVisible();
 });
 
 test('a waiting ticket reserves its portion directly', async ({ page }) => {
@@ -177,12 +178,15 @@ test('station limits name warming and lost gas when portions are waiting', async
   await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText('Waiting for gas');
 });
 
-test('resuming from a scrolled title returns service and Game menu to the top', async ({ page }) => {
+test('resuming from a scrolled title body keeps service and Game menu at the top', async ({ page }) => {
   await start(page);
   await page.reload();
   const resume = page.getByRole('button', { name: /Back to the kitchen/ });
-  await resume.evaluate((button) => button.scrollIntoView({ block: 'start' }));
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.locator('.page-body').evaluate((body) => {
+    body.scrollTop = body.scrollHeight;
+  });
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(resume).toBeInViewport({ ratio: 1 });
   await resume.tap();
   await expect(page.locator('.service')).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);

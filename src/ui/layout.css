@@ -1,0 +1,407 @@
+/* The people-run presentation; historical hands-on controls keep their own layout. */
+#app {
+  max-width: 1180px;
+}
+.lab-topbar {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  min-height: 44px;
+  gap: 0;
+  border-bottom: 1px solid var(--ink-soft);
+  padding: 0 8px;
+  grid-area: top;
+}
+.bar-words {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+.lab-topbar button {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.lab-topbar .clock {
+  font-size: 20px;
+}
+.lab-topbar .info-button {
+  position: static;
+}
+.info-popover {
+  position: fixed;
+  top: 48px;
+  left: 8px;
+  right: 8px;
+  bottom: auto;
+  margin: 0 auto;
+  width: calc(100% - 16px);
+  max-width: 1164px;
+  max-height: 60dvh;
+  overflow: auto;
+  padding: 16px;
+}
+.info-close {
+  float: right;
+  width: 44px;
+  min-height: 44px;
+}
+.till-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  width: 100%;
+  font-size: 12px;
+  padding: 0 10px;
+}
+.till-track {
+  position: relative;
+  flex: 1;
+  min-width: 35px;
+  height: 10px;
+  background: var(--paper-2);
+  border: 1px solid var(--ink-soft);
+}
+.till-track > span {
+  display: block;
+  height: 100%;
+  background: var(--moss);
+}
+.till-track > i {
+  position: absolute;
+  top: -4px;
+  height: 16px;
+  border-left: 2px solid var(--rope);
+}
+.till-label {
+  max-width: 51%;
+  font-size: 11px;
+}
+.people-board button.primary,
+.game-menu-dialog button.primary {
+  background: var(--rope);
+  color: var(--paper);
+  border-color: var(--rope);
+  min-height: 52px;
+}
+button.chosen {
+  outline: 2px solid var(--moss);
+  outline-offset: -4px;
+}
+.game-menu-dialog {
+  position: fixed;
+  inset: auto 0 0;
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  max-height: calc(100dvh - 44px);
+  overflow: auto;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  border: 1px solid var(--ink-soft);
+  background: var(--paper);
+  color: var(--ink);
+}
+.menu-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.menu-heading button {
+  height: 44px;
+  width: 44px;
+  padding: 0;
+}
+.menu-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.menu-rows > :is(button, a) {
+  min-height: 52px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--ink-soft);
+  background: transparent;
+  border-radius: 0;
+}
+.game-menu-dialog > .primary {
+  width: 100%;
+}
+#record-controls {
+  font-size: 13px;
+  margin: 8px 0;
+}
+.people-service {
+  display: grid;
+  height: 100dvh;
+  padding: 0;
+  grid-template-columns: 100%;
+  grid-template-rows: 44px 36px 56px 196px 48px minmax(0, 1fr);
+  grid-template-areas: "top" "state" "rail" "scene" "caption" "sheet";
+  overflow: hidden;
+}
+.people-service > .state-strip {
+  grid-area: state;
+  min-width: 0;
+}
+.people-service .rail {
+  grid-area: rail;
+  display: flex;
+  height: 56px;
+  min-height: 56px;
+  padding: 4px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 6px;
+}
+.people-service .rail.empty {
+  display: flex;
+}
+.people-service .rail-clear {
+  align-self: center;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.people-service .slip {
+  flex: 0 0 auto;
+  min-width: 100px;
+  max-width: 180px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+.people-service .slip .t {
+  font-size: 12px;
+}
+.people-service .slip .d {
+  display: inline;
+  font-size: 10px;
+  margin-right: 4px;
+}
+.people-service .slip :is(.st, .party-label) {
+  font-size: 10px;
+}
+.people-service .scene {
+  grid-area: scene;
+  height: 196px;
+  min-height: 0;
+  flex: none;
+  overflow: hidden;
+}
+.people-service .scene svg {
+  width: 100%;
+  height: 100%;
+}
+.people-service .caption {
+  grid-area: caption;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  padding: 2px 10px;
+  font-size: 13px;
+  overflow: auto;
+}
+.people-service .caption .hand {
+  font-size: 16px;
+  line-height: 1.1;
+}
+.people-service .caption button {
+  min-height: 44px;
+  padding: 2px 7px;
+  font-size: 12px;
+  flex: 0 0 105px;
+}
+.people-service .sheet {
+  grid-area: sheet;
+  height: auto;
+  min-height: 0;
+  padding: 0 10px 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  border-top: 1px solid var(--ink-soft);
+}
+.people-service .sheet > .who {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  flex: none;
+  min-height: 56px;
+  height: 56px;
+  margin: 0;
+  display: flex;
+}
+.people-service .crew {
+  display: flex;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  height: 56px;
+  flex: 1;
+  align-items: center;
+}
+.people-service .crew button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 3px 9px;
+  font-size: 14px;
+}
+.people-service .crew button .soft {
+  font-size: 12px;
+}
+.people-service .who .x {
+  position: static;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  align-self: center;
+}
+.people-service .hint {
+  font-size: 12px;
+  margin: 0;
+  padding: 2px 0;
+  flex: none;
+}
+.people-service .journal {
+  overflow: auto;
+  min-height: 0;
+  font-size: 14px;
+  flex: 1;
+}
+.people-service .journal .hand {
+  font-size: 19px;
+}
+.people-service .station-duration {
+  font-size: 12px;
+  line-height: 1.2;
+  min-height: 27px;
+  flex: none;
+}
+.people-service .verbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  flex: none;
+}
+.people-service .verbs button {
+  min-height: 56px;
+  height: 56px;
+  padding: 3px;
+  font-size: 14px;
+  line-height: 1.1;
+}
+.people-service .verbs:has(button:nth-child(7)) button {
+  min-height: 48px;
+  height: 48px;
+}
+.people-service .verbs .h {
+  font-size: 13px;
+  line-height: 1.05;
+  margin: 2px 0 0;
+}
+.people-service .panel-reply {
+  font-family: var(--hand);
+  font-size: 18px;
+  min-height: 22px;
+  flex: none;
+  margin-top: auto;
+  line-height: 1.05;
+}
+.people-service .card {
+  margin: 0;
+  overflow: auto;
+  font-size: 15px;
+}
+.people-service .card .row {
+  flex-wrap: wrap;
+}
+.people-service .card button {
+  font-size: 14px;
+}
+.people-service summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+@media (min-width: 900px) {
+  .lab-topbar {
+    height: 56px;
+    min-height: 56px;
+  }
+  .info-popover {
+    top: 60px;
+  }
+  .people-service {
+    grid-template-columns: minmax(0, 700px) 440px;
+    grid-template-rows: 56px 56px minmax(0, 1fr) 60px;
+    grid-template-areas: "top top" "rail sheet" "scene sheet" "caption sheet";
+    column-gap: 20px;
+  }
+  .people-service > .state-strip {
+    position: absolute;
+    top: 10px;
+    width: 440px;
+    left: calc(50% - 170px);
+  }
+  .people-service .lab-topbar {
+    padding-left: 12px;
+  }
+  .people-service .lab-topbar .bar-words {
+    flex: 1;
+  }
+  .people-service .scene {
+    height: 100%;
+    max-height: 600px;
+  }
+  .people-service .caption {
+    height: 60px;
+  }
+  .people-service .sheet {
+    border-left: 1px solid var(--ink-soft);
+    border-top: 0;
+  }
+  .people-service .verbs {
+    margin-top: 12px;
+  }
+  .people-service .journal {
+    font-size: 17px;
+  }
+  .game-menu-dialog {
+    inset: 56px 0 0 auto;
+    width: 400px;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+  }
+  .game-menu-dialog:not([open]) {
+    display: none;
+  }
+  .game-menu-dialog > .primary {
+    margin-top: auto;
+  }
+}
+@media (min-width: 900px) {
+  .game-menu-dialog {
+    height: calc(100dvh - 56px);
+  }
+}
+.service:not(.people-service),
+.board-page:not(.people-board) {
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+}

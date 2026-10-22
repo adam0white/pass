@@ -2,39 +2,39 @@ import { expect, test } from '@playwright/test';
 
 test('opening voices preserve the default and the tally has no pregame preference', async ({ page }) => {
   await page.goto('/');
-  const pace = page.locator('#pace');
-  await expect(pace).toHaveText('Selim: “I hope the regulars give us time.”');
-  await expect(pace).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('#pace-note')).toContainText('all month');
-  await expect(page.getByText(/Dilek: “Leave it as it is/)).toBeVisible();
-  await pace.click();
-  await expect(pace).toHaveAttribute('aria-pressed', 'true');
-  await pace.click();
-  await expect(pace).toHaveAttribute('aria-pressed', 'false');
+  const pace = page.locator('input[name="pace"][value="nevin"]');
+  const normal = page.locator('input[name="pace"][value="normal"]');
+  await expect(normal).toBeChecked();
+  await expect(pace).not.toBeChecked();
+  await expect(
+    page.getByText('More time to get the lamb right. Nevin’s pace lasts all month.'),
+  ).toBeVisible();
+  await pace.check();
+  await expect(pace).toBeChecked();
+  await normal.check();
+  await expect(pace).not.toBeChecked();
   await page.locator('#game-menu').click();
   await expect(page.locator('#keep-tally')).toHaveCount(0);
   await page.locator('#menu-back').click();
-  const help = page.getByRole('button', { name: 'More about the kitchen', exact: true });
+  const help = page.getByRole('button', { name: 'Information', exact: true });
   await help.focus();
   await page.keyboard.press('Space');
-  await expect(page.locator('#kitchen-help')).toBeVisible();
-  await expect(page.locator('#kitchen-help')).toContainText('Hold the job to insist');
+  await expect(page.locator('#phase-help')).toBeVisible();
+  await expect(page.locator('#phase-help')).toContainText('Hold the job to insist');
   await page.keyboard.press('Escape');
-  await expect(page.locator('#kitchen-help')).not.toBeVisible();
+  await expect(page.locator('#phase-help')).not.toBeVisible();
   await page.locator('#new').click();
   await expect(page.locator('#ending-tally')).toHaveCount(0);
-  const boardHelp = page.getByRole('button', { name: 'About the board', exact: true });
-  if (await boardHelp.count()) {
-    await boardHelp.click();
-    await expect(page.locator('#board-help')).toContainText('Agreed stations last until close');
-    await page.keyboard.press('Escape');
-  }
+  const boardHelp = page.getByRole('button', { name: 'Information', exact: true });
+  await boardHelp.click();
+  await expect(page.locator('#phase-help')).toContainText('Changes are proposals');
+  await page.keyboard.press('Escape');
   await page.evaluate(async () => {
-    const path = '/src/ui/app.ts';
-    const app = await import(path);
-    if (!app._debug.state) throw new Error('Missing kitchen');
-    app._debug.state.phase = 'end';
-    app._debug.refresh();
+    const app = (window as unknown as { __pass: { state: { phase: string } | null; refresh(): void } })
+      .__pass;
+    if (!app.state) throw new Error('Missing kitchen');
+    app.state.phase = 'end';
+    app.refresh();
   });
   const tally = page.locator('#ending-tally');
   await expect(page.getByText('See the tally', { exact: true })).toBeVisible();

@@ -24,13 +24,13 @@ async function targets(page: Page, selector: string, firstScreen = true) {
   }
 }
 
-test('title pace is pressed visibly and recorded before the first board input', async ({ page }) => {
+test('title pace is selected visibly and recorded before the first board input', async ({ page }) => {
   await title(page);
-  const pace = page.getByRole('button', { name: "Nevin's pace", exact: true });
-  await expect(pace).toHaveAttribute('aria-pressed', 'false');
-  await pace.tap();
-  await expect(pace).toHaveAttribute('aria-pressed', 'true');
-  await targets(page, '#pace, #new, #week-two');
+  const pace = page.locator('input[name="pace"][value="nevin"]');
+  await expect(pace).not.toBeChecked();
+  await pace.check();
+  await expect(pace).toBeChecked();
+  await targets(page, '.start-approaches label, #new, #other-ways');
   await page.locator('#new').tap();
   await page.locator('#open-service').tap();
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3') ?? '{}'));
@@ -40,6 +40,7 @@ test('title pace is pressed visibly and recorded before the first board input', 
 
 test('Begin at the second week opens two party choices and saves its Sunday', async ({ page }) => {
   await title(page);
+  await page.locator('#other-ways').tap();
   await page.getByRole('button', { name: 'Begin at the second week', exact: true }).tap();
   await expect(page.getByRole('heading', { name: 'Sunday, week 1' })).toBeVisible();
   await expect(page.locator('.party-card')).toHaveCount(2);
@@ -67,9 +68,11 @@ test('Begin at the second week opens two party choices and saves its Sunday', as
   const plainSave = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3') ?? '{}'));
   expect(plainSave.inputs.at(-1)).toMatchObject({ kind: 'choose', key: plainKey, value: 'plain' });
   await page.reload();
+  await page.locator('#other-ways').click();
   await expect(page.getByRole('button', { name: 'Turn back to Sunday, week 1', exact: true })).toBeVisible();
-  page.on('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Turn back to Sunday, week 1', exact: true }).click();
+  await expect(page.locator('#title-confirm')).toContainText('Everything after that page is torn out.');
+  await page.locator('#title-confirm-yes').click();
   await expect(page.locator(`button[data-key="${key}"][data-val="promise"]`)).toBeEnabled();
 });
 
@@ -179,6 +182,7 @@ for (const width of [360, 1280]) {
     await page.setViewportSize({ width, height: width === 360 ? 690 : 800 });
     await title(page);
     await page.screenshot({ animations: 'disabled', path: `${shots}/title-${width}.png` });
+    await page.locator('#other-ways').tap();
     await page.locator('#week-two').tap();
     await expect(page.locator('.party-card')).toHaveCount(2);
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -221,7 +225,8 @@ for (const width of [360, 1280]) {
 
 test('second-week start keeps Nevin’s pace as its first ordinary input', async ({ page }) => {
   await title(page);
-  await page.locator('#pace').tap();
+  await page.locator('input[name="pace"][value="nevin"]').check();
+  await page.locator('#other-ways').tap();
   await page.locator('#week-two').tap();
   await expect(page.getByRole('heading', { name: 'Sunday, week 1' })).toBeVisible();
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3') ?? '{}'));
@@ -262,7 +267,11 @@ test('party overlap lines follow proposed and agreed meal breaks by cook name', 
   await expect(page.locator('.board-parties')).toContainText('No breaks overlap.');
   const selim = page.locator('[data-board-cook="selim"]');
   await selim.getByRole('button', { name: 'Change', exact: true }).tap();
-  await selim.getByRole('button', { name: '19:45 during the rush', exact: true }).tap();
+  await page
+    .getByRole('dialog', { name: 'Selim’s plan' })
+    .getByRole('button', { name: '19:45 · rush', exact: true })
+    .tap();
+  await page.locator('#board-done').tap();
   await expect(page.locator('.board-parties')).toContainText(
     'Proposed breaks: Selim’s break 19:45–20:05 overlaps.',
   );
@@ -334,6 +343,7 @@ test('every party signature fits the reserved rail space without moving cooking 
 
 test('the second-week board says nobody is on the oven and goes when someone takes it', async ({ page }) => {
   await title(page);
+  await page.locator('#other-ways').tap();
   await page.getByRole('button', { name: 'Begin at the second week', exact: true }).tap();
   for (const button of await page.locator('.party-card [data-val="plain"]').all()) await button.tap();
   await page.getByRole('button', { name: 'Open on Wednesday', exact: true }).tap();
@@ -343,7 +353,8 @@ test('the second-week board says nobody is on the oven and goes when someone tak
   await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-more/ui-shots/board-oven-phone.png' });
   const rafi = page.locator('[data-board-cook="rafi"]');
   await rafi.getByRole('button', { name: 'Change', exact: true }).tap();
-  await rafi
+  await page
+    .getByRole('dialog', { name: 'Rafi’s plan' })
     .getByRole('group', { name: /Station/ })
     .getByRole('button', { name: /oven/i })
     .tap();
