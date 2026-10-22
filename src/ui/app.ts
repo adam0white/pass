@@ -5,6 +5,7 @@
  */
 
 import { FRAMEWORK_VERSION, readPerson } from '@adam0white/human-framework';
+import { PRIVACY_URL } from '@adam0white/lab-client';
 import { telemetryToggle } from '@adam0white/lab-kit';
 import {
   isLastOfWeek,
@@ -259,7 +260,7 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu</h2><button id="menu-close" aria-label="Close menu">×</button></div><p class="soft">${s ? `${esc(weekTitle(s.night))} · ${clock(s.minute)}` : 'The Pass'}</p><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save the kitchen. Keep a copy through Send word.' : 'The kitchen waits while this menu is open.') : 'The kitchen is closed.'}</p><div class="menu-rows"><button id="send-run" ${s ? '' : 'disabled'}>Send word</button><button id="full-screen">Full screen</button><button id="to-title">To the title page</button><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"></div><button class="primary" id="menu-back">Back to the kitchen</button>`;
+  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title.slice(0, 3))} wk ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save the kitchen. Keep a copy through Send word.' : 'The kitchen waits while this menu is open.') : 'The kitchen is closed.'}</p><div class="menu-rows"><button id="send-run" ${s ? '' : 'disabled'}>Send word</button><button id="full-screen">Full screen</button><button id="to-title">To the title page</button><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Back to the kitchen</button>`;
   let replacing = false;
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -291,7 +292,7 @@ function openGameMenu() {
       },
     });
   });
-  dialog.querySelector('#record-controls')?.append(telemetryToggle(lab));
+  dialog.querySelector('#record-controls')?.prepend(telemetryToggle(lab));
   document.body.append(dialog);
   dialog.showModal();
 }
