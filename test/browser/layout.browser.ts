@@ -45,3 +45,32 @@ test('automatic service holds for information and queues a held job as insist', 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3')!));
   expect(saved.inputs.at(-1)).toMatchObject({ kind: 'ask', verb: 'eat', insist: true });
 });
+
+test('an oven-night job grid shows its last job above the pinned reply', async ({ page }) => {
+  const { beginAtWeekTwo } = await import('../../src/sim/firstweek.ts');
+  const { step } = await import('../../src/sim/kitchen.ts');
+  const s = beginAtWeekTwo(42);
+  queueInput(s, { kind: 'open' });
+  queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+  queueInput(s, { kind: 'open' });
+  while (s.phase === 'service') step(s);
+  queueInput(s, { kind: 'open' });
+  queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+  queueInput(s, { kind: 'open' });
+  await page.addInitScript(
+    (save) => {
+      localStorage.setItem('hf-lab-recording-off', '1');
+      localStorage.setItem('pass-save-v3', JSON.stringify(save));
+    },
+    { game: s.version, seed: s.seed, inputs: s.inputs, minute: s.minute, pages: [] },
+  );
+  await page.goto('/');
+  await page.locator('#cont').click();
+  await page.locator('.crew button').first().click();
+  await page.locator('[data-v="eat"]').click();
+  await expect(page.locator('.panel-reply')).not.toBeEmpty({ timeout: 25000 });
+  await expect(page.locator('.verbs button')).toHaveCount(7);
+  const grid = (await page.locator('.verbs').boundingBox())!;
+  const last = (await page.locator('.verbs button').last().boundingBox())!;
+  expect(last.y + last.height).toBeLessThanOrEqual(grid.y + grid.height);
+});

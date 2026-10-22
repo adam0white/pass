@@ -467,3 +467,9 @@ button.chosen {
     top: 56px;
   }
 }
+.people-service.inspecting .sheet {
+  gap: 0;
+}
+.people-service.inspecting .verbs {
+  padding-top: 0;
+}
