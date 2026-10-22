@@ -959,6 +959,10 @@ function service() {
   raf = requestAnimationFrame(frame);
 }
 
+function livePlayback(st: GameState, view: { reading: boolean; inspecting: boolean }) {
+  return peopleRun(st) ? automaticClockPlayback(st, view) : automaticClockPlayback(st, view, speed);
+}
+
 function frame(t: number) {
   if (!s) return;
   const elapsed = Math.max(0, t - last);
@@ -970,7 +974,7 @@ function frame(t: number) {
     for (const bubble of Object.values(bubbles)) if (bubble.until > t - elapsed) bubble.until += elapsed;
   }
   if (s.phase === 'service' && !held) {
-    const { rate } = automaticClockPlayback(s, { reading: t < readingUntil, inspecting: selected !== null });
+    const { rate } = livePlayback(s, { reading: t < readingUntil, inspecting: selected !== null });
     carry += dt * rate;
     let stepped = false;
     while (carry >= 1 && s.phase === 'service') {
@@ -982,7 +986,7 @@ function frame(t: number) {
         (line) => line.who !== 'narrator' && line.kind !== 'journal',
       );
       if (speaking) readingUntil = t + READING_MS;
-      const next = automaticClockPlayback(s, { reading: speaking, inspecting: selected !== null });
+      const next = livePlayback(s, { reading: speaking, inspecting: selected !== null });
       if (speaking || next.rate < rate) {
         // Carry earned through an empty stretch cannot cross the first conversation or decision.
         carry = 0;
