@@ -254,6 +254,13 @@ export function continuity(
       const claim = await createPersona({
         ...body,
         parentRevision: revision,
+        transfer: {
+          ...body.transfer,
+          admission: {
+            ...((body.transfer.admission as Record<string, unknown>) ?? {}),
+            claimId: crypto.randomUUID(),
+          },
+        },
         source: {
           game: 'pass',
           build: lab.build().c ?? 'local',

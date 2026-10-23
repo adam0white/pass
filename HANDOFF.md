@@ -14,7 +14,7 @@ A return needs this browser’s original departure notebook, its exact source en
 
 Pass@3–11 remain loadable in their original edition. Loading a run never converts it automatically. HF engine stamps advance to 2.14.1; legacy tests normalize that metadata while pinning old behavior. The owner notebook was compared field by field with HF2.13.0: only engine stamps differed.
 
-Exact dependencies: HF2.15.0, vendor client0.3.0 and kit0.4.0. The tarballs match the shared artifact SHA256 manifest. No workspace symlinks are used. Cross-device recovery and server state are outside this increment.
+Exact dependencies: HF2.15.0, vendor client0.3.1 and kit0.4.0. The tarballs match the shared artifact SHA256 manifest. Coordination required client0.3.1 to correct non-head duplicate CAS admission; the original0.3.0 tarball is retained unchanged and unused. No workspace symlinks are used. Cross-device recovery and server state are outside this increment.
 
 ## Checks and delivery
 
