@@ -442,9 +442,14 @@ button.chosen {
   font-weight: 400;
 }
 #record-controls {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+}
+#record-controls section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
 }
 #record-controls label {
   display: flex;
@@ -453,8 +458,8 @@ button.chosen {
   min-height: 44px;
 }
 #record-controls a {
-  margin-left: auto;
-  white-space: nowrap;
+  margin-left: 0;
+  white-space: normal;
   font-size: 12px;
 }
 @media (min-width: 900px) {
