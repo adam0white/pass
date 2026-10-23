@@ -1440,7 +1440,7 @@ function drawCaption() {
   }
   const taken = s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
   const canTake = a.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
-  el.innerHTML = `${handover}<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(gloss(a.text))}”</span>${canTake ? `<button data-counter="${a.counter}">Take it: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
+  el.innerHTML = `${handover}<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(gloss(a.text))}”</span>${canTake ? `<button data-counter="${a.counter}">${peopleRun(s) ? `Ask ${esc(nameOf(s, a.who))}` : 'Take it'}: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
 }
 
 function select(id: CookId | null) {
@@ -1616,13 +1616,13 @@ function drawSheet() {
     sheetKey = key;
     const lineHTML = (x: Said) =>
       x.who === 'narrator'
-        ? `<div>${esc(gloss(journalWords(st, x)))}</div>`
-        : `<div class="hand">${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`;
-    const opening = lines.filter((x) => x.at === openAt(st.night) - 5);
+        ? `<div>${peopleRun(st) ? `<time>${clock(x.at)}</time> ` : ''}${esc(gloss(journalWords(st, x)))}</div>`
+        : `<div class="hand">${peopleRun(st) ? `<time>${clock(x.at)}</time> ` : ''}${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`;
+    const opening = lines.filter((x) => x.at === openAt(st.night) - 5 && x.who === 'narrator');
     const legacyOpening = st.night === 1 && lines.slice(-3).every((x) => x.at === openAt(1) - 5);
     const journal = peopleRun(st)
-      ? `${opening.length ? `<details><summary>Opening notes</summary>${opening.map(lineHTML).join('')}</details>` : ''}${lines
-          .filter((x) => x.at !== openAt(st.night) - 5)
+      ? `<div class="journal-heading">Tonight’s journal · earlier words</div>${opening.length ? `<details><summary>Opening notes</summary>${opening.map(lineHTML).join('')}</details>` : ''}${lines
+          .filter((x) => x.at !== openAt(st.night) - 5 || x.who !== 'narrator')
           .map(lineHTML)
           .join('')}`
       : `${legacyOpening ? '<details><summary>Opening notes</summary>' : ''}${lines.slice(-3).map(lineHTML).join('')}${legacyOpening ? '</details>' : ''}`;
@@ -1641,7 +1641,12 @@ function drawSheet() {
   const queued = st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected);
   const waiting = !!c.pending || queued;
   const absent = !c.here || c.gone;
-  const answer = st.lastAnswer?.who === selected ? st.lastAnswer : null;
+  const answer =
+    st.lastAnswer?.who === selected
+      ? st.lastAnswer
+      : peopleRun(st)
+        ? st.said.findLast((line) => line.who === selected && line.kind === 'answer')
+        : null;
   const key = `c${selected}${h.at}${waiting}${absent}${doing}${st.inputs.length}${answer?.at}${answer?.text}`;
   if (sheetKey === key) return;
   sheetKey = key;
@@ -1649,7 +1654,7 @@ function drawSheet() {
   renderPanel(
     el,
     `${crewHeader()}
-    <div class="station-duration">${esc(absent ? `${m.name} has left. Ask again next service.` : (pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''))}</div>
+    <div class="station-duration">${esc(absent ? `${m.name} has left. Ask again next service.` : `${peopleRun(st) && !stationOf(st, selected) ? `Now: ${doing} · ${WHERE[placeOf(selected)] ?? 'free'}. ` : ''}${pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''}`)}</div>
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>

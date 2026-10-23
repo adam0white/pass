@@ -252,7 +252,8 @@ button.chosen {
   align-items: center;
 }
 .people-service .crew button {
-  flex: 0 0 auto;
+  flex: 0 0 108px;
+  width: 108px;
   min-height: 44px;
   padding: 3px 9px;
   font-size: 14px;
@@ -472,4 +473,15 @@ button.chosen {
 }
 .people-service.inspecting .verbs {
   padding-top: 0;
+}
+
+.people-service .journal-heading,
+.people-service .journal time {
+  font-family: sans-serif;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.people-service.inspecting .station-duration {
+  max-height: 40px;
+  overflow: auto;
 }
