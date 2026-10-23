@@ -17,10 +17,11 @@ import {
   step,
 } from '../src/sim/kitchen.ts';
 import owner from './fixtures/owner-r-eezsdpskcr.json';
+import { legacyState } from './hash.ts';
 
 it('runs new service through people and dispatches finished food without a table call', () => {
   const s = newGame(42);
-  expect(s.version).toBe('pass@11');
+  expect(s.version).toBe('pass@12');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   for (let i = 0; i < 120 && !s.tickets.some((t) => t.status === 'served'); i++) step(s);
@@ -72,7 +73,7 @@ it('loads the owner notebook exactly, migrates once, and replays the continued h
   );
   expect(
     createHash('sha256')
-      .update(JSON.stringify(cloneState(s)))
+      .update(JSON.stringify(legacyState(s, '2.13.0')))
       .digest('hex'),
   ).toBe(owner.stateSha256);
   expect(continueThroughPeople(s)).toBe(true);

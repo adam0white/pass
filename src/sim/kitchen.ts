@@ -86,12 +86,13 @@ import {
   suggestionWords,
   VERB_WORD,
 } from './lines.ts';
+import { releaseZeynepStint } from './one-cast.ts';
 import { hashUnit } from './rng.ts';
 
-export const GAME_VERSION = 'pass@11';
+export const GAME_VERSION = 'pass@12';
 /** New services run through the crew. Historical inputs keep their original rules until migration. */
 export const peopleRun = (s: Pick<GameState, 'version' | 'peopleRun'>) =>
-  s.version === 'pass@11' || s.peopleRun === true;
+  ['pass@11', 'pass@12'].includes(s.version) || s.peopleRun === true;
 const portionEdition = (s: GameState) => !peopleRun(s) && (s.version === 'pass@8' || promisesOn(s));
 const handsOn = (s: GameState) => !peopleRun(s) && (s.version === 'pass@7' || portionEdition(s));
 const chefEdition = (s: GameState) => !peopleRun(s) && (s.version === 'pass@6' || handsOn(s));
@@ -140,6 +141,7 @@ export interface StaffingDecision {
 }
 export type Input =
   | { at: number; kind: 'people-run' }
+  | { at: number; kind: 'zeynep-release' }
   | { at: number; kind: 'board'; rows: BoardRow[] }
   | { at: number; kind: 'staff'; id: number; cover: CookId | null }
   | { at: number; kind: 'ask'; cook: CookId; verb: Verb; insist?: boolean; counter?: boolean }
@@ -359,7 +361,8 @@ export interface GameState {
   peopleRun?: boolean;
   seed: number;
   night: number;
-  phase: 'board' | 'service' | 'evening' | 'sunday' | 'end';
+  phase: 'board' | 'service' | 'evening' | 'sunday' | 'end' | 'return';
+  returnChapter?: import('./continuation.ts').ReturnChapter;
   board?: { rows: BoardRow[]; agreed: boolean };
   previousBoard?: BoardRow[];
   staffing?: StaffingDecision[];
@@ -1006,7 +1009,8 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
         verb,
         verdict: g.resolution.verdict,
         says:
-          (['pass@10', 'pass@11'].includes(s.version) && answerWords(s, p, g.resolution, verb)?.text) ||
+          (['pass@10', 'pass@11', 'pass@12'].includes(s.version) &&
+            answerWords(s, p, g.resolution, verb)?.text) ||
           g.resolution.says,
         short: crewShort(s, id, verb, offers) ?? shortOf(g.resolution, s, p, verb),
         guess: g.confidence < 0.6,
@@ -1016,7 +1020,8 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
     return {
       verb,
       verdict: r.verdict,
-      says: (['pass@10', 'pass@11'].includes(s.version) && answerWords(s, p, r, verb)?.text) || r.says,
+      says:
+        (['pass@10', 'pass@11', 'pass@12'].includes(s.version) && answerWords(s, p, r, verb)?.text) || r.says,
       short: crewShort(s, id, verb, offers) ?? shortOf(r, s, p, verb),
       guess: false,
     };
@@ -1059,7 +1064,7 @@ function answerWords(s: GameState, p: Person, r: SuggestionResolution, verb: Ver
 }
 
 function shortOf(r: SuggestionResolution, s: GameState, p: Person, verb: Verb): string {
-  if (['pass@10', 'pass@11'].includes(s.version)) {
+  if (['pass@10', 'pass@11', 'pass@12'].includes(s.version)) {
     const words = answerWords(s, p, r, verb);
     if (words) return words.short;
   }
@@ -1117,6 +1122,9 @@ function apply(s: GameState, inp: Input) {
   )
     return;
   switch (inp.kind) {
+    case 'zeynep-release':
+      releaseZeynepStint(s);
+      return;
     case 'people-run':
       migrateToPeople(s);
       return;
@@ -1811,7 +1819,9 @@ function answered(
   if (r.verdict === 'assented') c.night.assented += 1;
   const verb = voice.verb;
   const previousBreak = c.breakDeferred;
-  const reason = ['pass@10', 'pass@11'].includes(s.version) ? answerWords(s, p, r, voice.verb) : null;
+  const reason = ['pass@10', 'pass@11', 'pass@12'].includes(s.version)
+    ? answerWords(s, p, r, voice.verb)
+    : null;
   let text = reason?.text ?? r.says;
   let counter: Verb | undefined;
   const crewRule =
@@ -1847,7 +1857,7 @@ function answered(
       ...(reason ? { reason: reason.text, short: reason.short } : {}),
     };
     if (
-      ['pass@10', 'pass@11'].includes(s.version) &&
+      ['pass@10', 'pass@11', 'pass@12'].includes(s.version) &&
       previousBreak?.verb === verb &&
       s.minute < previousBreak.endsAt
     )
@@ -1862,7 +1872,7 @@ function answered(
     // Still the same no as on the break: say so, rather than a new reason that doesn't fit.
     const on = p.activity?.affordanceId;
     const came = on && on in VERB_WORD ? ` for ${VERB_WORD[on]}` : '';
-    text = ['pass@10', 'pass@11'].includes(s.version)
+    text = ['pass@10', 'pass@11', 'pass@12'].includes(s.version)
       ? (c.breakDeferred.reason ?? reason?.text ?? 'Not now, Chef.')
       : `I came off my ${c.breakDeferred.rest}${came}. ${capital(VERB_WORD[verb] ?? verb)}, not yet.`;
   } else if (
@@ -2671,10 +2681,18 @@ export interface Export {
   seed: number;
   inputs: Input[];
   state: GameState;
+  returnChapter?: import('./continuation.ts').ReturnChapter;
 }
 
 export function exportRun(s: GameState, framework: string): Export {
-  return { game: s.version, framework, seed: s.seed, inputs: s.inputs, state: cloneState(s) };
+  return {
+    game: s.version,
+    framework,
+    seed: s.seed,
+    inputs: s.inputs,
+    state: cloneState(s),
+    ...(s.returnChapter ? { returnChapter: structuredClone(s.returnChapter) } : {}),
+  };
 }
 
 export function cloneState(s: GameState): GameState {
@@ -2720,6 +2738,7 @@ export function replay(
 
 /** Whether an export or save can be replayed by this edition of the game. */
 export const canReplay = (game: string | undefined): boolean =>
+  game === 'pass@12' ||
   game === 'pass@11' ||
   game === 'pass@10' ||
   game === 'pass@9' ||
@@ -3003,8 +3022,9 @@ function takeStation(
   const rec = decide(p, offers, { suggestion: suggestion(station) });
   const r = rec.suggestion;
   const says = r
-    ? ((['pass@10', 'pass@11'].includes(s.version) ? suggestionWords(p, r, station)?.text : undefined) ??
-      r.says)
+    ? ((['pass@10', 'pass@11', 'pass@12'].includes(s.version)
+        ? suggestionWords(p, r, station)?.text
+        : undefined) ?? r.says)
     : 'No, Chef.';
   const aff = offers.find((a) => a.id === station);
   const accepted = !!aff && rec.chosenAffordanceId === station && r?.verdict === 'assented';
@@ -3084,7 +3104,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     row.coverAccepted = rec.chosenAffordanceId === row.station && rec.suggestion?.verdict === 'assented';
     const answer = rec.suggestion;
     const says = answer
-      ? ((['pass@10', 'pass@11'].includes(s.version)
+      ? ((['pass@10', 'pass@11', 'pass@12'].includes(s.version)
           ? suggestionWords(p, answer, row.station)?.text
           : undefined) ?? answer.says)
       : 'No.';
@@ -3573,7 +3593,7 @@ export const PROMISE_EDITION = 'pass@9';
 /** pass@9: share of the till left after a paid bill that next week's creditor adds, having seen the queue. */
 export const SEEN_SHARE = 0.5;
 export const promisesOn = (s: Pick<GameState, 'version'>): boolean =>
-  s.version === PROMISE_EDITION || ['pass@10', 'pass@11'].includes(s.version);
+  s.version === PROMISE_EDITION || ['pass@10', 'pass@11', 'pass@12'].includes(s.version);
 
 /** The Sunday card for one offered party. */
 export function partyCard(s: GameState, party: string): PartyCard | null {

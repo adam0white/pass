@@ -18,6 +18,7 @@ import {
   WEEKDAYS,
   weekOf,
 } from '../sim/campaign.ts';
+import { prepareReturn, replayExport, validateReplayFile } from '../sim/continuation.ts';
 import { type CookId, hireTemplate, STATIONS, type Station } from '../sim/cooks.ts';
 import { beginAtWeekTwo, firstPartyBoard, HANDOVER_LEAD, runToSeating } from '../sim/firstweek.ts';
 import {
@@ -28,13 +29,11 @@ import {
   canReplay,
   chefLine,
   closeAt,
-  continueThroughPeople,
   cookingChoice,
   cookingStep,
   cookOf,
   coverLine,
   type Export,
-  exportRun,
   fingerprint,
   GAME_VERSION,
   type GameState,
@@ -50,7 +49,6 @@ import {
   onShift,
   openAt,
   owed,
-  PEOPLE_RUN_NOTE,
   partiesTonight,
   partyCard,
   pendingCoverLine,
@@ -70,8 +68,10 @@ import {
   trustOf,
   type Verb,
 } from '../sim/kitchen.ts';
+import { zeynepDepartureStatus } from '../sim/one-cast.ts';
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
 import { automaticClockPlayback, SPEED_NAMES } from './clock.ts';
+import { type ContinuitySave, continuity, guardedContinuity } from './continuity.ts';
 import { portionEdition } from './editions.ts';
 import { openFeedback } from './feedback.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
@@ -95,6 +95,8 @@ let firstPartyStart = false;
 let partyHandover: PartyStart | null = null;
 
 interface Save {
+  continuity?: ContinuitySave;
+  returnChapter?: Export['returnChapter'];
   firstPartyStart?: boolean;
   partyHandover?: PartyStart | null;
   game: string;
@@ -124,11 +126,14 @@ let menuOpen = false;
 let menuOrigin: HTMLElement | null = null;
 let boardActionsObserver: ResizeObserver | null = null;
 
-// Full replay snapshots and narration stay outside the deterministic simulation.
-lab.trackRun(() => (s ? exportRun(s, FRAMEWORK_VERSION) : null), {
-  runKey: () => s?.seed ?? 'title',
-  getLogs: () => s?.said.slice(-40).map((line) => line.text) ?? [],
-});
+const cast = continuity(
+  () => s,
+  () => writeSave(),
+  (state) => {
+    s = state;
+    enter();
+  },
+);
 
 // ---------- save ----------
 
@@ -164,6 +169,8 @@ function writeSave() {
       pages,
       firstPartyStart,
       partyHandover,
+      continuity: cast.data(),
+      returnChapter: s.returnChapter,
     };
     localStorage.setItem(SAVE, JSON.stringify(sv));
     lab.captureSave(structuredClone(sv));
@@ -284,7 +291,7 @@ function openGameMenu() {
     dialog.close();
     openFeedback({
       lab,
-      getRun: () => (s ? exportRun(s, FRAMEWORK_VERSION) : null),
+      getRun: () => cast.run(),
       download,
       onBack: () => {
         menuOpen = false;
@@ -292,7 +299,7 @@ function openGameMenu() {
       },
     });
   });
-  dialog.querySelector('#record-controls')?.prepend(telemetryToggle(lab));
+  dialog.querySelector('#record-controls')?.prepend(telemetryToggle(lab), cast.controls());
   document.body.append(dialog);
   dialog.showModal();
 }
@@ -313,7 +320,11 @@ function billNow(st: GameState): number {
 
 // ---------- title ----------
 
-export function start() {
+export async function start() {
+  await cast.ready;
+  await cast.restore();
+  cast.track();
+  cast.startWatching();
   if ('serviceWorker' in navigator && location.hostname !== 'localhost')
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   title();
@@ -339,6 +350,7 @@ function title() {
         <label><input type="radio" name="pace" value="nevin" /><span>Selim: “I hope the regulars give us time.”<small>More time to get the lamb right. Nevin’s pace lasts all month.</small></span></label>
         <label><input type="radio" name="pace" value="normal" checked /><span>Dilek: “Leave it as it is.”<small>The usual wait. Learn the rush with the regulars watching.</small></span></label>
       </fieldset>
+      <button id="fresh-authored">Begin a fresh kitchen without a returning person</button>
       <button id="other-ways" aria-haspopup="dialog">Other ways in</button>
       <p id="title-status" role="status" aria-live="polite"></p>
       <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this notebook</button></div></div>
@@ -384,15 +396,20 @@ function title() {
   });
   document.getElementById('other-ways')?.addEventListener('click', () => sheet.showModal());
   document.getElementById('close-other-ways')?.addEventListener('click', () => sheet.close());
-  document.getElementById('cont')?.addEventListener('click', () => {
+  document.getElementById('cont')?.addEventListener('click', async () => {
     if (!save) return;
-    firstPartyStart = save.firstPartyStart ?? false;
-    partyHandover = save.partyHandover ?? null;
-    pages = save.pages ?? [];
-    s = replay(save.seed, save.inputs, save.minute, save.game);
-    const migrated = !['pass@6', 'pass@7'].includes(s.version) && continueThroughPeople(s);
-    if (migrated) writeSave();
-    enterWithStatus(migrated ? PEOPLE_RUN_NOTE : '');
+    try {
+      const restored = await validateReplayFile(save);
+      await cast.restore(guardedContinuity(restored, save.continuity));
+      firstPartyStart = save.firstPartyStart ?? false;
+      partyHandover = save.partyHandover ?? null;
+      pages = save.pages ?? [];
+      s = restored;
+      cast.track();
+      enterWithStatus();
+    } catch {
+      status('This notebook could not be validated. It remains saved; a fresh kitchen is available.');
+    }
   });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-page]'))
     b.addEventListener('click', () => {
@@ -401,30 +418,44 @@ function title() {
       const page = save.pages.find((p) => p.week === week);
       if (!page) return;
       ask(`Turn back to Sunday of week ${week}? Everything after that page is torn out.`, () => {
-        firstPartyStart = save.firstPartyStart ?? false;
-        partyHandover = null;
-        pages = save.pages.filter((p) => p.week <= week);
-        s = replay(save.seed, save.inputs.slice(0, page.k), undefined, save.game);
-        const migrated = !['pass@6', 'pass@7'].includes(s.version) && continueThroughPeople(s);
-        writeSave();
-        enterWithStatus(migrated ? PEOPLE_RUN_NOTE : '');
+        void (async () => {
+          const restored = replayExport({
+            ...save,
+            inputs: save.inputs.slice(0, page.k),
+            minute: undefined,
+          } as unknown as Export);
+          await cast.restore(guardedContinuity(restored, save.continuity));
+          firstPartyStart = save.firstPartyStart ?? false;
+          partyHandover = null;
+          pages = save.pages.filter((p) => p.week <= week);
+          s = restored;
+          cast.track();
+          writeSave();
+          enterWithStatus();
+        })().catch(() => status('That Sunday page could not be validated.'));
       });
     });
-  const begin = (secondWeek: boolean, firstParty = false) => {
+  const begin = (secondWeek: boolean, firstParty = false, authored = false) => {
     const start = () => {
-      const nevin = app.querySelector<HTMLInputElement>('input[name="pace"]:checked')?.value === 'nevin';
-      clearSave();
-      firstPartyStart = firstParty;
-      const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
-      s = secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed);
-      if (!secondWeek && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
-      writeSave();
-      enter();
+      void (async () => {
+        const nevin = app.querySelector<HTMLInputElement>('input[name="pace"]:checked')?.value === 'nevin';
+        const returning = !secondWeek && !authored ? await cast.fresh(prepareReturn) : null;
+        if (secondWeek || authored) await cast.restore();
+        clearSave();
+        firstPartyStart = firstParty;
+        const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+        s = returning ?? (secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed));
+        cast.track();
+        if (!secondWeek && !returning && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
+        writeSave();
+        enterWithStatus(cast.message);
+      })().catch(() => status('This notebook could not be opened.'));
     };
     if (save) ask('Start a new notebook? This one is put away for good.', start);
     else start();
   };
   document.getElementById('new')?.addEventListener('click', () => begin(false));
+  document.getElementById('fresh-authored')?.addEventListener('click', () => begin(false, false, true));
   document.getElementById('week-two')?.addEventListener('click', () => begin(true));
   document.getElementById('first-party')?.addEventListener('click', () => begin(true, true));
   const file = document.getElementById('file') as HTMLInputElement;
@@ -441,22 +472,26 @@ function title() {
         );
         return;
       }
-      const r = replay(ex.seed, ex.inputs, ex.state?.minute ?? ex.minute, ex.game);
+      const r = await validateReplayFile(ex);
       const same = ex.state ? fingerprint(r) === fingerprint(ex.state) : true;
       const load = () => {
-        s = r;
-        const migrated = !['pass@6', 'pass@7'].includes(s.version) && continueThroughPeople(s);
-        firstPartyStart = false;
-        partyHandover = null;
-        pages = [];
-        writeSave();
-        enterWithStatus(
-          migrated
-            ? PEOPLE_RUN_NOTE
-            : same
-              ? 'Replayed the run: it matches the exported state.'
-              : 'Replayed the run, but it differs from the export.',
-        );
+        void (async () => {
+          if (!same) {
+            status('The replay differs from the exported state. This file was not loaded.');
+            return;
+          }
+          await cast.restore(
+            guardedContinuity(r, (ex as Export & { continuity?: ContinuitySave }).continuity),
+            true,
+          );
+          s = r;
+          cast.track();
+          firstPartyStart = false;
+          partyHandover = null;
+          pages = [];
+          writeSave();
+          enterWithStatus('Replayed the run: it matches the exported state.');
+        })().catch(() => status('That file could not be validated.'));
       };
       if (save) ask('Load this run? It replaces the saved notebook.', load);
       else load();
@@ -470,7 +505,9 @@ function title() {
 function replayNight(sv: Save): number {
   let n = 1;
   let sunday = false;
-  let atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(sv.game);
+  let atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11', 'pass@12'].includes(
+    sv.game,
+  );
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
     if (atBoard) {
@@ -481,7 +518,9 @@ function replayNight(sv: Save): number {
     else {
       sunday = false;
       n = Math.min(LAST_NIGHT, n + 1);
-      atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(sv.game);
+      atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11', 'pass@12'].includes(
+        sv.game,
+      );
     }
   }
   return n;
@@ -491,7 +530,8 @@ function enter() {
   if (!s) return;
   boardActionsObserver?.disconnect();
   shownSaid = s.said.at(-1);
-  if (s.phase === 'service') service();
+  if (s.phase === 'return') returnPage();
+  else if (s.phase === 'service') service();
   else if (s.phase === 'board') board();
   else if (s.phase === 'sunday') sunday();
   else if (s.phase === 'end') ending();
@@ -1968,6 +2008,7 @@ function evening() {
   if (!r) return;
   lab.screen(`night ${r.night}: evening`);
   lab.milestone(`service ${r.night} done`);
+  void cast.checkpoint();
   const next = r.night < LAST_NIGHT ? planOf(r.night + 1) : null;
   const total = r.served + r.walked;
   const plates = Array.from({ length: total }, (_, i) =>
@@ -2050,12 +2091,20 @@ function evening() {
     ${bill}${r.bill?.promiseBroken ? '<p>A promise broken this week: one strike.</p>' : ''}
     ${tonight ? `<p class="soft">In the notebook tonight:</p>${tonight}` : ''}
     ${jarChoice}
+    ${zeynepDepartureStatus(st).canRelease ? '<section class="card"><p>Zeynep’s stint can end here. Chef can release her remaining kitchen shifts.</p><button id="zeynep-release">Chef: “Your shifts here are finished, Zeynep.”</button></section>' : ''}
     </div>
     <div class="actions">
       ${nextBtn}
       ${!ended && !toSunday && !st.lost && next ? `<p class="soft" style="font-size:15px">${esc(next.intro.at(-1) ?? '')}</p>` : ''}
     </div>
   </div>`;
+  document.getElementById('zeynep-release')?.addEventListener('click', () => {
+    queueInput(st, { kind: 'zeynep-release' });
+    writeSave();
+    lab.milestone('zeynep source released');
+    void cast.checkpoint();
+    evening();
+  });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-jar]'))
     b.addEventListener('click', () => {
       queueInput(st, { kind: 'jar', choice: b.dataset.jar as 'move' | 'talk' | 'leave' });
@@ -2104,6 +2153,7 @@ function sunday() {
   const pg = st.sunday as NonNullable<GameState['sunday']>;
   lab.screen('sunday');
   lab.milestone(`week ${pg.week} done`);
+  void cast.checkpoint();
   cancelAnimationFrame(raf);
   writeSave();
   const nextWeek = pg.week < 4 ? weekOf(pg.week + 1) : null;
@@ -2321,11 +2371,7 @@ function ending() {
   </div>`;
   document.getElementById('export')?.addEventListener('click', download);
   document.getElementById('send')?.addEventListener('click', sendRun);
-  document.getElementById('again')?.addEventListener('click', () => {
-    clearSave();
-    s = newGame((Date.now() ^ (Math.random() * 1e9)) >>> 0);
-    enter();
-  });
+  document.getElementById('again')?.addEventListener('click', () => title());
   window.scrollTo(0, 0);
 }
 
@@ -2334,7 +2380,7 @@ function sendRun() {
   menuOpen = true;
   openFeedback({
     lab,
-    getRun: () => (s ? exportRun(s, FRAMEWORK_VERSION) : null),
+    getRun: () => cast.run(),
     download,
     onBack: () => {
       menuOpen = false;
@@ -2345,13 +2391,25 @@ function sendRun() {
 
 function download() {
   if (!s) return;
-  const ex = exportRun(s, FRAMEWORK_VERSION);
+  const ex = cast.run();
   const blob = new Blob([JSON.stringify(ex)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `the-pass-${s.seed}-night${s.night}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function returnPage() {
+  if (!s?.returnChapter) return;
+  cancelAnimationFrame(raf);
+  app.innerHTML = `<div class="page"><div class="page-body">${topBar('Zeynep returns', 'end')}
+    <h1>Zeynep returns</h1><p>Her cold-food trial is over. What she learned stays with her. Her sons still expect her home each evening.</p>
+    <p>${esc(String((s.returnChapter.envelope.transfer.history as { id: string; summary: string }[]).find((f) => f.id === 'goodhands-encounter')?.summary ?? 'The household answer remains in this chapter’s notebook.'))}</p><p>Chef has released her kitchen shifts. This chapter gives her no new job.</p>
+    <div class="actions"><button id="export">Download this chapter</button><button id="send">Send word</button><button id="fresh">Begin a fresh kitchen</button></div></div></div>`;
+  document.getElementById('export')?.addEventListener('click', download);
+  document.getElementById('send')?.addEventListener('click', sendRun);
+  document.getElementById('fresh')?.addEventListener('click', () => title());
 }
 
 // ---------- phone niceties ----------
