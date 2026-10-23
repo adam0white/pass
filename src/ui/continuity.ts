@@ -225,6 +225,39 @@ export function continuity(
       /* A stale epoch cannot be refreshed under an earlier choice. */
     }
   }
+  async function retainChoice(envelope: PersonaEnvelope, allowRecording: boolean) {
+    const epoch = generation;
+    const choice = gateGeneration;
+    // This identity is observed at the explicit choice, after local approval opens
+    // the gate. It cannot be substituted by a later central query's identity.
+    const approvedPlayer = allowRecording ? lab.playerId : null;
+    const expectedEpoch = allowRecording ? await epochFor(approvedPlayer) : null;
+    const current = () =>
+      epoch === generation &&
+      choice === gateGeneration &&
+      (!allowRecording ||
+        (expectedEpoch !== null && lab.personaRecordingAllowed && lab.playerId === approvedPlayer));
+    if (!current()) return;
+    try {
+      const association = await shelf.request<{
+        branchId?: string;
+        revision?: string;
+        recordingEpoch?: string;
+      }>({ action: 'recording', castId: envelope.castId, envelope });
+      if (
+        !current() ||
+        association.branchId !== envelope.branchId ||
+        association.revision !== envelope.revision ||
+        typeof association.recordingEpoch !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(association.recordingEpoch) ||
+        (allowRecording && association.recordingEpoch !== expectedEpoch)
+      )
+        return;
+      await retainRecording(envelope, allowRecording, { token: association.recordingEpoch, choice });
+    } catch {
+      /* Local choice remains available when the shared bridge is absent. */
+    }
+  }
   async function accepted(
     envelope: PersonaEnvelope,
     epoch = generation,
@@ -523,10 +556,8 @@ export function continuity(
       },
       recordingAllowed: lab.personaRecordingAllowed,
       allowRecording: (value) => {
-        const prior = recordingAck?.choice === gateGeneration ? recordingAck : null;
         const choice = ++gateGeneration;
-        const ack = prior ? { ...prior, choice } : null;
-        recordingAck = ack;
+        recordingAck = null;
         const epoch = generation;
         const key = pinned?.branchId ?? recordingKey;
         const player = lab.playerId;
@@ -538,52 +569,22 @@ export function continuity(
         if (!value) {
           fileUnlinked = true;
           lab.allowPersonaRecording(false);
-          if (pinned) void retainRecording(pinned, false, ack?.revision === pinned.revision ? ack : null);
+          if (pinned) void retainChoice(pinned, false);
           save();
           return;
         }
         if (!key) return;
-        // Local approval is synchronous. Central approval requires the bridge to
-        // acknowledge the exact pinned selector first; older bridges stay local.
+        // Local approval is synchronous. Its exact recording identity binds the
+        // subsequent central query and grant; older bridges stay local.
         if (current()) {
           fileUnlinked = false;
           lab.allowPersonaRecording(true);
-          if (pinned) void retainRecording(pinned, true, ack?.revision === pinned.revision ? ack : null);
+          if (pinned) void retainChoice(pinned, true);
           save();
           emit();
         }
       },
     });
-    if (pinned && (!recordingAck || recordingAck.revision !== pinned.revision)) {
-      const selected = pinned;
-      const choice = gateGeneration;
-      const epoch = generation;
-      const button = Array.from(section.querySelectorAll('button')).find(
-        (b) => b.textContent === 'Record this continuing person',
-      );
-      if (button) button.disabled = true;
-      void shelf
-        .request<{ branchId?: string; revision?: string; recordingEpoch?: string }>({
-          action: 'recording',
-          castId: selected.castId,
-          envelope: selected,
-        })
-        .then((association) => {
-          if (choice !== gateGeneration || epoch !== generation || pinned?.revision !== selected.revision)
-            return;
-          if (
-            association.branchId === selected.branchId &&
-            association.revision === selected.revision &&
-            typeof association.recordingEpoch === 'string' &&
-            /^[a-f0-9]{64}$/.test(association.recordingEpoch)
-          )
-            recordingAck = { token: association.recordingEpoch, revision: selected.revision, choice };
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (button && choice === gateGeneration && epoch === generation) button.disabled = false;
-        });
-    }
     const status = document.createElement('p');
     status.setAttribute('role', 'status');
     status.textContent = message;

@@ -7,6 +7,7 @@ const FIXTURE_EPOCH = createHash('sha256').update('hf-recording-epoch/1:fixture-
 
 const mocks = vi.hoisted(() => ({
   shelf: { ready: Promise.resolve(true), enabled: true, request: vi.fn(), setEnabled: vi.fn() },
+  controls: {} as { allowRecording?: (value: boolean) => void },
   lab: {
     trackRun: vi.fn(() => vi.fn()),
     setPersonaRecording: vi.fn(),
@@ -21,6 +22,12 @@ vi.mock('@adam0white/lab-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@adam0white/lab-client')>()),
   personaChannel: () => mocks.shelf,
   watchPersonaCheckpoint: vi.fn(),
+}));
+vi.mock('@adam0white/lab-kit', () => ({
+  personaControls: (options: { allowRecording: (value: boolean) => void }) => {
+    mocks.controls = options;
+    return document.createElement('section');
+  },
 }));
 vi.mock('../src/ui/lab.ts', () => ({ lab: mocks.lab }));
 vi.mock('../src/sim/kitchen.ts', () => ({
@@ -73,7 +80,20 @@ beforeEach(() => {
         }
       : null,
   );
+  Object.defineProperty(mocks.lab, 'playerId', {
+    configurable: true,
+    writable: true,
+    value: 'fixture-player',
+  });
   vi.stubGlobal('window', new EventTarget());
+  vi.stubGlobal('document', {
+    createElement: () => ({
+      append: vi.fn(),
+      setAttribute: vi.fn(),
+      querySelectorAll: () => [],
+      isConnected: false,
+    }),
+  });
   const storage = new Map<string, string>();
   vi.stubGlobal('localStorage', {
     getItem: (k: string) => storage.get(k) ?? null,
@@ -404,4 +424,24 @@ it('revokes an existing local branch allowance when the bridge proves a differen
   });
   await c.restore({ envelope: pin, oneCast: [] });
   expect(mocks.lab.personaRecordingAllowed).toBe(false);
+});
+
+it('retains explicit recording from a menu opened before the source checkpoint arrived', async () => {
+  Object.defineProperty(mocks.lab, 'playerId', {
+    configurable: true,
+    get: () => (mocks.lab.personaRecordingAllowed ? 'fixture-player' : null),
+  });
+  const state = { version: 'pass@12', seed: 4, minute: 120, said: [] } as unknown as GameState;
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore(undefined, true);
+  c.controls();
+  await c.checkpoint();
+  mocks.controls.allowRecording?.(true);
+  await vi.waitFor(() =>
+    expect(
+      mocks.shelf.request.mock.calls.some(
+        ([r]) => r.action === 'recording' && r.allowRecording === true && r.recordingEpoch === FIXTURE_EPOCH,
+      ),
+    ).toBe(true),
+  );
 });
