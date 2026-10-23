@@ -400,7 +400,7 @@ function title() {
     if (!save) return;
     try {
       const restored = await validateReplayFile(save);
-      await cast.restore(guardedContinuity(restored, save.continuity));
+      await cast.restore(guardedContinuity(restored, save.continuity), false, true);
       firstPartyStart = save.firstPartyStart ?? false;
       partyHandover = save.partyHandover ?? null;
       pages = save.pages ?? [];
@@ -424,7 +424,7 @@ function title() {
             inputs: save.inputs.slice(0, page.k),
             minute: undefined,
           } as unknown as Export);
-          await cast.restore(guardedContinuity(restored, save.continuity));
+          await cast.restore(guardedContinuity(restored, save.continuity), false, true);
           firstPartyStart = save.firstPartyStart ?? false;
           partyHandover = null;
           pages = save.pages.filter((p) => p.week <= week);

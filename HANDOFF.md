@@ -16,6 +16,12 @@ Pass@3–11 remain loadable in their original edition. Loading a run never conve
 
 Exact dependencies: HF2.15.0, vendor client0.3.1 and kit0.4.0. The tarballs match the shared artifact SHA256 manifest. Coordination required client0.3.1 to correct non-head duplicate CAS admission; the original0.3.0 tarball is retained unchanged and unused. No workspace symlinks are used. Cross-device recovery and server state are outside this increment.
 
+## Recording boundaries
+
+Recording consent remains separate from browser continuity. Raw run files receive a provisional persisted recording key before any save/run/log hook. File denials survive reload. Own authored saves retain their exact local branch/player allowance; identity changes require a renewed choice. A loaded pin never borrows the active branch's recording association.
+
+Central recording queries and choices select the pinned envelope and require its echoed branch/revision. Source authorship captures an opaque recording epoch before projection. Grants retain the epoch acknowledged before the choice or approved source work; they never refresh an earlier choice under a new epoch. The central transaction checks the expected epoch. Preference/storage events and run/choice generations invalidate pending operations. The host compares the acknowledgement with the hash of its locally approved recording identity, including before changing a gate. This prevents a delayed identity notification from linking old history to a new central identity. The epoch stays in controller memory and request metadata, outside person envelopes, saves and replays. Old bridges keep unassociated history local. Ordinary play and file export remain available.
+
 ## Checks and delivery
 
 Run a full lane with `PATH=/opt/homebrew/bin:$PATH node ~/code/human-framework/scripts/suite-lock.ts -- npm run check:lane`. Package scripts do not acquire the shared lock. Deploy includes tests, so use the same wrapper with `-- npm run deploy` after exact-commit CI succeeds. Commits remain signed.
