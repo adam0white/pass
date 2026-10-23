@@ -571,6 +571,7 @@ export function continuity(
           lab.allowPersonaRecording(false);
           if (pinned) void retainChoice(pinned, false);
           save();
+          emit();
           return;
         }
         if (!key) return;

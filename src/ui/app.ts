@@ -299,7 +299,22 @@ function openGameMenu() {
       },
     });
   });
-  dialog.querySelector('#record-controls')?.prepend(telemetryToggle(lab), cast.controls());
+  const recording = telemetryToggle(lab);
+  const refreshRecording = () => {
+    const input = recording.querySelector('input');
+    if (input) input.checked = lab.telemetryOn;
+  };
+  window.addEventListener('pass-continuity', refreshRecording);
+  window.addEventListener('hf-lab-preference', refreshRecording);
+  dialog.addEventListener(
+    'close',
+    () => {
+      window.removeEventListener('pass-continuity', refreshRecording);
+      window.removeEventListener('hf-lab-preference', refreshRecording);
+    },
+    { once: true },
+  );
+  dialog.querySelector('#record-controls')?.prepend(recording, cast.controls());
   document.body.append(dialog);
   dialog.showModal();
 }
