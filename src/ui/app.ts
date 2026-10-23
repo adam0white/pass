@@ -2078,6 +2078,17 @@ function evening() {
       ? `<div class="card"><div>${lightJar ? 'The jar was light again tonight. Nevin used to say nothing about it.' : st.jarPlace === 'pass' ? 'The jar sits on the pass now.' : 'The jar sits by the back door, out of my sight.'}</div>
         <div class="row" style="flex-direction:column"><button data-jar="talk">Sit with Rafi on the back step</button><button data-jar="move">Move the jar to the pass</button><button data-jar="leave">Leave it</button></div></div>`
       : '';
+  // Jar answers are already authored by the simulation after the shift closes.
+  const jarReply =
+    r.night === 3 && st.jarDecided
+      ? `<div class="card jar-reply" role="status">${st.said
+          .filter((line) => line.at > closeAt(r.night))
+          .map(
+            (line) =>
+              `<p>${line.who === 'narrator' ? '' : `<b>${esc(nameOf(st, line.who))}:</b> `}${esc(gloss(line.text))}</p>`,
+          )
+          .join('')}</div>`
+      : '';
   const bill = r.bill
     ? r.bill.paid
       ? `<p><b>Saturday close.</b> I counted out ${lira(r.bill.amount)} for ${esc(r.bill.owed)}. ${lira(st.till)} left in the till.</p>`
@@ -2090,7 +2101,7 @@ function evening() {
       ? '<button class="primary" id="end">Close the notebook</button>'
       : toSunday
         ? '<button class="primary" id="open">Turn to Sunday</button>'
-        : `<button class="primary" id="open" ${r.night === 3 ? 'disabled' : ''}>Open on ${esc(next?.title ?? '')}</button>`;
+        : `<button class="primary" id="open" ${r.night === 3 && !st.jarDecided ? 'disabled' : ''}>Open on ${esc(next?.title ?? '')}</button>`;
   app.innerHTML = `<div class="page evening-page">
     ${topBar(`After close · ${weekTitle(r.night)}`, 'evening')}
     <div class="page-body">
@@ -2105,7 +2116,7 @@ function evening() {
     ${reviews}
     ${bill}${r.bill?.promiseBroken ? '<p>A promise broken this week: one strike.</p>' : ''}
     ${tonight ? `<p class="soft">In the notebook tonight:</p>${tonight}` : ''}
-    ${jarChoice}
+    ${jarChoice}${jarReply}
     ${zeynepDepartureStatus(st).canRelease ? '<section class="card"><p>Zeynep’s stint can end here. Chef can release her remaining kitchen shifts.</p><button id="zeynep-release">Chef: “Your shifts here are finished, Zeynep.”</button></section>' : ''}
     </div>
     <div class="actions">
@@ -2124,11 +2135,8 @@ function evening() {
     b.addEventListener('click', () => {
       queueInput(st, { kind: 'jar', choice: b.dataset.jar as 'move' | 'talk' | 'leave' });
       writeSave();
-      app.querySelectorAll<HTMLButtonElement>('[data-jar]').forEach((x) => {
-        x.disabled = true;
-      });
-      b.classList.add('chosen');
-      (document.getElementById('open') as HTMLButtonElement).disabled = false;
+      evening();
+      app.querySelector('.jar-reply')?.scrollIntoView({ block: 'nearest' });
     });
   document.getElementById('open')?.addEventListener('click', () => {
     queueInput(st, { kind: 'open' });

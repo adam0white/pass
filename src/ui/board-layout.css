@@ -27,8 +27,7 @@
 }
 .people-board .board-row {
   position: relative;
-  height: 88px;
-  flex: 0 0 88px;
+  flex: 0 0 auto;
   padding: 6px 8px;
   overflow: hidden;
 }
@@ -42,9 +41,8 @@
   margin: 0 64px 0 0;
   font-size: 12px;
   line-height: 16px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .people-board .board-change {
   display: block;
@@ -58,10 +56,8 @@
   font-size: 13px;
 }
 .people-board .board-answer {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  display: block;
+  overflow-wrap: anywhere;
   margin: 2px 0 0;
   font-size: 17px;
   line-height: 18px;
