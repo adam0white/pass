@@ -76,7 +76,7 @@ import { type ContinuitySave, continuity, guardedContinuity } from './continuity
 import { portionEdition } from './editions.ts';
 import { openFeedback } from './feedback.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
-import { lab, noticeFooter } from './lab.ts';
+import { lab, mountNotice } from './lab.ts';
 import { endingTally } from './notebook.ts';
 import { unseenSpeech } from './speech.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
@@ -216,8 +216,7 @@ function wob(x1: number, y1: number, x2: number, y2: number, key: number, amp = 
   }
   return d;
 }
-const footer = () =>
-  `<div class="footer">People by the Human Framework ${FRAMEWORK_VERSION}.${noticeFooter()}</div>`;
+const footer = () => `<div class="footer">People by the Human Framework ${FRAMEWORK_VERSION}.</div>`;
 const markLink = '<button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button>';
 const INFO: Record<string, [string, string]> = {
   title: [
@@ -469,8 +468,8 @@ function title() {
       ${
         LAB_TOOLS
           ? `<fieldset class="start-approaches"><legend>How long will customers wait?</legend>
-        <label><input type="radio" name="pace" value="nevin" /><span>Longer<small>Nevin’s pace gives customers more time to wait for all four weeks.</small></span></label>
-        <label><input type="radio" name="pace" value="normal" checked /><span>Normal<small>Customers wait the usual amount of time.</small></span></label>
+        <label><input type="radio" name="pace" value="nevin" /><span>Selim suggests a longer wait.<small>Nevin’s pace gives customers more time to wait for all four weeks.</small></span></label>
+        <label><input type="radio" name="pace" value="normal" checked /><span>Dilek suggests the normal wait.<small>Customers wait the usual amount of time.</small></span></label>
       </fieldset>`
           : ''
       }
@@ -493,6 +492,7 @@ function title() {
     }
     ${footer()}
   </div>`;
+  mountNotice();
   const sheet = document.getElementById('other-ways-sheet') as HTMLDialogElement;
   const status = (message: string) => {
     (document.getElementById('title-status') as HTMLElement).textContent = message;

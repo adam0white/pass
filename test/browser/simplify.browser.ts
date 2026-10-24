@@ -74,3 +74,19 @@ for (const [width, height] of [
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   });
 }
+
+test('recording notice stays in the footer and appears once per local origin', async ({ page }) => {
+  await quietNetwork(page);
+  await page.goto('/');
+  const notice = page.locator('#recording-footer .lk-telemetry-notice');
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText('records and links');
+  expect(await notice.evaluate((el) => getComputedStyle(el).position)).toBe('static');
+  await expect(notice.locator('button')).toHaveCount(0);
+  await page.locator('#new').click();
+  await expect(page.locator('.people-board')).toBeVisible();
+  await expect(notice).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+  await page.reload();
+  await expect(page.locator('.lk-telemetry-notice')).toHaveCount(0);
+});
