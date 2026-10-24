@@ -88,14 +88,14 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
   let sent = false;
   let closed = false;
   name.value = readLocal(NAME_KEY);
-  const isOff = () =>
-    readLocal('hf-lab-recording-off') === '1' || readLocal(`hf-lab-events-off:${lab.game}`) === '1';
   const update = () => {
     send.disabled = pending;
-    find<HTMLElement>('[data-feedback="preview"]').textContent = isOff()
-      ? 'Your note, verdict and optional name only. No run or linked history is sent.'
-      : 'Your note, verdict and optional name. Available run details are included when recording permits them.';
+    find<HTMLElement>('[data-feedback="preview"]').textContent =
+      !lab.telemetryOn && !feedbackSharePlay(personaChoice)
+        ? 'Your note, verdict and optional name only. No run or linked history is sent.'
+        : 'Your note, verdict and optional name. Available run details are included when recording permits them.';
   };
+  personaChoice?.addEventListener('change', update);
   const closeInfo = () => {
     info.hidden = true;
     infoButton.setAttribute('aria-expanded', 'false');
