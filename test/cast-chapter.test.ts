@@ -135,3 +135,67 @@ it('a fresh Zeynep chapter keeps the exact sons promise through an explicitly ac
   );
   expect(replayExport(exportRun(s, 'test'))).toEqual(s);
 });
+
+it('maps only quiet native Rafi without converting repair practice or elapsed body time', async () => {
+  const p = freshActor('rafi', 42, 2535);
+  p.id = 'ravi';
+  p.agenda.commitments = [];
+  p.skills = { repair: { level: 0.1, practice: 174, lastPracticed: 480 } };
+  const transfer = await kitchenTransfer(p);
+  transfer.kitchenPerson.person.mappingVersion = 'neighbours-calendar/1';
+  const parent = await createPersona({
+    format: 'hf-persona/1',
+    castId: 'hf.cast.rafi.pass',
+    castRevision: '1',
+    branchId: 'synthetic-native-rafi',
+    parentRevision: null,
+    source: { game: 'neighbours', build: 'fixture', engine: '2.17.0', rules: 'neighbours-cast-1' },
+    transfer: {
+      castPassport: 'neighbours-cast/1',
+      sourceRole: 'ravi',
+      person: transfer.kitchenPerson,
+      checkpoint: {
+        schema: transfer.checkpoint.sourceSchema,
+        sourceMinute: p.now,
+        rng: transfer.checkpoint.sourceRng,
+        sha256: transfer.checkpoint.checkpointDigest,
+      },
+      life: initialPersonaLife('hf.cast.rafi.pass', 'synthetic-native-rafi', 0),
+    },
+    limitations: transfer.limitations,
+  });
+  const input = preparePersonaLife(parent, 0);
+  const chapter = await prepareKitchenChapter([input], 42);
+  const actor = chapter.actors.rafi!;
+  expect(actor.now).toBe(1045);
+  expect(actor.now - actor.life.bornAt).toBe(p.now - p.life.bornAt);
+  expect(actor.body).toEqual({ ...snapshot(p).body, since: 1045 });
+  expect(actor.traits).toEqual(p.traits);
+  expect(actor.values).toEqual(p.values);
+  expect(actor.rng).toEqual(snapshot(p).rng);
+  expect(actor.skills.repair).toBeUndefined();
+  expect(actor.skills.dish).toBeUndefined();
+  expect(chapter.inputs[0]!.parent).toEqual(parent);
+  expect(replayExport(exportRun(newGame(42, 'pass@13', chapter), 'test'))).toEqual(
+    newGame(42, 'pass@13', chapter),
+  );
+  const unsupported = structuredClone(input);
+  (unsupported.parent.transfer.person as typeof transfer.kitchenPerson).calendar.commitments =
+    transfer.kitchenPerson.calendar.commitments = [
+      {
+        kind: 'promise',
+        id: 'unsupported',
+        toId: 'town',
+        from: 2535,
+        until: 2600,
+        importance: 0.7,
+        status: 'pending',
+        actions: ['repair'],
+      },
+    ];
+  // Re-seal so rejection is semantic rather than checksum validation.
+  const { revision: _revision, ...unsealed } = unsupported.parent;
+  unsupported.parent = await createPersona(unsealed);
+  unsupported.life = preparePersonaLife(unsupported.parent, 0).life;
+  await expect(prepareKitchenChapter([unsupported], 42)).rejects.toThrow('duty');
+});
