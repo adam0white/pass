@@ -1,5 +1,6 @@
 import { type Lab, PRIVACY_URL } from '@adam0white/lab-client';
 import { feedbackPersonaControl } from '@adam0white/lab-kit';
+import { unlinkedFeedbackRun } from './feedback-run.ts';
 import './feedback.css';
 
 const NAME_KEY = 'hf-lab-feedback-name';
@@ -16,10 +17,11 @@ export type FeedbackOptions = {
   getRun: () => unknown;
   download: () => void;
   onBack: () => void;
+  chooseRecording: (allow: boolean) => void | Promise<void>;
 };
 
 /** The kitchen remains held by the modal until the caller restores its menu. */
-export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions): void {
+export function openFeedback({ lab, getRun, download, onBack, chooseRecording }: FeedbackOptions): void {
   const dialog = document.createElement('dialog');
   dialog.className = 'pass-feedback';
   dialog.setAttribute('aria-labelledby', 'pass-feedback-title');
@@ -79,7 +81,24 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
       return undefined;
     }
   };
-  const personaChoice = feedbackPersonaControl(lab);
+  const personaChoice = feedbackPersonaControl({
+    personaRecordingRequired: lab.personaRecordingRequired,
+    get personaRecordingAllowed() {
+      return lab.personaRecordingAllowed;
+    },
+    allowPersonaRecording(allow) {
+      void Promise.resolve()
+        .then(() => chooseRecording(allow))
+        .then(syncPersonaChoice, syncPersonaChoice);
+    },
+  });
+  function syncPersonaChoice() {
+    const input = personaChoice?.querySelector('input');
+    if (input) input.checked = lab.personaRecordingAllowed;
+  }
+  if (personaChoice?.lastChild)
+    personaChoice.lastChild.textContent =
+      ' Link all continuing histories in this run to lab recording (optional)';
   if (personaChoice) form.querySelector('textarea')?.after(personaChoice);
 
   let verdict = '';
@@ -166,7 +185,10 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     update();
     try {
       const noteOnly = !lab.telemetryOn || (lab.privacySignalOn && !lab.privacyOverride);
-      const receipt = await lab.sendFeedback(text, { name: tester, run: feedbackRun() });
+      const receipt = await lab.sendFeedback(text, {
+        name: tester,
+        run: lab.personaRecordingAllowed ? feedbackRun() : unlinkedFeedbackRun(feedbackRun()),
+      });
       const sentMessage = `${noteOnly ? 'Note and verdict queued without a run or history linkage' : 'Note and verdict queued. Run details depend on recording and availability; continuing-person history links only after explicit consent'} · ${receipt}`;
       rememberName(tester);
       complete(sentMessage);

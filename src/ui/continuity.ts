@@ -546,6 +546,36 @@ export function continuity(
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
+  function chooseRecording(value: boolean) {
+    const choice = ++gateGeneration;
+    recordingAck = null;
+    const epoch = generation;
+    const key = pinned?.branchId ?? recordingKey;
+    const player = lab.playerId;
+    const current = () =>
+      choice === gateGeneration &&
+      epoch === generation &&
+      key === (pinned?.branchId ?? recordingKey) &&
+      player === lab.playerId;
+    if (!value) {
+      fileUnlinked = true;
+      lab.allowPersonaRecording(false);
+      if (pinned) void retainChoice(pinned, false);
+      save();
+      emit();
+      return;
+    }
+    if (!key) return;
+    // Local approval is synchronous. Its exact recording identity binds the
+    // subsequent central query and grant; older bridges stay local.
+    if (current()) {
+      fileUnlinked = false;
+      lab.allowPersonaRecording(true);
+      if (pinned) void retainChoice(pinned, true);
+      save();
+      emit();
+    }
+  }
   function controls() {
     const section = personaControls({
       enabled: shelf.enabled,
@@ -555,36 +585,7 @@ export function continuity(
         if (value) void checkpoint();
       },
       recordingAllowed: lab.personaRecordingAllowed,
-      allowRecording: (value) => {
-        const choice = ++gateGeneration;
-        recordingAck = null;
-        const epoch = generation;
-        const key = pinned?.branchId ?? recordingKey;
-        const player = lab.playerId;
-        const current = () =>
-          choice === gateGeneration &&
-          epoch === generation &&
-          key === (pinned?.branchId ?? recordingKey) &&
-          player === lab.playerId;
-        if (!value) {
-          fileUnlinked = true;
-          lab.allowPersonaRecording(false);
-          if (pinned) void retainChoice(pinned, false);
-          save();
-          emit();
-          return;
-        }
-        if (!key) return;
-        // Local approval is synchronous. Its exact recording identity binds the
-        // subsequent central query and grant; older bridges stay local.
-        if (current()) {
-          fileUnlinked = false;
-          lab.allowPersonaRecording(true);
-          if (pinned) void retainChoice(pinned, true);
-          save();
-          emit();
-        }
-      },
+      allowRecording: chooseRecording,
     });
     const status = document.createElement('p');
     status.setAttribute('role', 'status');
@@ -698,6 +699,7 @@ export function continuity(
     restore,
     fresh,
     controls,
+    chooseRecording,
     checkpoint,
     track,
     get message() {

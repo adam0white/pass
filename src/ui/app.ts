@@ -292,6 +292,7 @@ function openGameMenu() {
     openFeedback({
       lab,
       getRun: () => cast.run(),
+      chooseRecording: cast.chooseRecording,
       download,
       onBack: () => {
         menuOpen = false;
@@ -2404,6 +2405,7 @@ function sendRun() {
   openFeedback({
     lab,
     getRun: () => cast.run(),
+    chooseRecording: cast.chooseRecording,
     download,
     onBack: () => {
       menuOpen = false;
