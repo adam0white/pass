@@ -116,10 +116,10 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
       // A storage restriction must not prevent feedback.
     }
   };
-  const complete = () => {
+  const complete = (message: string) => {
     if (closed) return;
     sent = true;
-    status.textContent = 'Sent. Thank you. Queued for the lab; delivery may retry.';
+    status.textContent = message;
     send.textContent = 'Back to the game';
     for (const field of form.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement>(
       'input, textarea, [data-verdict]',
@@ -165,9 +165,11 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     status.textContent = 'Sending…';
     update();
     try {
-      await lab.sendFeedback(text, { name: tester, run: feedbackRun() });
+      const noteOnly = !lab.telemetryOn || (lab.privacySignalOn && !lab.privacyOverride);
+      const receipt = await lab.sendFeedback(text, { name: tester, run: feedbackRun() });
+      const sentMessage = `${noteOnly ? 'Note and verdict queued without a run or history linkage' : 'Note and verdict queued. Run details depend on recording and availability; continuing-person history links only after explicit consent'} · ${receipt}`;
       rememberName(tester);
-      complete();
+      complete(sentMessage);
     } catch (error) {
       if (closed) return;
       status.textContent =
