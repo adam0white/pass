@@ -1242,7 +1242,6 @@ function apply(s: GameState, inp: Input) {
         s.version !== 'pass@13' ||
         !p ||
         p.activity ||
-        !inKitchen(s, inp.who) ||
         !s.crew.some((m) => m.id === inp.who && !m.left) ||
         s.inputs
           .slice(0, s.applied - 1)

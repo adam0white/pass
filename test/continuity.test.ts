@@ -93,29 +93,19 @@ it('preflights all seven expected heads once before accepting a fresh batch', as
   expect(puts).toHaveLength(1);
   expect(Object.keys(puts[0]![0].expectedHeads)).toHaveLength(7);
 });
-it('recording preference acknowledgments do not cancel pending fictional admission', async () => {
-  let resolve!: (x: unknown) => void;
-  mocks.shelf.request.mockImplementation((r) =>
-    r.action === 'prepareBatch'
-      ? new Promise((done) => {
-          resolve = done;
-        })
-      : Promise.resolve(null),
-  );
+it('automatic linkage does not query shelf permission for file history', async () => {
+  const e = await envelope();
   const c = continuity(() => null, vi.fn(), vi.fn());
-  const pending = c.fresh(42);
-  await Promise.resolve();
-  window.dispatchEvent(new Event('hf-lab-preference'));
-  window.dispatchEvent(new Event('storage'));
-  resolve({
-    expectedHeads: Object.fromEntries(
-      (await import('@adam0white/lab-client')).castForGame('pass').map((p) => [p.castId, null]),
-    ),
-    inputs: [],
-    blocked: [],
+  await c.restore({
+    envelope: null,
+    oneCast: [],
+    recordingGroup: [e],
+    importedHistory: true,
+    fileUnlinked: true,
   });
-  expect((await pending).seed).toBe(42);
-  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'recordingBatch')).toBe(false);
+  mocks.shelf.request.mockRejectedValue(new Error('permission service unavailable'));
+  await expect(c.chooseRecording(true)).resolves.toBeUndefined();
+  expect(mocks.shelf.request).not.toHaveBeenCalled();
 });
 it('checkpoint CAS never retries against a newer head and imported files never publish', async () => {
   const s = newGame(42);
@@ -174,4 +164,35 @@ it('explicit fresh local play remains local even when browser continuity is enab
   await c.checkpoint();
   expect(mocks.shelf.request).not.toHaveBeenCalled();
   expect(c.data().localOnly).toBe(true);
+});
+
+it('does not cancel a pending kitchen admission when recording identity acknowledges', async () => {
+  const { castForGame } = await import('@adam0white/lab-client');
+  let release!: (value: unknown) => void;
+  mocks.shelf.request.mockImplementation((request) => {
+    if (request.action === 'prepareBatch')
+      return new Promise((resolve) => {
+        release = resolve;
+      });
+    if (request.action === 'recordingBatch')
+      return Promise.resolve({
+        sameEpoch: true,
+        revisions: request.envelopes.map((p: { revision: string }) => p.revision),
+        recordingEpoch: 'opaque',
+      });
+    return Promise.resolve({});
+  });
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  const pending = c.fresh(42);
+  await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+  window.dispatchEvent(new Event('hf-lab-preference'));
+  const storage = new Event('storage');
+  Object.defineProperty(storage, 'key', { value: 'hf-lab-player' });
+  window.dispatchEvent(storage);
+  release({
+    expectedHeads: Object.fromEntries(castForGame('pass').map((c) => [c.castId, null])),
+    inputs: [],
+    blocked: [],
+  });
+  await expect(pending).resolves.toHaveProperty('seed', 42);
 });

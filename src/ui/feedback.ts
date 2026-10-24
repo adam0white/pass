@@ -81,7 +81,7 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     }
   };
   const personaChoice = feedbackPersonaControl(lab);
-  if (personaChoice) form.querySelector('textarea')?.after(personaChoice);
+  if (personaChoice) form.querySelector('textarea')?.closest('label')?.after(personaChoice);
 
   let verdict = '';
   let pending = false;

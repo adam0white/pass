@@ -28,6 +28,7 @@ for (const checked of [false, true]) {
       });
     });
     const sheet = page.locator('.pass-feedback');
+    await expect(sheet.locator('textarea')).not.toHaveAccessibleName(/Share this run/);
     const checkbox = sheet.getByRole('checkbox', {
       name: 'Share this run and my play with the lab',
       exact: true,

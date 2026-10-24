@@ -341,28 +341,26 @@ function openGameMenu() {
         actions.append(invite);
       }
     for (const m of s.crew.filter((m) => !m.left)) {
-      if (cookOf(s, m.id).here && !cookOf(s, m.id).gone) {
-        const b = document.createElement('button');
-        b.textContent = INVITATIONS[m.id] ?? `Talk with ${m.name}`;
-        b.disabled = !!personOf(s, m.id).activity;
-        b.onclick = () => {
-          if (!s) return;
-          queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'listen' });
-          writeSave();
-          dialog.close();
-          drawAll(true);
-        };
-        actions.append(b);
-        const decline = document.createElement('button');
-        decline.textContent = `Leave ${m.name}’s conversation for another time`;
-        decline.onclick = () => {
-          if (!s) return;
-          queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'leave' });
-          writeSave();
-          dialog.close();
-        };
-        actions.append(decline);
-      }
+      const b = document.createElement('button');
+      b.textContent = INVITATIONS[m.id] ?? `Talk with ${m.name}`;
+      b.disabled = !!personOf(s, m.id).activity;
+      b.onclick = () => {
+        if (!s) return;
+        queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'listen' });
+        writeSave();
+        dialog.close();
+        drawAll(true);
+      };
+      actions.append(b);
+      const decline = document.createElement('button');
+      decline.textContent = `Leave ${m.name}’s conversation for another time`;
+      decline.onclick = () => {
+        if (!s) return;
+        queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'leave' });
+        writeSave();
+        dialog.close();
+      };
+      actions.append(decline);
       if (['evening', 'sunday', 'end'].includes(s.phase)) {
         const release = document.createElement('button');
         release.textContent = `Finish ${m.name}’s kitchen stint`;
@@ -527,9 +525,9 @@ function title() {
         if (!secondWeek && !returning && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
         enterWithStatus(cast.message);
-      })().catch((error: unknown) =>
+      })().catch(() =>
         status(
-          `This chapter could not be admitted: ${error instanceof Error ? error.message.slice(0, 300) : 'unsupported source'}. Keep the existing notebook, or choose fresh local play.`,
+          'This chapter could not be admitted. Keep the existing notebook, or choose fresh local play. ',
         ),
       );
     };

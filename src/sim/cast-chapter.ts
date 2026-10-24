@@ -87,53 +87,37 @@ export async function prepareKitchenChapter(
       parent.transfer.castPassport === 'goodhands-agency/1' &&
       ((id === 'hulya' && parent.transfer.sourceRole === 'hulya') ||
         (id === 'zeynep' && parent.transfer.sourceRole === 'zeynep-pass'));
-    const town =
-      id === 'rafi' &&
-      ((parent.source.game === 'neighbours' && parent.source.rules === 'neighbours-cast-1') ||
-        (parent.source.game === 'pass' && parent.source.rules === 'pass-13')) &&
-      parent.source.engine === '2.17.0' &&
-      parent.transfer.castPassport === 'neighbours-cast/1' &&
-      parent.transfer.sourceRole === 'ravi';
-    if (!native && !agency && !town)
+    if (!native && !agency)
       throw new Error(
         `${cast.name}: no supported native kitchen map for ${parent.source.game}. Keep the source or choose fresh local play.`,
       );
     const portable = validateCalendarPersona(
-        native ? parent.transfer.kitchenPerson : town ? parent.transfer.person : parent.transfer.agencyPerson,
+        native ? parent.transfer.kitchenPerson : parent.transfer.agencyPerson,
       ),
       p = portable.person;
-    const mapping = native
-      ? 'pass-kitchen-calendar/1'
-      : town
-        ? 'neighbours-calendar/1'
-        : 'goodhands-agency-calendar/1';
-    const sourceId = native ? id : town ? 'ravi' : id === 'zeynep' ? 'zeynep-pass' : 'hulya';
+    const mapping = native ? 'pass-kitchen-calendar/1' : 'goodhands-agency-calendar/1';
+    const sourceId = native ? id : id === 'zeynep' ? 'zeynep-pass' : 'hulya';
     const receipt = parent.transfer.checkpoint as Record<string, unknown> | undefined;
     if (
       p.mappingVersion !== mapping ||
       p.source.id !== sourceId ||
       p.name !== cast.name ||
       !receipt ||
-      (town ? receipt.schema : receipt.sourceSchema) !== p.source.schema ||
-      (town ? receipt.sourceMinute : receipt.sourceNow) !== p.source.now ||
-      !same(town ? receipt.rng : receipt.sourceRng, p.rng) ||
-      typeof (town ? receipt.sha256 : receipt.checkpointDigest) !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(String(town ? receipt.sha256 : receipt.checkpointDigest))
+      receipt.sourceSchema !== p.source.schema ||
+      receipt.sourceNow !== p.source.now ||
+      !same(receipt.sourceRng, p.rng) ||
+      typeof receipt.checkpointDigest !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(receipt.checkpointDigest)
     )
       throw new Error('Native source identity or checkpoint mismatch.');
     if (portable.calendar.norms.some((n) => !DEFAULT_NORMS.some((k) => same(k, n))))
       throw new Error('Unknown norm meaning.');
     const hour = ((p.source.now % 1440) + 1440) % 1440;
-    if (!town && hour > 1045)
+    if (hour > 1045)
       throw new Error(
         'This chapter needs a quiet native daytime boundary before 17:25. Existing family and work duties remain at source.',
       );
-    // Rafi's duty-free workshop boundary changes only chapter clock labels, not body age/time.
-    // Other maps retain wall-clock duties and their explicit whole-day map.
-    if (town && portable.calendar.commitments.length)
-      throw new Error('An unresolved source duty has no kitchen map.');
-    const arrival = town ? 1045 : hour;
-    const offset = arrival - p.source.now;
+    const offset = hour - p.source.now; // Explicit whole-day host clock map; family wall time does not move.
     const shifted = structuredClone(portable);
     shifted.calendar.offset = offset;
     const known = new Set([
@@ -183,7 +167,7 @@ export async function prepareKitchenChapter(
     }
     if (shifted.calendar.owed.length || shifted.calendar.lapse)
       throw new Error('Keep actual unresolved debt at source; this kitchen has no repayment map.');
-    const opening = freshActor(id, seed, arrival);
+    const opening = freshActor(id, seed, hour);
     opening.body.fitness = p.health.fitness;
     opening.life.bornAt = p.life.bornAt + offset;
     if (p.source.now - p.life.bornAt < cast.age * MINUTES_PER_YEAR)
@@ -193,13 +177,7 @@ export async function prepareKitchenChapter(
     delete opening.agenda.lapse;
     // Foreign trade skills stay source-side. Only explicitly compatible kitchen practice is mapped.
     const skills = new Set(
-      town
-        ? []
-        : agency && id === 'zeynep'
-          ? ['cold']
-          : agency
-            ? ['oven']
-            : ['grill', 'cold', 'dish', 'oven'],
+      agency && id === 'zeynep' ? ['cold'] : agency ? ['oven'] : ['grill', 'cold', 'dish', 'oven'],
     );
     shifted.person.skills = Object.fromEntries(Object.entries(p.skills).filter(([k]) => skills.has(k)));
     shifted.person.episodes = p.episodes.filter((e) => !!e.action && skills.has(e.action));

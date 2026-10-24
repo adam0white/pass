@@ -27,10 +27,3 @@ describe('canonical kitchen edition', () => {
     expect(replayExport(exportRun(s, 'test'))).toEqual(s);
   });
 });
-
-it('does not reveal an offscreen worker private fact', () => {
-  const s = newGame(42);
-  const before = structuredClone(s.said);
-  queueInput(s, { kind: 'cast-talk', who: 'rafi', choice: 'listen' });
-  expect(s.said).toEqual(before);
-});
