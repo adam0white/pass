@@ -1,4 +1,5 @@
 import { type Lab, PRIVACY_URL } from '@adam0white/lab-client';
+import { feedbackPersonaControl } from '@adam0white/lab-kit';
 import './feedback.css';
 
 const NAME_KEY = 'hf-lab-feedback-name';
@@ -39,7 +40,7 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
       <form class="feedback-form">
         <div class="feedback-sheet">
           <h1 id="pass-feedback-title">Send word</h1>
-          <p>Your run, saves and log reach us on their own. Tell us what they can't show.</p>
+          <p>Send a note about this game. Recording and continuing-person choices are optional.</p>
           <fieldset class="feedback-verdicts">
             <legend>Would you keep playing? <span>(optional)</span></legend>
             <button type="button" data-verdict="keep" aria-pressed="false">I'd keep playing</button>
@@ -58,11 +59,11 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
             <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">Lab privacy</a>
           </details>
           <div class="feedback-recording" hidden>
-            <p>Recording is off, so nothing is sent.</p>
+            <p>Recording is off. You can still send your note.</p>
             <label class="feedback-switch"><input type="checkbox" role="switch" name="recording" /> Record play for the lab</label>
           </div>
           <label class="feedback-consent" hidden><input name="consent" type="checkbox" /> Send this run with my note</label>
-          <p class="feedback-privacy" hidden>Your browser asks not to track. This sends an unlinked copy only with your consent.</p>
+          <p class="feedback-privacy" hidden>Your browser asks not to track. Your note can be sent alone. Adding this run is optional.</p>
           <button type="button" class="feedback-download" data-feedback="download">Keep a copy of this run</button>
           <p class="feedback-status" role="status" aria-live="polite"></p>
         </div>
@@ -79,6 +80,16 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
   const status = find<HTMLParagraphElement>('.feedback-status');
   const info = find<HTMLElement>('.feedback-info');
   const infoButton = find<HTMLButtonElement>('[data-feedback="info"]');
+  const feedbackRun = () => {
+    try {
+      return getRun();
+    } catch {
+      return undefined;
+    }
+  };
+  const personaChoice = feedbackPersonaControl(lab);
+  if (personaChoice) form.querySelector('textarea')?.after(personaChoice);
+
   let verdict = '';
   let pending = false;
   let sent = false;
@@ -93,10 +104,12 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     find<HTMLElement>('.feedback-recording').hidden = !off;
     find<HTMLElement>('.feedback-consent').hidden = !needsConsent();
     find<HTMLElement>('.feedback-privacy').hidden = !needsConsent();
-    send.disabled = pending || (!sent && (off || (needsConsent() && !consent.checked)));
-    find<HTMLElement>('[data-feedback="preview"]').textContent = needsConsent()
-      ? 'Your complete run (seed, inputs and state), selected verdict, note and optional name. This copy is unlinked.'
-      : 'Your selected verdict, note and optional name, linked to this device’s recorded run, saves and log.';
+    send.disabled = pending;
+    find<HTMLElement>('[data-feedback="preview"]').textContent = off
+      ? 'Your note, verdict and optional name only. No run or linked history is sent.'
+      : needsConsent()
+        ? 'Your note, verdict and optional name. Add the run only if you select the run checkbox. This copy is unlinked.'
+        : 'Your selected verdict, note and optional name, linked to this device’s recorded run, saves and log.';
   };
   const closeInfo = () => {
     info.hidden = true;
@@ -173,19 +186,15 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     status.textContent = 'Sending…';
     update();
     try {
-      if (needsConsent()) await lab.sendRun(getRun(), { note: text, name: tester });
-      else await lab.sendFeedback(text, { name: tester });
+      if (!isOff() && needsConsent() && consent.checked && lab.personaRecordingAllowed)
+        await lab.sendRun(getRun(), { note: text, name: tester });
+      else await lab.sendFeedback(text, { name: tester, run: feedbackRun() });
       rememberName(tester);
       complete();
     } catch (error) {
       if (closed) return;
-      if (needsConsent()) {
-        status.textContent = 'Your word is still here. The send dialog offers another way to send it.';
-        lab.openSendDialog({ getRun, name: tester, note: text, onSent: complete });
-      } else {
-        status.textContent =
-          error instanceof Error ? error.message : 'Could not queue your word. Please try again.';
-      }
+      status.textContent =
+        error instanceof Error ? error.message : 'Could not queue your word. Please try again.';
     } finally {
       pending = false;
       update();
