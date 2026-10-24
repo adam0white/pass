@@ -58,12 +58,6 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
             <p data-feedback="preview"></p>
             <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">Lab privacy</a>
           </details>
-          <div class="feedback-recording" hidden>
-            <p>Recording is off. You can still send your note.</p>
-            <label class="feedback-switch"><input type="checkbox" role="switch" name="recording" /> Record play for the lab</label>
-          </div>
-          <label class="feedback-consent" hidden><input name="consent" type="checkbox" /> Send this run with my note</label>
-          <p class="feedback-privacy" hidden>Your browser asks not to track. Your note can be sent alone. Adding this run is optional.</p>
           <button type="button" class="feedback-download" data-feedback="download">Keep a copy of this run</button>
           <p class="feedback-status" role="status" aria-live="polite"></p>
         </div>
@@ -75,8 +69,6 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
   const form = find<HTMLFormElement>('form');
   const name = find<HTMLInputElement>('[name="tester-name"]');
   const note = find<HTMLTextAreaElement>('textarea');
-  const recording = find<HTMLInputElement>('[name="recording"]');
-  const consent = find<HTMLInputElement>('[name="consent"]');
   const status = find<HTMLParagraphElement>('.feedback-status');
   const info = find<HTMLElement>('.feedback-info');
   const infoButton = find<HTMLButtonElement>('[data-feedback="info"]');
@@ -97,19 +89,11 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
   name.value = readLocal(NAME_KEY);
   const isOff = () =>
     readLocal('hf-lab-recording-off') === '1' || readLocal(`hf-lab-events-off:${lab.game}`) === '1';
-  const needsConsent = () => lab.privacySignalOn && !lab.privacyOverride;
   const update = () => {
-    const off = isOff();
-    recording.checked = !off;
-    find<HTMLElement>('.feedback-recording').hidden = !off;
-    find<HTMLElement>('.feedback-consent').hidden = !needsConsent();
-    find<HTMLElement>('.feedback-privacy').hidden = !needsConsent();
     send.disabled = pending;
-    find<HTMLElement>('[data-feedback="preview"]').textContent = off
+    find<HTMLElement>('[data-feedback="preview"]').textContent = isOff()
       ? 'Your note, verdict and optional name only. No run or linked history is sent.'
-      : needsConsent()
-        ? 'Your note, verdict and optional name. Add the run only if you select the run checkbox. This copy is unlinked.'
-        : 'Your selected verdict, note and optional name, linked to this device’s recorded run, saves and log.';
+      : 'Your note, verdict and optional name. Available run details are included when recording permits them.';
   };
   const closeInfo = () => {
     info.hidden = true;
@@ -149,11 +133,6 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
         button.setAttribute('aria-pressed', String(button.dataset.verdict === verdict));
     });
   }
-  recording.addEventListener('change', () => {
-    lab.setTelemetryOff(!recording.checked);
-    update();
-  });
-  consent.addEventListener('change', update);
   find('[data-feedback="download"]').addEventListener('click', download);
   find('[data-feedback="back"]').addEventListener('click', back);
   find('[data-feedback="menu"]').addEventListener('click', back);
@@ -186,9 +165,7 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     status.textContent = 'Sending…';
     update();
     try {
-      if (!isOff() && needsConsent() && consent.checked && lab.personaRecordingAllowed)
-        await lab.sendRun(getRun(), { note: text, name: tester });
-      else await lab.sendFeedback(text, { name: tester, run: feedbackRun() });
+      await lab.sendFeedback(text, { name: tester, run: feedbackRun() });
       rememberName(tester);
       complete();
     } catch (error) {
