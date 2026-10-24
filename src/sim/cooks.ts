@@ -222,7 +222,7 @@ export const HIRES: readonly HireTemplate[] = [
     wage: 40,
     says: '“I’m eighteen, a repair apprentice on a paid work exchange. I need someone to show me the dish station.”',
     looks: 'Eighteen. A testing notebook beside his lunch.',
-    asks: 'Can we agree my paid hours before I call Mum?',
+    asks: 'Can I finish at nine tonight? I promised Mum I’d call about the paid hours.',
   },
   {
     id: 'murat',

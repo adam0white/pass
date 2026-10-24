@@ -143,6 +143,7 @@ export interface StaffingDecision {
   cover?: CookId;
 }
 export type Input =
+  | { at: number; kind: 'cast-invite'; who: string }
   | { at: number; kind: 'cast-release'; who: string }
   | { at: number; kind: 'cast-talk'; who: string; choice: 'listen' | 'leave' }
   | { at: number; kind: 'people-run' }
@@ -1121,6 +1122,7 @@ export function queueInput(s: GameState, input: NewInput): void {
   if (
     s.phase !== 'service' ||
     input.kind === 'people-run' ||
+    input.kind === 'cast-invite' ||
     input.kind === 'cast-talk' ||
     input.kind === 'cast-release' ||
     (chefEdition(s) &&
@@ -1147,6 +1149,75 @@ function apply(s: GameState, inp: Input) {
   )
     return;
   switch (inp.kind) {
+    case 'cast-invite': {
+      if (
+        s.version !== 'pass@13' ||
+        s.night !== 1 ||
+        s.phase !== 'board' ||
+        s.minute !== openAt(1) - 5 ||
+        s.crew.some((m) => m.id === inp.who) ||
+        s.inputs.slice(0, s.applied - 1).some((i) => i.kind === 'cast-invite' && i.who === inp.who)
+      )
+        return;
+      const initial = s.castChapter?.actors[inp.who],
+        t = hireTemplate(inp.who);
+      if (!initial || !t || initial.now !== s.minute || initial.activity) return;
+      const p = restore(initial);
+      const facts = s.castChapter?.facts[inp.who];
+      const choice = decide(
+        p,
+        [
+          offer('kitchen-job', {
+            label: 'take the paid kitchen work',
+            duration: 1,
+            effort: 0,
+            advertises: { competence: 0.2, belonging: 0.1 },
+            material: t.wage / 10,
+          }),
+          offer('keep-own-plans', {
+            label: 'keep my own plans',
+            duration: 1,
+            effort: 0,
+            advertises: {
+              autonomy: facts?.availableForExtraWork ? 0.1 : 0.4,
+              rest: facts?.startsAtHome ? 0.25 : 0.05,
+              competence: facts?.availableForExtraWork ? 0 : 0.2,
+            },
+          }),
+        ],
+        { now: s.minute },
+      );
+      if (choice.chosenAffordanceId !== 'kitchen-job') {
+        say(s, p.id, 'I’ll keep my own plans today. My source chapter remains in the notebook.', 'answer');
+        return;
+      }
+      acceptKitchenShift(p, s.minute);
+      s.people.push(p);
+      s.crew.push({
+        id: t.id,
+        castId: CAST.find((c) => c.castId.split('.')[2] === t.id)!.castId,
+        name: t.name,
+        home: t.home,
+        founder: false,
+        since: 1,
+        wage: t.wage,
+        template: t.id,
+      });
+      s.cooks.push(blankCook(t.id));
+      const cook = cookOf(s, t.id);
+      cook.here = true;
+      cook.trustAtOpen = trustOf(p);
+      if (facts?.startsAtHome)
+        cook.pending = { s: { voiceId: CHEF, affordanceId: 'eat', strength: 0.5 }, verb: 'eat', quiet: true };
+      glimpseOf(s.chef, p, s.minute, 1);
+      say(
+        s,
+        p.id,
+        'I’ll take the paid kitchen work. My own promises and leaving hours still stand.',
+        'answer',
+      );
+      return;
+    }
     case 'cast-release': {
       const p = s.people.find((p) => p.id === inp.who);
       if (s.version !== 'pass@13' || !p || p.activity || !['evening', 'sunday', 'end'].includes(s.phase))
@@ -2651,12 +2722,8 @@ function candidates(s: GameState, week: number): string[] {
   const pool = HIRES.filter(
     (h) =>
       !taken.has(h.id) &&
-      (s.version === 'pass@13' ? h.id !== 'can' : h.id !== 'sam') &&
-      !(
-        s.castChapter?.facts[h.id] &&
-        week < 3 &&
-        (!s.castChapter.facts[h.id]!.availableForExtraWork || s.castChapter.facts[h.id]!.startsAtHome)
-      ),
+      !s.castChapter?.actors[h.id] &&
+      (s.version === 'pass@13' ? h.id !== 'can' : h.id !== 'sam'),
   );
   const order = [...pool].sort(
     (a, b) =>
@@ -2683,11 +2750,16 @@ function choose(s: GameState, key: string, value: string) {
     const t = hireTemplate(value);
     if (!t || !page.candidates.includes(value)) return;
     const carried = s.castChapter?.actors[t.id];
-    const p = carried ? restore(carried) : makeHire(t, s.seed, s.minute, s.version);
     if (carried) {
-      tick(p, s.minute);
-      acceptKitchenShift(p, s.minute);
+      say(
+        s,
+        'narrator',
+        `${t.name}’s earlier visitor snapshot cannot be advanced through unplayed duties. Start an explicit compatible chapter instead.`,
+        'journal',
+      );
+      return;
     }
+    const p = makeHire(t, s.seed, s.minute, s.version);
     s.people.push(p);
     s.crew.push({
       id: t.id,
@@ -2807,6 +2879,7 @@ export function replay(
     if (
       s.phase !== 'service' ||
       inp.kind === 'people-run' ||
+      inp.kind === 'cast-invite' ||
       inp.kind === 'cast-talk' ||
       inp.kind === 'cast-release' ||
       (chefEdition(s) &&

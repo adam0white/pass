@@ -78,3 +78,60 @@ it('pinned nonzero away-life affects real optional hiring availability while pro
     (await prepareKitchenChapter([input], 42)).actors.hulya!.traits,
   );
 });
+it('offers a carried visitor work only at the actual opening; source family time is never skipped to Sunday', async () => {
+  const input = await source(),
+    chapter = await prepareKitchenChapter([input], 42),
+    s = newGame(42, 'pass@13', chapter);
+  expect(s.minute).toBe(chapter.actors.hulya!.now);
+  expect(s.crew.some((p) => p.id === 'hulya')).toBe(false);
+  queueInput(s, { kind: 'cast-invite', who: 'hulya' });
+  expect(s.crew.some((p) => p.id === 'hulya')).toBe(true);
+  expect(s.cooks.find((p) => p.id === 'hulya')?.pending?.verb).toBe('eat');
+  expect(
+    s.people
+      .find((p) => p.id === 'hulya')
+      ?.agenda.commitments.some((c) => c.label === 'my shift' && c.status === 'pending'),
+  ).toBe(true);
+  expect(replayExport(exportRun(s, 'test'))).toEqual(s);
+  const later = newGame(42, 'pass@13', chapter);
+  later.night = 6;
+  later.minute += 6 * 1440;
+  later.phase = 'sunday';
+  queueInput(later, { kind: 'cast-invite', who: 'hulya' });
+  expect(later.crew.some((p) => p.id === 'hulya')).toBe(false);
+  expect(later.castChapter!.actors.hulya).toEqual(chapter.actors.hulya);
+});
+it('a fresh Zeynep chapter keeps the exact sons promise through an explicitly accepted current shift', async () => {
+  const p = freshActor('zeynep', 42, 510);
+  p.id = 'zeynep-pass';
+  for (const c of p.agenda.commitments)
+    if (c.label === 'my shift' && c.status === 'pending') releaseCommitment(p, c.id);
+  const transfer = await kitchenTransfer(p);
+  transfer.kitchenPerson.person.mappingVersion = 'goodhands-agency-calendar/1';
+  const parent = await createPersona({
+    format: 'hf-persona/1',
+    castId: 'hf.cast.zeynep.pass',
+    castRevision: '2',
+    branchId: 'synthetic-family-control',
+    parentRevision: null,
+    source: { game: 'goodhands', build: 'fixture', engine: '2.17.0', rules: 'goodhands-6' },
+    transfer: {
+      castPassport: 'goodhands-agency/1',
+      sourceRole: 'zeynep-pass',
+      agencyPerson: transfer.kitchenPerson,
+      checkpoint: transfer.checkpoint,
+      life: initialPersonaLife('hf.cast.zeynep.pass', 'synthetic-family-control', 0),
+    },
+    limitations: transfer.limitations,
+  });
+  const chapter = await prepareKitchenChapter([preparePersonaLife(parent, 0)], 42),
+    s = newGame(42, 'pass@13', chapter);
+  const before = chapter.actors.zeynep!.agenda.commitments.find((c) => c.toId === 'sons')!;
+  expect(before.from % 1440).toBe(1290);
+  expect(before.until - before.from).toBe(40);
+  queueInput(s, { kind: 'cast-invite', who: 'zeynep' });
+  expect(s.people.find((p) => p.id === 'zeynep')?.agenda.commitments.find((c) => c.toId === 'sons')).toEqual(
+    before,
+  );
+  expect(replayExport(exportRun(s, 'test'))).toEqual(s);
+});

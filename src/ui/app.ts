@@ -325,6 +325,21 @@ function openGameMenu() {
   dialog.querySelector('#record-controls')?.prepend(recording, cast.controls());
   if (s?.version === 'pass@13') {
     const actions = document.createElement('section');
+    if (s.night === 1 && s.phase === 'board')
+      for (const id of Object.keys(s.castChapter?.actors ?? {})) {
+        if (s.crew.some((m) => m.id === id) || s.inputs.some((i) => i.kind === 'cast-invite' && i.who === id))
+          continue;
+        const invite = document.createElement('button');
+        invite.textContent = `Offer ${s.castChapter!.actors[id]!.name} paid kitchen work, keeping their own leaving hours${s.castChapter!.facts[id]?.startsAtHome ? ' — offer a shared plate first' : ''}`;
+        invite.onclick = () => {
+          if (!s) return;
+          queueInput(s, { kind: 'cast-invite', who: id });
+          writeSave();
+          dialog.close();
+          enter();
+        };
+        actions.append(invite);
+      }
     for (const m of s.crew.filter((m) => !m.left)) {
       const b = document.createElement('button');
       b.textContent = INVITATIONS[m.id] ?? `Talk with ${m.name}`;

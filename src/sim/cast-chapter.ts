@@ -40,7 +40,7 @@ export interface KitchenChapter {
   actors: Record<string, Person>;
   facts: Record<string, ReturnType<typeof lifeAdmission>>;
 }
-export function freshActor(id: string, seed: number, now = 1050) {
+export function freshActor(id: string, seed: number, now = 1045) {
   const hire = HIRES.find((h) => h.id === id);
   return hire ? makeHire(hire, seed, now, 'pass@13') : makeCook(id, seed, now, 'pass@13');
 }
@@ -76,13 +76,14 @@ export async function prepareKitchenChapter(
       throw new Error('Pinned life clock mismatch.');
     const native =
       parent.source.game === 'pass' &&
+      parent.source.rules === 'pass-13' &&
       parent.source.engine === '2.17.0' &&
       parent.transfer.castPassport === 'pass-kitchen/1' &&
       parent.transfer.sourceRole === id;
     const agency =
-      parent.source.game === 'goodhands' &&
+      ((parent.source.game === 'goodhands' && parent.source.rules === 'goodhands-6') ||
+        (parent.source.game === 'pass' && parent.source.rules === 'pass-13')) &&
       parent.source.engine === '2.17.0' &&
-      parent.source.rules === 'goodhands-6' &&
       parent.transfer.castPassport === 'goodhands-agency/1' &&
       ((id === 'hulya' && parent.transfer.sourceRole === 'hulya') ||
         (id === 'zeynep' && parent.transfer.sourceRole === 'zeynep-pass'));
@@ -112,9 +113,9 @@ export async function prepareKitchenChapter(
     if (portable.calendar.norms.some((n) => !DEFAULT_NORMS.some((k) => same(k, n))))
       throw new Error('Unknown norm meaning.');
     const hour = ((p.source.now % 1440) + 1440) % 1440;
-    if (hour > 1050)
+    if (hour > 1045)
       throw new Error(
-        'This chapter needs a quiet native daytime boundary before 17:30. Existing family and work duties remain at source.',
+        'This chapter needs a quiet native daytime boundary before 17:25. Existing family and work duties remain at source.',
       );
     const offset = hour - p.source.now; // Explicit whole-day host clock map; family wall time does not move.
     const shifted = structuredClone(portable);
@@ -161,7 +162,7 @@ export async function prepareKitchenChapter(
       if (c.recurUntil !== undefined) c.recurUntil += offset;
       if (c.exempt) c.exempt.at += offset;
       if (family) c.actions = ['home'];
-      if (c.until <= 1050 && c.status === 'pending')
+      if (c.until <= 1045 && c.status === 'pending')
         throw new Error('A source duty would fall inside the unplayed opening interval.');
     }
     if (shifted.calendar.owed.length || shifted.calendar.lapse)
@@ -186,7 +187,7 @@ export async function prepareKitchenChapter(
       targetId: id,
       targetNorms: DEFAULT_NORMS,
     }).person;
-    tick(admitted, 1050);
+    tick(admitted, 1045);
     chapter.actors[id] = snapshot(admitted);
     chapter.facts[id] = lifeAdmission(input, 'pass');
   }
