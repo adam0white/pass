@@ -13,7 +13,7 @@ const hash = (s: GameState) => legacyHash(s, '2.8.0');
 
 describe('game editions', () => {
   it('starts new runs on pass@12 and retains explicit pass@3 creation', () => {
-    expect(newGame(42).version).toBe('pass@12');
+    expect(newGame(42).version).toBe('pass@13');
     expect(newGame(42, 'pass@3').version).toBe('pass@3');
   });
   for (const row of legacy) {

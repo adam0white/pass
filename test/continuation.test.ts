@@ -7,7 +7,7 @@ describe('pinned chapter replay', () => {
     const old = newGame(19, 'pass@11');
     expect(replayExport(exportRun(old, '2.15.0'))).toEqual(replay(19, [], old.minute, 'pass@11'));
     expect(canReplay('pass@12')).toBe(true);
-    expect(newGame(19).version).toBe('pass@12');
+    expect(newGame(19).version).toBe('pass@13');
   });
   it('rejects a return chapter whose departure is another return', () => {
     expect(() =>

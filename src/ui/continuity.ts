@@ -1,14 +1,29 @@
-import { ENGINE_VERSION, FRAMEWORK_VERSION } from '@adam0white/human-framework';
+/** Whole kitchen ownership and recording consent. Title entry is read-only; files never acquire ownership. */
+import { ENGINE_VERSION, FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework';
 import {
+  anchorPersonaLife,
+  canonicalCast,
+  canonicalPersona,
+  claimCastChapterBatch,
+  closePersonaBranch,
   createPersona,
+  initialPersonaLife,
   type PersonaEnvelope,
+  type PersonaLife,
   personaChannel,
   validatePersona,
   watchPersonaCheckpoint,
 } from '@adam0white/lab-client';
 import { personaControls } from '@adam0white/lab-kit';
-import { type Export, exportRun, GAME_VERSION, type GameState } from '../sim/kitchen.ts';
-import { projectZeynep, ZEYNEP_CAST, zeynepDepartureStatus } from '../sim/one-cast.ts';
+import {
+  CAST,
+  digest,
+  keyOf,
+  kitchenTransfer,
+  prepareKitchenChapter,
+  validateKitchenChapter,
+} from '../sim/cast-chapter.ts';
+import { type Export, exportRun, GAME_VERSION, type GameState, newGame } from '../sim/kitchen.ts';
 import { lab } from './lab.ts';
 
 export interface OneCastRow {
@@ -26,86 +41,83 @@ export interface OneCastRow {
 export interface ContinuitySave {
   envelope: PersonaEnvelope | null;
   oneCast: OneCastRow[];
+  ownedHeads?: Record<string, PersonaEnvelope>;
+  recordingGroup?: PersonaEnvelope[];
   fileUnlinked?: boolean;
+  fileOrigin?: boolean;
+  localOnly?: boolean;
   recordingKey?: string;
   importedHistory?: boolean;
-  scope?: OneCastRow['scope'];
+  scope?: 'shared' | 'file' | 'local';
 }
 export type ContinuityExport = Export & { continuity?: ContinuitySave; oneCast?: OneCastRow[] };
-/** A return chapter is imported history even if a file strips its optional UI metadata. */
-export function guardedContinuity(state: GameState, value?: ContinuitySave): ContinuitySave | undefined {
-  if (
-    state.returnChapter &&
-    (!value?.envelope ||
-      value.envelope.castId !== 'hf.cast.zeynep.pass' ||
-      value.envelope.source.game !== 'pass')
-  )
-    throw new Error('This return chapter is missing its last accepted person envelope.');
+export function guardedContinuity(state: GameState, value?: ContinuitySave) {
+  if (state.castChapter && !value)
+    return {
+      envelope: null,
+      oneCast: [],
+      fileUnlinked: true,
+      fileOrigin: true,
+      importedHistory: true,
+    } satisfies ContinuitySave;
   return value;
 }
-
-const DEPARTURE = 'pass-zeynep-departure-v1';
-
-// Same generic opaque epoch protocol as the central bridge. Neither identity nor
-// acknowledgement is persisted in persona data, saves, replays or telemetry.
-async function epochFor(player: string | null): Promise<string | null> {
-  if (!player) return null;
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(`hf-recording-epoch/1:${player}`),
-  );
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/** Browser continuity owns CAS and consent; simulation owns projection and replay. */
 export function continuity(
   getState: () => GameState | null,
   save: () => unknown,
-  loadReturn: (state: GameState) => void,
+  _load: (s: GameState) => void,
 ) {
   const shelf = personaChannel();
-  let pinned: PersonaEnvelope | null = null;
-  let rows: OneCastRow[] = [];
+  let heads: Record<string, PersonaEnvelope> = {},
+    group: PersonaEnvelope[] = [],
+    rows: OneCastRow[] = [];
+  let localOnly = false;
+  let fileOrigin = false,
+    fileUnlinked = false,
+    importedHistory = false,
+    recordingKey: string | undefined;
+  let generation = 0,
+    choiceGeneration = 0,
+    message = '',
+    stopTracking: (() => void) | undefined;
   let pending: PersonaEnvelope | null = null;
-  let pendingAdmission: {
-    state: GameState;
-    arrival: PersonaEnvelope;
-    history: OneCastRow[];
-    fromFile: boolean;
-  } | null = null;
-  let imported: PersonaEnvelope | null = null;
-  let fileUnlinked = false;
-  let recordingKey: string | null = null;
-  let importedHistory = false;
-  let message = '';
-  let chain: Promise<void> = Promise.resolve();
-  let stopTracking: (() => void) | undefined;
-  let generation = 0;
-  let gateGeneration = 0;
-  let recordingAck: { token: string; revision: string; choice: number } | null = null;
-  const invalidateGate = () => {
-    gateGeneration++;
-    recordingAck = null;
-  };
-  window.addEventListener('hf-lab-preference', invalidateGate);
-  window.addEventListener('storage', invalidateGate);
-  let scope: OneCastRow['scope'] = 'shared';
+  let chain = Promise.resolve();
+  const source = () => ({
+    game: 'pass',
+    build: lab.build().c ?? 'local',
+    engine: ENGINE_VERSION,
+    rules: 'pass-13',
+  });
   const emit = () => window.dispatchEvent(new Event('pass-continuity'));
-  const report = (text: string) => {
-    message = text;
+  const report = (s: string) => {
+    message = s;
     emit();
   };
+  const revisions = () => group.map((p) => p.revision).join('/');
+  const invalidate = () => {
+    generation++;
+    choiceGeneration++;
+    lab.allowPersonaRecording(false);
+  };
+  window.addEventListener('hf-lab-preference', invalidate);
+  window.addEventListener('storage', invalidate);
   const data = (): ContinuitySave => ({
-    envelope: pinned,
-    oneCast: [...rows],
+    envelope: heads['hf.cast.zeynep.pass'] ?? null,
+    oneCast: structuredClone(rows),
+    ownedHeads: structuredClone(heads),
+    recordingGroup: structuredClone(group),
+    fileOrigin,
+    localOnly,
     fileUnlinked,
-    recordingKey: recordingKey ?? undefined,
+    recordingKey,
     importedHistory,
-    scope,
+    scope: fileOrigin ? 'file' : 'shared',
   });
   const run = (): ContinuityExport | null => {
     const s = getState();
-    return s ? { ...exportRun(s, FRAMEWORK_VERSION), continuity: data(), oneCast: [...rows] } : null;
+    return s
+      ? { ...exportRun(s, FRAMEWORK_VERSION), continuity: data(), oneCast: structuredClone(rows) }
+      : null;
   };
   const track = () => {
     stopTracking?.();
@@ -114,478 +126,297 @@ export function continuity(
       getLogs: () =>
         getState()
           ?.said.slice(-40)
-          .map((line) => line.text) ?? [],
+          .map((l) => l.text) ?? [],
     });
   };
-  function authoredGate() {
-    recordingKey = `pass-run-${crypto.randomUUID()}`;
-    lab.setPersonaRecording(recordingKey);
-    lab.allowPersonaRecording(true);
-  }
-  async function gate(envelope: PersonaEnvelope | null, fromFile = false) {
-    const gateEpoch = ++gateGeneration;
-    recordingAck = null;
-    stopTracking?.();
-    stopTracking = undefined;
-    const localPlayer = lab.playerId;
-    const key = envelope?.branchId ?? recordingKey;
-    lab.setPersonaRecording(key);
-    const locallyAllowed = lab.personaRecordingAllowed;
-    if (key && (fromFile || !locallyAllowed)) lab.allowPersonaRecording(false);
-    if (envelope && shelf.enabled) {
-      try {
-        const expectedEpoch = await epochFor(localPlayer);
-        if (gateEpoch !== gateGeneration) return;
-        const association = await shelf.request<{
-          sameEpoch: boolean;
-          branchId?: string;
-          revision?: string;
-          recordingEpoch?: string;
-        }>({
-          action: 'recording',
-          castId: envelope.castId,
-          envelope,
-        });
-        const selected =
-          association.branchId === envelope.branchId && association.revision === envelope.revision;
-        if (
-          selected &&
-          gateEpoch === gateGeneration &&
-          typeof association.recordingEpoch === 'string' &&
-          association.recordingEpoch !== expectedEpoch
-        )
-          lab.allowPersonaRecording(false);
-        if (
-          selected &&
-          gateEpoch === gateGeneration &&
-          expectedEpoch !== null &&
-          association.recordingEpoch === expectedEpoch &&
-          typeof association.recordingEpoch === 'string' &&
-          /^[a-f0-9]{64}$/.test(association.recordingEpoch)
-        )
-          recordingAck = {
-            token: association.recordingEpoch,
-            revision: envelope.revision,
-            choice: gateEpoch,
-          };
-        if (
-          selected &&
-          recordingAck?.choice === gateEpoch &&
-          association.sameEpoch &&
-          expectedEpoch !== null &&
-          association.recordingEpoch === expectedEpoch &&
-          !fromFile &&
-          gateEpoch === gateGeneration
-        )
-          lab.allowPersonaRecording(true);
-      } catch {
-        /* Missing bridge keeps imported history local. */
-      }
-    } else if (key && !fromFile && locallyAllowed) lab.allowPersonaRecording(true);
-  }
-  function row(envelope: PersonaEnvelope, stage: OneCastRow['stage']) {
-    if (!rows.some((r) => r.revision === envelope.revision && r.stage === stage))
-      rows.push({
-        v: 1,
-        probe: 'zeynep',
-        arm: 'continuing',
-        scope,
-        castId: envelope.castId,
-        branchId: envelope.branchId,
-        revision: envelope.revision,
-        parentRevision: envelope.parentRevision,
-        stage,
-        outcome: 'accepted',
-      });
-  }
-  async function retainRecording(
-    envelope: PersonaEnvelope,
-    allowRecording: boolean,
-    ack: { token: string; choice: number } | null,
-  ) {
-    if (!ack || ack.choice !== gateGeneration || (allowRecording && !lab.personaRecordingAllowed)) return;
-    const choice = gateGeneration;
-    const expectedEpoch = allowRecording ? await epochFor(lab.playerId) : ack.token;
-    if (
-      choice !== gateGeneration ||
-      ack.token !== expectedEpoch ||
-      (allowRecording && !lab.personaRecordingAllowed)
-    )
-      return;
-    const request = {
-      action: 'recording' as const,
-      castId: envelope.castId,
-      envelope,
-      allowRecording,
-      recordingEpoch: ack.token,
-    };
-    try {
-      await shelf.request(request);
-    } catch {
-      /* A stale epoch cannot be refreshed under an earlier choice. */
-    }
-  }
-  async function retainChoice(envelope: PersonaEnvelope, allowRecording: boolean) {
-    const epoch = generation;
-    const choice = gateGeneration;
-    // This identity is observed at the explicit choice, after local approval opens
-    // the gate. It cannot be substituted by a later central query's identity.
-    const approvedPlayer = allowRecording ? lab.playerId : null;
-    const expectedEpoch = allowRecording ? await epochFor(approvedPlayer) : null;
-    const current = () =>
-      epoch === generation &&
-      choice === gateGeneration &&
-      (!allowRecording ||
-        (expectedEpoch !== null && lab.personaRecordingAllowed && lab.playerId === approvedPlayer));
-    if (!current()) return;
-    try {
-      const association = await shelf.request<{
-        branchId?: string;
-        revision?: string;
-        recordingEpoch?: string;
-      }>({ action: 'recording', castId: envelope.castId, envelope });
-      if (
-        !current() ||
-        association.branchId !== envelope.branchId ||
-        association.revision !== envelope.revision ||
-        typeof association.recordingEpoch !== 'string' ||
-        !/^[a-f0-9]{64}$/.test(association.recordingEpoch) ||
-        (allowRecording && association.recordingEpoch !== expectedEpoch)
-      )
-        return;
-      await retainRecording(envelope, allowRecording, { token: association.recordingEpoch, choice });
-    } catch {
-      /* Local choice remains available when the shared bridge is absent. */
-    }
-  }
-  async function accepted(
-    envelope: PersonaEnvelope,
-    epoch = generation,
-    sourceAck?: { token: string; choice: number },
-  ) {
-    const migrate =
-      !!sourceAck && sourceAck.choice === gateGeneration && lab.personaRecordingAllowed && !fileUnlinked;
-    const gateEpoch = gateGeneration + 1;
-    await gate(envelope, fileUnlinked);
-    if (epoch !== generation) return;
-    if (
-      migrate &&
-      sourceAck &&
-      gateEpoch === gateGeneration &&
-      recordingAck?.choice === gateEpoch &&
-      recordingAck.token === sourceAck.token
-    ) {
+  const gate = async () => {
+    const attempt = ++choiceGeneration,
+      epoch = generation,
+      pinned = revisions();
+    lab.setPersonaRecording(recordingKey ?? null);
+    if (!importedHistory && !group.length && !fileOrigin) {
       lab.allowPersonaRecording(true);
-      await retainRecording(envelope, true, { token: sourceAck.token, choice: gateEpoch });
-      if (epoch !== generation) return;
+      return;
     }
-    pinned = envelope;
-    pending = null;
-    row(envelope, 'checkpoint');
-    const current = run();
-    if (current && !current.returnChapter) {
-      try {
-        localStorage.setItem(DEPARTURE, JSON.stringify(current));
-      } catch {
-        report('Keep a downloaded copy: this browser could not retain Zeynep’s departure.');
+    lab.allowPersonaRecording(false);
+    if (!group.length || fileOrigin || fileUnlinked || !shelf.enabled) return;
+    try {
+      const result = await shelf.request<{ sameEpoch: boolean; revisions: string[] }>({
+        action: 'recordingBatch',
+        envelopes: group,
+      });
+      if (
+        epoch === generation &&
+        attempt === choiceGeneration &&
+        pinned === revisions() &&
+        result.revisions.join('/') === pinned &&
+        result.sameEpoch
+      )
+        lab.allowPersonaRecording(true);
+    } catch {
+      /* Missing bridge keeps automatic recording closed. */
+    }
+  };
+  async function restore(
+    value?: ContinuitySave,
+    fromFile = false,
+    savedRun = false,
+    incomingState?: GameState,
+  ) {
+    await shelf.ready;
+    const epoch = ++generation;
+    choiceGeneration++;
+    stopTracking?.();
+    const incoming: Record<string, PersonaEnvelope> = {};
+    for (const [id, p] of Object.entries(value?.ownedHeads ?? {})) {
+      keyOf(id);
+      const checked = await validatePersona(p);
+      if (checked.castId !== id || checked.source.game !== 'pass')
+        throw new Error('Invalid local ownership receipt.');
+      incoming[id] = checked;
+    }
+    let restoredGroup = await Promise.all(
+      (value?.recordingGroup ?? Object.values(incoming)).map(validatePersona),
+    );
+    if (epoch !== generation) throw new Error('Notebook replaced during load.');
+    const state = incomingState;
+    if (state?.castChapter) await validateKitchenChapter(state.castChapter);
+    if (state && !fromFile && !value?.fileOrigin) {
+      const expected = Object.values(incoming);
+      if (
+        expected.length &&
+        canonicalPersona(expected.map((p) => p.revision).sort()) !==
+          canonicalPersona(restoredGroup.map((p) => p.revision).sort())
+      )
+        throw new Error('Recording group differs from the owned kitchen group.');
+      for (const head of expected) {
+        const initial = state.castChapter?.claims?.find((p) => p.castId === head.castId);
+        if (initial && initial.branchId !== head.branchId)
+          throw new Error('Saved ownership belongs to a different branch.');
+        if (initial?.revision === head.revision) continue;
+        const person = state.people.find((p) => p.id === keyOf(head.castId));
+        const receipt = head.transfer.checkpoint as { checkpointDigest?: string } | undefined;
+        if (
+          !person ||
+          (head.terminal
+            ? person.body.alive
+            : !state.releasedCast?.includes(person.id) ||
+              receipt?.checkpointDigest !== (await digest(snapshot(person))))
+        )
+          throw new Error('Saved receipt does not match the played kitchen checkpoint.');
       }
+      for (const initial of state.castChapter?.claims ?? [])
+        if (!incoming[initial.castId] && !fromFile && !value?.fileOrigin)
+          throw new Error('Loaded chapter is missing an accepted owned head.');
     }
-    save();
-    lab.milestone('zeynep source checkpoint accepted');
-    track();
-    emit();
+    if (epoch !== generation) throw new Error('Notebook replaced during load.');
+    if (!restoredGroup.length && state?.castChapter)
+      restoredGroup = structuredClone(
+        state.castChapter.claims ?? state.castChapter.inputs.map((i) => i.parent),
+      );
+    localOnly = value?.localOnly === true;
+    heads = fromFile || value?.fileOrigin ? {} : incoming;
+    group = restoredGroup;
+    fileOrigin = fromFile || value?.fileOrigin === true;
+    fileUnlinked = fileOrigin || value?.fileUnlinked === true;
+    importedHistory =
+      fromFile || value?.importedHistory === true || !!state?.castChapter || (savedRun && !value);
+    recordingKey = fileOrigin
+      ? `pass-file-${crypto.randomUUID()}`
+      : (value?.recordingKey ?? `pass-group-${crypto.randomUUID()}`);
+    rows = structuredClone(value?.oneCast ?? []);
+    pending = null;
+    await gate();
+  }
+  async function fresh(seed: number): Promise<GameState> {
+    await shelf.ready;
+    const epoch = ++generation;
+    choiceGeneration++;
+    stopTracking?.();
+    heads = {};
+    group = [];
+    rows = [];
+    localOnly = false;
+    fileOrigin = false;
+    fileUnlinked = false;
+    importedHistory = false;
+    pending = null;
+    recordingKey = `pass-group-${crypto.randomUUID()}`;
+    lab.setPersonaRecording(recordingKey);
+    lab.allowPersonaRecording(false);
+    if (!shelf.enabled) {
+      localOnly = true;
+      await gate();
+      return newGame(seed);
+    }
+    const chapter = await claimCastChapterBatch(
+      shelf,
+      CAST.map((c) => c.castId),
+      source(),
+      (inputs) => prepareKitchenChapter(inputs, seed),
+      { isCurrent: () => epoch === generation },
+    );
+    if (epoch !== generation) throw new Error('Notebook replaced during admission.');
+    if (!chapter) {
+      await gate();
+      return newGame(seed);
+    }
+    chapter.initial.claims = structuredClone(chapter.claims);
+    heads = Object.fromEntries(chapter.claims.map((p) => [p.castId, p]));
+    group = chapter.claims;
+    importedHistory = chapter.inputs.length > 0;
+    await gate();
+    if (epoch !== generation) throw new Error('Notebook replaced during admission.');
+    report(
+      `Kitchen cast preflight accepted ${chapter.inputs.length} continuing people together. Remaining people use their canonical opening.`,
+    );
+    return newGame(seed, GAME_VERSION, chapter.initial);
+  }
+  async function chooseRecording(value: boolean) {
+    const choice = ++choiceGeneration,
+      epoch = generation,
+      pinned = revisions();
+    const current = () => choice === choiceGeneration && epoch === generation && pinned === revisions();
+    lab.allowPersonaRecording(false);
+    fileUnlinked = !value;
+    if (!value) {
+      save();
+      emit();
+    }
+    if (fileOrigin || !group.length) {
+      if (value && current()) lab.allowPersonaRecording(true);
+      save();
+      emit();
+      return;
+    }
+    try {
+      const query = await shelf.request<{ revisions: string[]; recordingEpoch: string | null }>({
+        action: 'recordingBatch',
+        envelopes: group,
+      });
+      if (!current() || query.revisions.join('/') !== pinned || !query.recordingEpoch) return;
+      await shelf.request({
+        action: 'recordingBatch',
+        envelopes: group,
+        allowRecording: value,
+        recordingEpoch: query.recordingEpoch,
+      });
+      if (current()) {
+        lab.allowPersonaRecording(value);
+        fileUnlinked = !value;
+        save();
+        emit();
+      }
+    } catch {
+      report(
+        'The recording choice could not be associated with this exact kitchen group. Local play and feedback remain available.',
+      );
+    }
   }
   async function checkpointNow() {
     await shelf.ready;
-    const epoch = generation;
-    const s = getState();
-    if (!s || !shelf.enabled || !zeynepDepartureStatus(s).eligible) return;
-    const choice = gateGeneration;
-    let recordingEpoch: string | undefined;
-    const approvedPlayer = lab.playerId;
-    const expectedEpoch = await epochFor(approvedPlayer);
-    if (!fileUnlinked && lab.personaRecordingAllowed) {
-      try {
-        const association = await shelf.request<{ recordingEpoch?: string }>({ action: 'recording' });
-        if (
-          expectedEpoch !== null &&
-          association.recordingEpoch === expectedEpoch &&
-          typeof association.recordingEpoch === 'string' &&
-          /^[a-f0-9]{64}$/.test(association.recordingEpoch)
-        )
-          recordingEpoch = association.recordingEpoch;
-      } catch {
-        /* Continuity still works without a recording association. */
+    const s = getState(),
+      epoch = generation;
+    if (!s || s.version !== 'pass@13' || !shelf.enabled || fileOrigin || localOnly) return;
+    const minute = s.minute;
+    for (const cast of CAST) {
+      const id = keyOf(cast.castId),
+        p = s.people.find((p) => p.id === id),
+        parent = heads[cast.castId];
+      if (!p) continue;
+      if (!p.body.alive) {
+        if (parent && !parent.terminal) {
+          const terminal = await closePersonaBranch(parent, source(), p.now);
+          if (epoch !== generation || getState() !== s) return;
+          await shelf.request({ action: 'put', envelope: terminal });
+          if (epoch === generation) {
+            heads[cast.castId] = terminal;
+            group = Object.values(heads);
+            save();
+            await gate();
+          }
+        }
+        continue;
       }
-    }
-    if (epoch !== generation) return;
-    const transfer = await projectZeynep(s);
-    if (epoch !== generation) return;
-    const previousCheckpoint = pinned?.transfer.checkpoint as
-      | { checkpointDigest?: string; sourceNow?: number }
-      | undefined;
-    if (
-      previousCheckpoint?.checkpointDigest === transfer.checkpoint.checkpointDigest &&
-      previousCheckpoint?.sourceNow === transfer.checkpoint.sourceNow
-    )
-      return;
-    const envelope = await createPersona({
-      format: 'hf-persona/1',
-      castId: ZEYNEP_CAST,
-      castRevision: '1',
-      branchId: pinned?.branchId ?? crypto.randomUUID(),
-      parentRevision: pinned?.revision ?? null,
-      source: {
-        game: 'pass',
-        build: lab.build().c ?? 'local',
-        engine: ENGINE_VERSION,
-        rules: GAME_VERSION.replace('@', '-'),
-      },
-      transfer,
-      limitations: transfer.person.limitations,
-    });
-    if (epoch !== generation) return;
-    const authored =
-      !pinned &&
-      !importedHistory &&
-      !fileUnlinked &&
-      lab.personaRecordingAllowed &&
-      choice === gateGeneration &&
-      !!recordingEpoch;
-    // A blocked shelf must still leave the deterministic departure prefix for file return.
-    try {
-      const prefix = run();
-      if (prefix && !prefix.returnChapter)
-        localStorage.setItem(DEPARTURE, JSON.stringify({ ...prefix, departureEnvelope: envelope }));
-    } catch {}
-    try {
-      const request = {
-        action: 'put' as const,
-        envelope,
-        authored,
-        recordingEpoch: authored ? recordingEpoch : undefined,
-      };
-      await shelf.request(request);
-      if (epoch !== generation) return;
-      await accepted(envelope, epoch, recordingEpoch ? { token: recordingEpoch, choice } : undefined);
-    } catch {
-      if (epoch !== generation) return;
-      pending = envelope;
-      report(
-        'Zeynep’s checkpoint could not replace the browser head. Keep a file, or explicitly start a new branch.',
-      );
-      lab.milestone('zeynep bridgefail');
+      if (!['evening', 'sunday', 'end'].includes(s.phase) || !s.releasedCast?.includes(id) || p.activity)
+        continue;
+      try {
+        const raw = snapshot(p),
+          transfer = await kitchenTransfer(raw);
+        if (
+          epoch !== generation ||
+          getState() !== s ||
+          s.minute !== minute ||
+          (await digest(snapshot(p))) !== transfer.checkpoint.checkpointDigest
+        )
+          return;
+        const old = parent?.transfer.checkpoint as { checkpointDigest?: string } | undefined;
+        if (old?.checkpointDigest === transfer.checkpoint.checkpointDigest) continue;
+        const branchId = parent?.branchId ?? crypto.randomUUID(),
+          life = parent?.transfer.life as PersonaLife | undefined;
+        const envelope = await createPersona({
+          format: 'hf-persona/1',
+          castId: cast.castId,
+          castRevision: canonicalCast(cast.castId).revision,
+          branchId,
+          parentRevision: parent?.revision ?? null,
+          source: source(),
+          transfer: {
+            ...transfer,
+            life: life
+              ? anchorPersonaLife(life, cast.castId, Date.now())
+              : initialPersonaLife(cast.castId, branchId, Date.now()),
+          },
+          limitations: transfer.limitations,
+        });
+        if (epoch !== generation || s.minute !== minute) return;
+        try {
+          await shelf.request({ action: 'put', envelope });
+        } catch {
+          pending = envelope;
+          report(
+            `${cast.name}: the browser head changed. Export or explicitly start a new branch; no retry against a newer head.`,
+          );
+          continue;
+        }
+        if (epoch !== generation) return;
+        heads[cast.castId] = envelope;
+        group = Object.values(heads);
+        importedHistory = true;
+        save();
+        await gate();
+        track();
+        report(`${cast.name}: eligible kitchen checkpoint saved. Family duties remain.`);
+      } catch (error) {
+        report(`${cast.name}: ${error instanceof Error ? error.message : 'unsupported departure'}`);
+      }
     }
   }
   const checkpoint = () => {
     chain = chain
       .then(checkpointNow)
-      .catch(() => report('Zeynep cannot leave from this checkpoint. Keep a copy of the run.'));
+      .catch(() => report('Keep a local notebook. This checkpoint was not saved.'));
     return chain;
   };
-  async function restore(value?: ContinuitySave, fromFile = false, savedRun = false) {
-    await shelf.ready;
-    const epoch = ++generation;
-    const envelope = value?.envelope ? await validatePersona(value.envelope) : null;
-    if (envelope && envelope.castId !== ZEYNEP_CAST) throw new Error('Wrong person');
-    const restoredRows = value?.oneCast ?? [];
-    const token = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
-    const hash = /^[a-f0-9]{64}$/;
-    if (
-      !Array.isArray(restoredRows) ||
-      restoredRows.length > 512 ||
-      restoredRows.some(
-        (r) =>
-          !r ||
-          r.v !== 1 ||
-          r.probe !== 'zeynep' ||
-          r.arm !== 'continuing' ||
-          !['shared', 'local', 'file'].includes(r.scope) ||
-          r.castId !== ZEYNEP_CAST ||
-          typeof r.branchId !== 'string' ||
-          !token.test(r.branchId) ||
-          !hash.test(r.revision) ||
-          !(r.parentRevision === null || hash.test(r.parentRevision)) ||
-          !['checkpoint', 'admitted'].includes(r.stage) ||
-          r.outcome !== 'accepted',
-      )
-    )
-      throw new Error('Invalid continuity evidence');
-    if (epoch !== generation) throw new Error('Another notebook replaced this load.');
-    importedHistory = fromFile || (value?.importedHistory ?? savedRun);
-    recordingKey = fromFile
-      ? `pass-file-${crypto.randomUUID()}`
-      : (value?.recordingKey ?? (importedHistory && !envelope ? `pass-saved-${crypto.randomUUID()}` : null));
-    fileUnlinked =
-      fromFile || value?.fileUnlinked === true || (savedRun && !value?.recordingKey && !envelope);
-    if (!value && !fromFile && !savedRun) authoredGate();
-    await gate(envelope, fileUnlinked);
-    if (epoch !== generation) throw new Error('Another notebook replaced this load.');
-    if (savedRun && !lab.personaRecordingAllowed) importedHistory = true;
-    pinned = envelope;
-    rows = structuredClone(restoredRows);
-    pending = null;
-    pendingAdmission = null;
-    scope = fromFile ? 'file' : (value?.scope ?? 'shared');
-  }
-  async function fresh(
-    prepare: (envelope: PersonaEnvelope, prefix: Export) => GameState | Promise<GameState>,
-  ): Promise<GameState | null> {
-    await shelf.ready;
-    const epoch = ++generation;
-    const current = () => {
-      if (epoch !== generation) throw new Error('Another notebook replaced this arrival.');
-    };
-    authoredGate();
-    importedHistory = false;
-    await gate(null);
-    current();
-    fileUnlinked = false;
-    scope = 'shared';
-    pinned = null;
-    rows = [];
-    pending = null;
-    pendingAdmission = null;
-    if (!shelf.enabled && !imported) return null;
-    try {
-      const fromFile = !!imported;
-      const arrival =
-        imported ?? (await shelf.request<PersonaEnvelope | null>({ action: 'get', castId: ZEYNEP_CAST }));
-      current();
-      imported = null;
-      if (arrival?.source.game !== 'goodhands') return null;
-      await validatePersona(arrival);
-      current();
-      const raw = localStorage.getItem(DEPARTURE);
-      if (!raw) {
-        report('Zeynep’s return needs her departure notebook on this device. A fresh kitchen is available.');
-        return null;
-      }
-      const prefix = JSON.parse(raw) as ContinuityExport;
-      const prepared = await prepare(arrival, prefix);
-      current();
-      importedHistory = true;
-      await gate(arrival, fromFile);
-      current();
-      const { revision, ...body } = arrival;
-      const claim = await createPersona({
-        ...body,
-        parentRevision: revision,
-        transfer: {
-          ...body.transfer,
-          admission: {
-            ...((body.transfer.admission as Record<string, unknown>) ?? {}),
-            claimId: crypto.randomUUID(),
-          },
-        },
-        source: {
-          game: 'pass',
-          build: lab.build().c ?? 'local',
-          engine: ENGINE_VERSION,
-          rules: GAME_VERSION.replace('@', '-'),
-        },
-      });
-      current();
-      try {
-        if (!shelf.enabled) throw new Error('Choose local file play explicitly.');
-        await shelf.request({ action: 'put', envelope: claim });
-        current();
-        await gate(claim, fromFile);
-        current();
-      } catch {
-        current();
-        pending = claim;
-        pendingAdmission = {
-          state: prepared,
-          arrival,
-          fromFile,
-          history: structuredClone(prefix.oneCast ?? prefix.continuity?.oneCast ?? []),
-        };
-        importedHistory = false;
-        await gate(null);
-        current();
-        report(
-          'Zeynep’s return could not claim the browser head. The game menu offers an explicit new branch or local return.',
-        );
-        return null;
-      }
-      scope = fromFile ? 'file' : 'shared';
-      fileUnlinked = fromFile;
-      pinned = claim;
-      rows = structuredClone(prefix.oneCast ?? prefix.continuity?.oneCast ?? []);
-      // The target claim points directly to the accepted source checkpoint.
-      row(claim, 'admitted');
-      lab.milestone('zeynep return admitted');
-      report(
-        'Zeynep has returned from the cold-food trial. This chapter does not give her another kitchen job.',
-      );
-      return prepared;
-    } catch {
-      current();
-      importedHistory = false;
-      await gate(null);
-      report(
-        'Zeynep’s return could not be admitted. Her existing notebook remains available; a fresh kitchen can begin.',
-      );
-      return null;
-    }
-  }
-  function download(envelope = pending ?? pinned) {
-    if (!envelope) return;
-    if (envelope === pending && !pendingAdmission) {
-      const previousScope = scope;
-      scope = 'file';
-      row(envelope, 'checkpoint');
-      scope = previousScope;
-      save();
-    }
-    const url = URL.createObjectURL(new Blob([JSON.stringify(envelope)], { type: 'application/json' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'pass-zeynep-persona.json';
-    link.click();
+  const download = (value: unknown, name: string) => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(value)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-  function chooseRecording(value: boolean) {
-    const choice = ++gateGeneration;
-    recordingAck = null;
-    const epoch = generation;
-    const key = pinned?.branchId ?? recordingKey;
-    const player = lab.playerId;
-    const current = () =>
-      choice === gateGeneration &&
-      epoch === generation &&
-      key === (pinned?.branchId ?? recordingKey) &&
-      player === lab.playerId;
-    if (!value) {
-      fileUnlinked = true;
-      lab.allowPersonaRecording(false);
-      if (pinned) void retainChoice(pinned, false);
-      save();
-      emit();
-      return;
-    }
-    if (!key) return;
-    // Local approval is synchronous. Its exact recording identity binds the
-    // subsequent central query and grant; older bridges stay local.
-    if (current()) {
-      fileUnlinked = false;
-      lab.allowPersonaRecording(true);
-      if (pinned) void retainChoice(pinned, true);
-      save();
-      emit();
-    }
-  }
+  };
   function controls() {
     const section = personaControls({
       enabled: shelf.enabled,
       setEnabled: (value) => {
         shelf.setEnabled(value);
         emit();
-        if (value) void checkpoint();
       },
       recordingAllowed: lab.personaRecordingAllowed,
-      allowRecording: chooseRecording,
+      allowRecording: (value) => {
+        void chooseRecording(value);
+      },
     });
     const status = document.createElement('p');
     status.setAttribute('role', 'status');
@@ -596,103 +427,55 @@ export function continuity(
       else window.removeEventListener('pass-continuity', update);
     };
     window.addEventListener('pass-continuity', update);
-    const file = document.createElement('input');
-    file.type = 'file';
-    file.accept = 'application/json';
-    file.hidden = true;
-    const load = document.createElement('button');
-    load.textContent = 'Import a person file for the next new notebook';
-    load.onclick = () => file.click();
-    file.onchange = () => {
-      const selected = file.files?.[0];
-      if (!selected) return;
-      void selected
-        .text()
-        .then(JSON.parse)
-        .then(validatePersona)
-        .then((envelope) => {
-          if (envelope.castId !== ZEYNEP_CAST || envelope.source.game !== 'goodhands')
-            throw new Error('Unsupported person');
-          imported = envelope;
-          report('Person file checked. Start a new notebook to attempt Zeynep’s return.');
-        })
-        .catch(() => report('That file does not contain a supported Zeynep return.'));
-    };
-    section.append(load, file);
-    if (pinned || pending) {
-      const backup = document.createElement('button');
-      backup.textContent = 'Download Zeynep’s person file';
-      backup.onclick = () => download();
-      section.append(backup);
+    for (const cast of CAST) {
+      const p = getState()?.people.find((p) => p.id === keyOf(cast.castId));
+      if (!p) continue;
+      const b = document.createElement('button');
+      b.textContent = `Download ${cast.name}’s accepted person`;
+      b.disabled = !heads[cast.castId];
+      b.onclick = () => download(heads[cast.castId], `pass-${p.id}-person.json`);
+      section.append(b);
     }
     if (pending) {
+      const b = document.createElement('button');
+      b.textContent = 'Download refused checkpoint';
+      b.onclick = () => download(pending, 'pass-refused-person.json');
+      section.append(b);
       const fork = document.createElement('button');
-      fork.textContent = 'Start a new branch for this Zeynep';
+      fork.textContent = 'Explicitly start a different branch from this played checkpoint';
       fork.onclick = () => {
         chain = chain
           .then(async () => {
-            if (!pending) return;
-            const epoch = generation;
-            const candidate = pending;
+            const candidate = pending,
+              epoch = generation;
+            if (!candidate) return;
             const { revision: _revision, ...body } = candidate;
-            const envelope = await createPersona({
+            const alternative = await createPersona({
               ...body,
               branchId: crypto.randomUUID(),
               parentRevision: null,
             });
-            if (epoch !== generation || pending !== candidate) return;
-            await shelf.request({ action: 'put', envelope, fork: true });
-            if (epoch !== generation || pending !== candidate) return;
-            if (pendingAdmission) {
-              const admission = pendingAdmission;
-              fileUnlinked = admission.fromFile;
-              await gate(envelope, fileUnlinked);
-              if (epoch !== generation || pending !== candidate) return;
-              pinned = envelope;
-              pending = null;
-              pendingAdmission = null;
-              scope = admission.fromFile ? 'file' : 'shared';
-              rows = admission.history;
-              row(envelope, 'admitted');
-              loadReturn(admission.state);
-              save();
-              track();
-            } else await accepted(envelope);
-            report('A new Zeynep branch is now active.');
+            if (epoch !== generation || candidate !== pending) return;
+            await shelf.request({ action: 'put', envelope: alternative, fork: true });
+            if (epoch !== generation) return;
+            heads[alternative.castId] = alternative;
+            group = Object.values(heads);
+            pending = null;
+            await gate();
+            save();
+            report('A separate played branch is active; earlier history remains retained.');
           })
-          .catch(() => report('The new branch could not be stored. Keep the person file.'));
+          .catch(() => report('The alternative could not be saved. Keep its file.'));
       };
       section.append(fork);
-      if (pendingAdmission) {
-        const local = document.createElement('button');
-        local.textContent = 'Play this return locally';
-        local.onclick = () => {
-          void (async () => {
-            if (!pendingAdmission || !pending) return;
-            const epoch = generation;
-            const admission = pendingAdmission;
-            const claim = pending;
-            fileUnlinked = true;
-            await gate(claim, true);
-            if (epoch !== generation || pending !== claim) return;
-            pinned = claim;
-            pending = null;
-            pendingAdmission = null;
-            scope = 'local';
-            rows = admission.history;
-            row(claim, 'admitted');
-            loadReturn(admission.state);
-            save();
-            track();
-            report('This return stays local. File export is available.');
-          })();
-        };
-        section.append(local);
-      }
     }
     return section;
   }
   return {
+    local: async () => {
+      await restore();
+      localOnly = true;
+    },
     ready: shelf.ready,
     data,
     run,

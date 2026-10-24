@@ -18,7 +18,7 @@ import {
 
 it('enables reasons for pass@10 founders and hires, keeping earlier people unchanged', () => {
   const s = newGame(42);
-  expect(s.version).toBe('pass@12');
+  expect(s.version).toBe('pass@13');
   expect(canReplay('pass@10')).toBe(true);
   expect(s.people.every((p) => p.will.suggestionReasons === true)).toBe(true);
   for (const edition of ['pass@3', 'pass@9']) {
@@ -198,7 +198,7 @@ it.each(Array.from({ length: 20 }, (_, i) => 1000 + i))(
   'pass@10 host shortcuts replay all state from seed %i and ordinary inputs',
   (seed) => {
     const s = beginAtWeekTwo(seed);
-    expect(s.version).toBe('pass@12');
+    expect(s.version).toBe('pass@13');
     expect(s.reports.at(-1)?.bill?.paid).toBe(true);
     expect(cloneState(replay(seed, s.inputs, s.minute, s.version))).toEqual(cloneState(s));
     const party = s.sunday?.parties?.[seed % 2];

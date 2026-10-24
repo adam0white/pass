@@ -1,3 +1,4 @@
+import { episodeText, INVITATIONS } from '../sim/cast-scenes.ts';
 /**
  * The Pass UI: plain DOM and inline SVG over the pure sim. The UI reads state and queues inputs; it never
  * changes the sim directly. Real time drives sim minutes (continuous, with slowdown while a consequential
@@ -18,7 +19,7 @@ import {
   WEEKDAYS,
   weekOf,
 } from '../sim/campaign.ts';
-import { prepareReturn, replayExport, validateReplayFile } from '../sim/continuation.ts';
+import { replayExport, validateReplayFile } from '../sim/continuation.ts';
 import { type CookId, hireTemplate, STATIONS, type Station } from '../sim/cooks.ts';
 import { beginAtWeekTwo, firstPartyBoard, HANDOVER_LEAD, runToSeating } from '../sim/firstweek.ts';
 import {
@@ -97,6 +98,7 @@ let partyHandover: PartyStart | null = null;
 interface Save {
   continuity?: ContinuitySave;
   returnChapter?: Export['returnChapter'];
+  castChapter?: Export['castChapter'];
   firstPartyStart?: boolean;
   partyHandover?: PartyStart | null;
   game: string;
@@ -171,6 +173,7 @@ function writeSave() {
       partyHandover,
       continuity: cast.data(),
       returnChapter: s.returnChapter,
+      castChapter: s.castChapter,
     };
     localStorage.setItem(SAVE, JSON.stringify(sv));
     lab.captureSave(structuredClone(sv));
@@ -192,7 +195,10 @@ function clearSave() {
 // ---------- helpers ----------
 
 const esc = (x: string) =>
-  x.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
+  (s?.version === 'pass@13' ? episodeText(x) : x).replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string,
+  );
 const clock = (m: number) => {
   const d = ((m % 1440) + 1440) % 1440;
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
@@ -251,7 +257,8 @@ function tillBar(st: GameState): string {
   if (tillStart.key !== key)
     tillStart = {
       key,
-      amount: st.phase === 'board' ? st.till : replay(st.seed, before, start, st.version).till,
+      amount:
+        st.phase === 'board' ? st.till : replay(st.seed, before, start, st.version, st.castChapter).till,
     };
   const tonight = tillStart.amount;
   const per = Math.ceil(Math.max(0, target - tonight) / Math.max(1, nights) / 10) * 10;
@@ -316,6 +323,44 @@ function openGameMenu() {
     { once: true },
   );
   dialog.querySelector('#record-controls')?.prepend(recording, cast.controls());
+  if (s?.version === 'pass@13') {
+    const actions = document.createElement('section');
+    for (const m of s.crew.filter((m) => !m.left)) {
+      const b = document.createElement('button');
+      b.textContent = INVITATIONS[m.id] ?? `Talk with ${m.name}`;
+      b.disabled = !!personOf(s, m.id).activity;
+      b.onclick = () => {
+        if (!s) return;
+        queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'listen' });
+        writeSave();
+        dialog.close();
+        drawAll(true);
+      };
+      actions.append(b);
+      const decline = document.createElement('button');
+      decline.textContent = `Leave ${m.name}’s conversation for another time`;
+      decline.onclick = () => {
+        if (!s) return;
+        queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'leave' });
+        writeSave();
+        dialog.close();
+      };
+      actions.append(decline);
+      if (['evening', 'sunday', 'end'].includes(s.phase)) {
+        const release = document.createElement('button');
+        release.textContent = `Finish ${m.name}’s kitchen stint`;
+        release.onclick = () => {
+          if (!s) return;
+          queueInput(s, { kind: 'cast-release', who: m.id });
+          writeSave();
+          void cast.checkpoint();
+          release.disabled = true;
+        };
+        actions.append(release);
+      }
+    }
+    dialog.append(actions);
+  }
   document.body.append(dialog);
   dialog.showModal();
 }
@@ -366,7 +411,7 @@ function title() {
         <label><input type="radio" name="pace" value="nevin" /><span>Selim: “I hope the regulars give us time.”<small>More time to get the lamb right. Nevin’s pace lasts all month.</small></span></label>
         <label><input type="radio" name="pace" value="normal" checked /><span>Dilek: “Leave it as it is.”<small>The usual wait. Learn the rush with the regulars watching.</small></span></label>
       </fieldset>
-      <button id="fresh-authored">Begin a fresh kitchen without a returning person</button>
+      <button id="fresh-authored">Begin fresh local play without browser continuity</button>
       <button id="other-ways" aria-haspopup="dialog">Other ways in</button>
       <p id="title-status" role="status" aria-live="polite"></p>
       <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this notebook</button></div></div>
@@ -416,7 +461,7 @@ function title() {
     if (!save) return;
     try {
       const restored = await validateReplayFile(save);
-      await cast.restore(guardedContinuity(restored, save.continuity), false, true);
+      await cast.restore(guardedContinuity(restored, save.continuity), false, true, restored);
       firstPartyStart = save.firstPartyStart ?? false;
       partyHandover = save.partyHandover ?? null;
       pages = save.pages ?? [];
@@ -440,7 +485,7 @@ function title() {
             inputs: save.inputs.slice(0, page.k),
             minute: undefined,
           } as unknown as Export);
-          await cast.restore(guardedContinuity(restored, save.continuity), false, true);
+          await cast.restore(undefined, true, true, restored);
           firstPartyStart = save.firstPartyStart ?? false;
           partyHandover = null;
           pages = save.pages.filter((p) => p.week <= week);
@@ -455,17 +500,21 @@ function title() {
     const start = () => {
       void (async () => {
         const nevin = app.querySelector<HTMLInputElement>('input[name="pace"]:checked')?.value === 'nevin';
-        const returning = !secondWeek && !authored ? await cast.fresh(prepareReturn) : null;
-        if (secondWeek || authored) await cast.restore();
+        const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+        const returning = !secondWeek && !authored ? await cast.fresh(seed) : null;
+        if (secondWeek || authored) await cast.local();
         clearSave();
         firstPartyStart = firstParty;
-        const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
         s = returning ?? (secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed));
         cast.track();
         if (!secondWeek && !returning && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
         enterWithStatus(cast.message);
-      })().catch(() => status('This notebook could not be opened.'));
+      })().catch(() =>
+        status(
+          'This chapter could not be admitted. Keep the existing notebook, or choose fresh local play. ',
+        ),
+      );
     };
     if (save) ask('Start a new notebook? This one is put away for good.', start);
     else start();
@@ -499,6 +548,8 @@ function title() {
           await cast.restore(
             guardedContinuity(r, (ex as Export & { continuity?: ContinuitySave }).continuity),
             true,
+            false,
+            r,
           );
           s = r;
           cast.track();
@@ -521,9 +572,17 @@ function title() {
 function replayNight(sv: Save): number {
   let n = 1;
   let sunday = false;
-  let atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11', 'pass@12'].includes(
-    sv.game,
-  );
+  let atBoard = [
+    'pass@5',
+    'pass@6',
+    'pass@7',
+    'pass@8',
+    'pass@9',
+    'pass@10',
+    'pass@11',
+    'pass@12',
+    'pass@13',
+  ].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
     if (atBoard) {
@@ -534,9 +593,17 @@ function replayNight(sv: Save): number {
     else {
       sunday = false;
       n = Math.min(LAST_NIGHT, n + 1);
-      atBoard = ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11', 'pass@12'].includes(
-        sv.game,
-      );
+      atBoard = [
+        'pass@5',
+        'pass@6',
+        'pass@7',
+        'pass@8',
+        'pass@9',
+        'pass@10',
+        'pass@11',
+        'pass@12',
+        'pass@13',
+      ].includes(sv.game);
     }
   }
   return n;

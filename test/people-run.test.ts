@@ -21,7 +21,7 @@ import { legacyState } from './hash.ts';
 
 it('runs new service through people and dispatches finished food without a table call', () => {
   const s = newGame(42);
-  expect(s.version).toBe('pass@12');
+  expect(s.version).toBe('pass@13');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   for (let i = 0; i < 120 && !s.tickets.some((t) => t.status === 'served'); i++) step(s);

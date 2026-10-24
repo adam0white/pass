@@ -15,6 +15,8 @@ import {
   seedTie,
 } from '@adam0white/human-framework';
 
+import { castForGame } from '@adam0white/lab-client';
+
 export type CookId = string;
 export type Station = 'grill' | 'cold' | 'dish' | 'oven';
 export const STATIONS: readonly Station[] = ['grill', 'cold', 'dish', 'oven'];
@@ -31,6 +33,7 @@ export const dayStart = (m: number) => Math.floor(m / 1440) * 1440;
 /** Who works here, as the host knows it: name, home station, pay, and when they came or went. */
 export interface CrewMember {
   id: CookId;
+  castId?: string;
   name: string;
   home: Station;
   founder: boolean;
@@ -53,7 +56,7 @@ export const FOUNDERS: readonly CrewMember[] = [
 ];
 
 /** Every cook's own line: I don't walk out on a service. */
-function shiftRule(p: Person, now: number) {
+export function acceptKitchenShift(p: Person, now: number) {
   promise(p, {
     kind: 'abstain',
     toId: CHEF,
@@ -109,7 +112,7 @@ export function makeCook(id: CookId, seed: number, now: number, edition = 'pass@
       kind: 'abstain',
       toId: 'self',
       label: 'my rule about the plates',
-      ...(['pass@10', 'pass@11', 'pass@12'].includes(edition) ? { firm: true as const } : {}),
+      ...(['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(edition) ? { firm: true as const } : {}),
       actions: [],
       violatedBy: ['dish'],
       from: dayStart(now) + RUSH_FROM,
@@ -190,8 +193,9 @@ export function makeCook(id: CookId, seed: number, now: number, edition = 'pass@
       recurEvery: 1440,
     });
   }
-  if (['pass@10', 'pass@11', 'pass@12'].includes(edition)) enableSuggestionReasons(p);
-  shiftRule(p, now);
+  if (['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(edition)) enableSuggestionReasons(p);
+  acceptKitchenShift(p, now);
+  if (edition === 'pass@13') canonicalProfile(p);
   return p;
 }
 
@@ -211,6 +215,15 @@ export interface HireTemplate {
 }
 
 export const HIRES: readonly HireTemplate[] = [
+  {
+    id: 'sam',
+    name: 'Sam',
+    home: 'dish',
+    wage: 40,
+    says: '“I’m eighteen, a repair apprentice on a paid work exchange. I need someone to show me the dish station.”',
+    looks: 'Eighteen. A testing notebook beside his lunch.',
+    asks: 'Can we agree my paid hours before I call Mum?',
+  },
   {
     id: 'murat',
     name: 'Murat',
@@ -256,7 +269,7 @@ export function makeHire(t: HireTemplate, seed: number, now: number, edition = '
     id: t.id,
     name: t.name,
     now,
-    seed: seed ^ (0x100 + HIRES.indexOf(t)),
+    seed: seed ^ (0x100 + Math.max(0, HIRES.indexOf(t) - 1)),
     enable: { fatigueStore: true },
   };
   let p: Person;
@@ -302,6 +315,14 @@ export function makeHire(t: HireTemplate, seed: number, now: number, edition = '
       importance: 0.7,
       recurEvery: 1440,
     });
+  } else if (t.id === 'sam') {
+    p = createPerson({
+      ...base,
+      voices: [{ voiceId: CHEF, trust: 0.5 }],
+      bornAt: now - 18 * MINUTES_PER_YEAR,
+      sex: 'male',
+      skills: { dish: 0.3, cold: 0.15, grill: 0.1, oven: 0.1 },
+    });
   } else if (t.id === 'can') {
     p = createPerson({
       ...base,
@@ -335,8 +356,9 @@ export function makeHire(t: HireTemplate, seed: number, now: number, edition = '
       lastAt: now,
     });
   }
-  if (['pass@10', 'pass@11', 'pass@12'].includes(edition)) enableSuggestionReasons(p);
-  shiftRule(p, now);
+  if (['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(edition)) enableSuggestionReasons(p);
+  acceptKitchenShift(p, now);
+  if (edition === 'pass@13') canonicalProfile(p);
   return p;
 }
 
@@ -350,4 +372,14 @@ export function makeChef(seed: number, now: number): Person {
     seed: seed ^ 0xc4ef,
     bornAt: now - 31 * MINUTES_PER_YEAR,
   });
+}
+
+/** Complete public priors apply only to the new authored edition, never carried state. */
+function canonicalProfile(p: Person) {
+  const cast = castForGame('pass').find((c) => c.castId.split('.')[2] === p.id);
+  if (!cast) throw new Error('Unallocated foreground cook');
+  p.name = cast.name;
+  p.traits = structuredClone(cast.traits);
+  p.values = structuredClone(cast.values);
+  p.life.bornAt = p.now - cast.age * MINUTES_PER_YEAR;
 }

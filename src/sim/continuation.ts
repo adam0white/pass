@@ -1,6 +1,7 @@
 /** Return visits start after a locally replayed departure. The shelf is never read during replay. */
 import { type Person, restore, snapshot, validatePersonaProjection } from '@adam0white/human-framework';
 import { canonicalPersona, type PersonaEnvelope, validatePersona } from '@adam0white/lab-client';
+import { validateKitchenChapter } from './cast-chapter.ts';
 import { canReplay, cloneState, type Export, type GameState, personOf, replay } from './kitchen.ts';
 import { returnedZeynep, zeynepDepartureStatus } from './one-cast.ts';
 
@@ -12,7 +13,7 @@ export interface ReturnChapter {
 }
 
 type ReplayFile = Pick<Export, 'game' | 'seed' | 'inputs'> &
-  Partial<Pick<Export, 'state' | 'returnChapter'>> & { minute?: number };
+  Partial<Pick<Export, 'state' | 'returnChapter' | 'castChapter'>> & { minute?: number };
 
 const canonicalJson = (value: unknown) => canonicalPersona(JSON.parse(JSON.stringify(value)));
 
@@ -114,11 +115,19 @@ export function replayExport(ex: ReplayFile): GameState {
       throw new Error('The return chapter does not match its pinned replay.');
     return state;
   }
-  return replay(ex.seed, ex.inputs, ex.state?.minute ?? ex.minute, ex.game);
+  return replay(
+    ex.seed,
+    ex.inputs,
+    ex.state?.minute ?? ex.minute,
+    ex.game,
+    ex.castChapter ?? ex.state?.castChapter,
+  );
 }
 
 /** Validate portable checksums before a file or saved chapter can affect upload consent or a loaded run. */
 export async function validateReplayFile(ex: ReplayFile): Promise<GameState> {
+  const chapter = ex.castChapter ?? ex.state?.castChapter;
+  if (chapter) await validateKitchenChapter(chapter);
   const header = ex.returnChapter ?? ex.state?.returnChapter;
   if (header) {
     await prepareReturn(header.envelope, header.prefix);
