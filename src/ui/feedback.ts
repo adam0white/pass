@@ -1,6 +1,5 @@
 import { type Lab, PRIVACY_URL } from '@adam0white/lab-client';
-import { feedbackPersonaControl } from '@adam0white/lab-kit';
-import { unlinkedFeedbackRun } from './feedback-run.ts';
+import { feedbackPersonaControl, feedbackSharePlay } from '@adam0white/lab-kit';
 import './feedback.css';
 
 const NAME_KEY = 'hf-lab-feedback-name';
@@ -21,7 +20,7 @@ export type FeedbackOptions = {
 };
 
 /** The kitchen remains held by the modal until the caller restores its menu. */
-export function openFeedback({ lab, getRun, download, onBack, chooseRecording }: FeedbackOptions): void {
+export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions): void {
   const dialog = document.createElement('dialog');
   dialog.className = 'pass-feedback';
   dialog.setAttribute('aria-labelledby', 'pass-feedback-title');
@@ -42,7 +41,7 @@ export function openFeedback({ lab, getRun, download, onBack, chooseRecording }:
       <form class="feedback-form">
         <div class="feedback-sheet">
           <h1 id="pass-feedback-title">Send word</h1>
-          <p>Send a note about this game. Recording and continuing-person choices are optional.</p>
+          <p>Send a note about this game. You can send a note with or without sharing play.</p>
           <fieldset class="feedback-verdicts">
             <legend>Would you keep playing? <span>(optional)</span></legend>
             <button type="button" data-verdict="keep" aria-pressed="false">I'd keep playing</button>
@@ -63,7 +62,7 @@ export function openFeedback({ lab, getRun, download, onBack, chooseRecording }:
           <button type="button" class="feedback-download" data-feedback="download">Keep a copy of this run</button>
           <p class="feedback-status" role="status" aria-live="polite"></p>
         </div>
-        <footer class="feedback-actions"><button type="submit" class="primary feedback-send">Send</button></footer>
+        <footer class="feedback-actions"><button type="submit" class="primary feedback-send">Submit</button></footer>
       </form>
     </div>`;
   const find = <T extends Element>(selector: string) => dialog.querySelector<T>(selector) as T;
@@ -81,24 +80,7 @@ export function openFeedback({ lab, getRun, download, onBack, chooseRecording }:
       return undefined;
     }
   };
-  const personaChoice = feedbackPersonaControl({
-    personaRecordingRequired: lab.personaRecordingRequired,
-    get personaRecordingAllowed() {
-      return lab.personaRecordingAllowed;
-    },
-    allowPersonaRecording(allow) {
-      void Promise.resolve()
-        .then(() => chooseRecording(allow))
-        .then(syncPersonaChoice, syncPersonaChoice);
-    },
-  });
-  function syncPersonaChoice() {
-    const input = personaChoice?.querySelector('input');
-    if (input) input.checked = lab.personaRecordingAllowed;
-  }
-  if (personaChoice?.lastChild)
-    personaChoice.lastChild.textContent =
-      ' Link all continuing histories in this run to lab recording (optional)';
+  const personaChoice = feedbackPersonaControl(lab);
   if (personaChoice) form.querySelector('textarea')?.after(personaChoice);
 
   let verdict = '';
@@ -184,12 +166,14 @@ export function openFeedback({ lab, getRun, download, onBack, chooseRecording }:
     status.textContent = 'Sending…';
     update();
     try {
-      const noteOnly = !lab.telemetryOn || (lab.privacySignalOn && !lab.privacyOverride);
+      const sharePlay = feedbackSharePlay(personaChoice);
+      const noteOnly = !lab.telemetryOn && !sharePlay;
       const receipt = await lab.sendFeedback(text, {
         name: tester,
-        run: lab.personaRecordingAllowed ? feedbackRun() : unlinkedFeedbackRun(feedbackRun()),
+        run: feedbackRun(),
+        sharePlay,
       });
-      const sentMessage = `${noteOnly ? 'Note and verdict queued without a run or history linkage' : 'Note and verdict queued. Run details depend on recording and availability; continuing-person history links only after explicit consent'} · ${receipt}`;
+      const sentMessage = `${noteOnly ? 'Note and verdict queued without a run or history linkage' : 'Note and verdict queued. Run details depend on recording and availability; recorded play is linked across games on this device'} · ${receipt}`;
       rememberName(tester);
       complete(sentMessage);
     } catch (error) {
