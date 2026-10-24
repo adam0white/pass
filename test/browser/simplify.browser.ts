@@ -70,6 +70,9 @@ for (const [width, height] of [
     await expect(page.locator('.people-service')).toBeVisible();
     await page.locator('[data-pick="selim"]').click();
     await expect(page.locator('.verbs button').first()).toBeVisible();
+    expect(await page.locator('.panel-reply').evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(
+      true,
+    );
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   });

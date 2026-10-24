@@ -338,3 +338,16 @@ body {
 .page.ending-page {
   height: calc(100dvh - var(--notice-height, 0px));
 }
+
+/* Full sentences need more room than the former two-line reply. */
+.people-service.inspecting .panel-reply {
+  max-height: clamp(110px, 20dvh, 200px);
+}
+@media (max-width: 767px) {
+  .people-service.inspecting {
+    grid-template-rows: 44px 36px 56px clamp(120px, 23dvh, 160px) 48px minmax(0, 1fr);
+  }
+  .people-service.inspecting .scene {
+    height: 100%;
+  }
+}
