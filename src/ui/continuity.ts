@@ -1,4 +1,4 @@
-/** Whole kitchen ownership and recording consent. Title entry is read-only; files never acquire ownership. */
+/** Whole kitchen ownership and pinned exports. Title entry is read-only; files never acquire ownership. */
 import { ENGINE_VERSION, FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework';
 import {
   anchorPersonaLife,
@@ -77,7 +77,6 @@ export function continuity(
     importedHistory = false,
     recordingKey: string | undefined;
   let generation = 0,
-    choiceGeneration = 0,
     message = '',
     stopTracking: (() => void) | undefined;
   let pending: PersonaEnvelope | null = null;
@@ -93,14 +92,6 @@ export function continuity(
     message = s;
     emit();
   };
-  const revisions = () => group.map((p) => p.revision).join('/');
-  const invalidate = () => {
-    generation++;
-    choiceGeneration++;
-    lab.allowPersonaRecording(false);
-  };
-  window.addEventListener('hf-lab-preference', invalidate);
-  window.addEventListener('storage', invalidate);
   const data = (): ContinuitySave => ({
     envelope: heads['hf.cast.zeynep.pass'] ?? null,
     oneCast: structuredClone(rows),
@@ -129,33 +120,10 @@ export function continuity(
           .map((l) => l.text) ?? [],
     });
   };
+  // Recording and automatic linkage belong to the SDK's single recording switch.
+  // They must never delay or cancel fictional admission/checkpoint ownership.
   const gate = async () => {
-    const attempt = ++choiceGeneration,
-      epoch = generation,
-      pinned = revisions();
     lab.setPersonaRecording(recordingKey ?? null);
-    if (!importedHistory && !group.length && !fileOrigin) {
-      lab.allowPersonaRecording(true);
-      return;
-    }
-    lab.allowPersonaRecording(false);
-    if (!group.length || fileOrigin || fileUnlinked || !shelf.enabled) return;
-    try {
-      const result = await shelf.request<{ sameEpoch: boolean; revisions: string[] }>({
-        action: 'recordingBatch',
-        envelopes: group,
-      });
-      if (
-        epoch === generation &&
-        attempt === choiceGeneration &&
-        pinned === revisions() &&
-        result.revisions.join('/') === pinned &&
-        result.sameEpoch
-      )
-        lab.allowPersonaRecording(true);
-    } catch {
-      /* Missing bridge keeps automatic recording closed. */
-    }
   };
   async function restore(
     value?: ContinuitySave,
@@ -165,7 +133,6 @@ export function continuity(
   ) {
     await shelf.ready;
     const epoch = ++generation;
-    choiceGeneration++;
     stopTracking?.();
     const incoming: Record<string, PersonaEnvelope> = {};
     for (const [id, p] of Object.entries(value?.ownedHeads ?? {})) {
@@ -231,7 +198,6 @@ export function continuity(
   async function fresh(seed: number): Promise<GameState> {
     await shelf.ready;
     const epoch = ++generation;
-    choiceGeneration++;
     stopTracking?.();
     heads = {};
     group = [];
@@ -268,50 +234,12 @@ export function continuity(
     await gate();
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
     report(
-      `Kitchen cast preflight accepted ${chapter.inputs.length} continuing people together. Remaining people use their canonical opening.`,
+      `Kitchen cast preflight accepted ${chapter.inputs.length} continuing people together. Remaining people use their canonical opening.${chapter.inputs.some((i) => i.parent.transfer.castPassport === 'neighbours-cast/1') ? ' Rafi’s repair practice and town memories stay in the town archive; no cooking qualification or shared familiarity is transferred.' : ''}`,
     );
     return newGame(seed, GAME_VERSION, chapter.initial);
   }
-  async function chooseRecording(value: boolean) {
-    const choice = ++choiceGeneration,
-      epoch = generation,
-      pinned = revisions();
-    const current = () => choice === choiceGeneration && epoch === generation && pinned === revisions();
-    lab.allowPersonaRecording(false);
-    fileUnlinked = !value;
-    if (!value) {
-      save();
-      emit();
-    }
-    if (fileOrigin || !group.length) {
-      if (value && current()) lab.allowPersonaRecording(true);
-      save();
-      emit();
-      return;
-    }
-    try {
-      const query = await shelf.request<{ revisions: string[]; recordingEpoch: string | null }>({
-        action: 'recordingBatch',
-        envelopes: group,
-      });
-      if (!current() || query.revisions.join('/') !== pinned || !query.recordingEpoch) return;
-      await shelf.request({
-        action: 'recordingBatch',
-        envelopes: group,
-        allowRecording: value,
-        recordingEpoch: query.recordingEpoch,
-      });
-      if (current()) {
-        lab.allowPersonaRecording(value);
-        fileUnlinked = !value;
-        save();
-        emit();
-      }
-    } catch {
-      report(
-        'The recording choice could not be associated with this exact kitchen group. Local play and feedback remain available.',
-      );
-    }
+  async function chooseRecording(_value: boolean) {
+    // Compatibility callback; current personaControls exposes continuity only.
   }
   async function checkpointNow() {
     await shelf.ready;

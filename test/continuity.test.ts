@@ -93,30 +93,29 @@ it('preflights all seven expected heads once before accepting a fresh batch', as
   expect(puts).toHaveLength(1);
   expect(Object.keys(puts[0]![0].expectedHeads)).toHaveLength(7);
 });
-it('a stale group response cannot open recording after preference or load changes', async () => {
-  const e = await envelope();
+it('recording preference acknowledgments do not cancel pending fictional admission', async () => {
   let resolve!: (x: unknown) => void;
-  const c = continuity(() => null, vi.fn(), vi.fn());
-  await c.restore({
-    envelope: null,
-    oneCast: [],
-    recordingGroup: [e],
-    importedHistory: true,
-    fileUnlinked: true,
-  });
-  mocks.shelf.request.mockImplementation(
-    () =>
-      new Promise((r) => {
-        resolve = r;
-      }),
+  mocks.shelf.request.mockImplementation((r) =>
+    r.action === 'prepareBatch'
+      ? new Promise((done) => {
+          resolve = done;
+        })
+      : Promise.resolve(null),
   );
-  const choice = c.chooseRecording(true);
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  const pending = c.fresh(42);
   await Promise.resolve();
   window.dispatchEvent(new Event('hf-lab-preference'));
-  resolve({ revisions: [e.revision], recordingEpoch: 'opaque' });
-  await choice;
-  expect(mocks.lab.allowPersonaRecording).not.toHaveBeenCalledWith(true);
-  expect(mocks.shelf.request.mock.calls.some(([r]) => r.allowRecording === true)).toBe(false);
+  window.dispatchEvent(new Event('storage'));
+  resolve({
+    expectedHeads: Object.fromEntries(
+      (await import('@adam0white/lab-client')).castForGame('pass').map((p) => [p.castId, null]),
+    ),
+    inputs: [],
+    blocked: [],
+  });
+  expect((await pending).seed).toBe(42);
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'recordingBatch')).toBe(false);
 });
 it('checkpoint CAS never retries against a newer head and imported files never publish', async () => {
   const s = newGame(42);
