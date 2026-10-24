@@ -229,7 +229,7 @@ const INFO: Record<string, [string, string]> = {
   ],
   service: [
     'Running the pass',
-    'Tap a cook, then a job, to ask them to do it. Hold the job to insist. Insisting can cost trust. The words under each job show your guess at their answer. A ● means the food is ready. The mark on the money bar shows tonight’s target for paying Saturday’s bill. The kitchen slows when someone speaks or needs an answer.',
+    'The pass is the counter where food waits to be served. Tap a cook, then a job, to ask them to do it. Hold the job to insist. Insisting can cost trust. The words under each job show your guess at their answer. A ● means the food is ready. The mark on the money bar shows tonight’s target for paying Saturday’s bill. The kitchen slows when someone speaks or needs an answer.',
   ],
   evening: [
     'The night',
@@ -276,7 +276,7 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title.slice(0, 3))} wk ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save the kitchen. Keep a copy through Feedback.' : 'The kitchen waits while this menu is open.') : 'The kitchen is closed.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
+  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title.slice(0, 3))} wk ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save your game. You can keep a copy through Feedback.' : 'The game is paused while this menu is open.') : 'No game has started.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
   let replacing = false;
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -305,10 +305,14 @@ function openGameMenu() {
       writeSave();
       dialog.close();
       enter();
-    } catch {
+    } catch (error) {
+      console.error('New game failed', error);
       button.disabled = false;
       (dialog.querySelector('#save-result') as HTMLElement).textContent =
-        'The new game could not start. Your current game is safe. Please try again.';
+        'The new game could not start. Your current game is safe. You can try New game again or send Feedback.' +
+        (LAB_TOOLS
+          ? ` Details: ${error instanceof Error ? error.message.slice(0, 300) : 'Unknown error'}`
+          : '');
     }
   });
   dialog.querySelector('#full-screen')?.addEventListener('click', () => {
@@ -475,7 +479,7 @@ function title() {
       }
       ${LAB_TOOLS ? '<button id="fresh-authored">Begin without continuity</button><button id="other-ways" aria-haspopup="dialog">Lab tools</button>' : ''}
       <p id="title-status" role="status" aria-live="polite"></p>
-      <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this notebook</button></div></div>
+      <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this game</button></div></div>
     </div>
     <div class="actions">
       ${save ? `<button class="primary" id="cont">Resume <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button><button id="new">New game</button>` : '<button class="primary" id="new">New game</button>'}
@@ -535,7 +539,9 @@ function title() {
       cast.track();
       enterWithStatus();
     } catch {
-      status('This notebook could not be validated. It remains saved; a fresh kitchen is available.');
+      status(
+        'Your saved game could not be opened. It is still saved. You can try Resume again, start a New game, or send Feedback from the menu.',
+      );
     }
   });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-page]'))
@@ -576,11 +582,15 @@ function title() {
         if (!secondWeek && !returning && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
         enterWithStatus(cast.message);
-      })().catch((error: unknown) =>
+      })().catch((error: unknown) => {
+        console.error('New game failed', error);
         status(
-          `The game could not start: ${error instanceof Error ? error.message.slice(0, 300) : 'unsupported source'}. Your saved game is safe. Please try again.`,
-        ),
-      );
+          'The game could not start. Your saved game is safe. You can try New game again or send Feedback from the menu.' +
+            (LAB_TOOLS
+              ? ` Details: ${error instanceof Error ? error.message.slice(0, 300) : 'Unknown error'}`
+              : ''),
+        );
+      });
     };
     if (save) ask('Start a new game? This replaces your saved game.', start);
     else start();
@@ -1287,7 +1297,7 @@ function drawRail() {
   const leaving = tableAboutToLeave(st);
   const rail = document.getElementById('rail') as HTMLElement;
   if (open.length === 0) {
-    renderPanel(rail, peopleRun(st) ? '<span class="rail-clear">Rail clear</span>' : '');
+    renderPanel(rail, peopleRun(st) ? '<span class="rail-clear">No orders are waiting.</span>' : '');
     rail.classList.add('empty');
     return;
   }
@@ -1313,7 +1323,7 @@ function drawRail() {
         const party = t.party ? partyOf(t.party) : undefined;
         const booking = bookingOf(st, t.id);
         const partyLabel = party
-          ? `<div class="party-label" id="party-label-${t.id}">${booking?.promised ? (peopleRun(st) ? `promised: first at the pass · out by ${clock(booking.servedBy)}` : `promised: <span class="chef-signature">${esc(party.signature.words)} (Chef’s)</span> · out by ${clock(booking.servedBy)}`) : 'as it comes'}</div>`
+          ? `<div class="party-label" id="party-label-${t.id}">${booking?.promised ? (peopleRun(st) ? `promised: first at the pass · serve by ${clock(booking.servedBy)}` : `promised: <span class="chef-signature">${esc(party.signature.words)} (Chef’s)</span> · serve by ${clock(booking.servedBy)}`) : 'no promise'}</div>`
           : '';
         const who = party
           ? party.host
@@ -1619,7 +1629,7 @@ function drawCaption() {
       handover ||
       esc(
         peopleRun(s) && serviceStatus(s).text === 'Waiting for the next ticket.'
-          ? 'Rail clear. The kitchen runs; nothing needs you.'
+          ? 'No orders are waiting. The cooks do not need an answer.'
           : serviceStatus(s).text,
       );
     return;
@@ -1653,7 +1663,7 @@ const VERB_LABEL: Record<Verb, string> = {
   cold: 'Cold side',
   dish: 'Dish pit',
   oven: 'Oven',
-  break: 'Take ten',
+  break: 'Rest: 10 min',
   eat: 'Eat',
   home: 'Go home',
 };
@@ -1987,7 +1997,7 @@ function drawChefWork() {
     const activeBooking = activeTicket ? bookingOf(st, activeTicket.id) : undefined;
     const partyContext =
       activeParty && activeBooking
-        ? `<b>${esc(activeParty.host)}</b><span>${activeBooking.promised ? `Promised: ${esc(activeParty.signature.words)}.` : 'As it comes; no promise.'} · out by ${clock(activeBooking.servedBy)}</span>`
+        ? `<b>${esc(activeParty.host)}</b><span>${activeBooking.promised ? `Promised: ${esc(activeParty.signature.words)}.` : 'No promise.'} · serve by ${clock(activeBooking.servedBy)}</span>`
         : '';
     const next = portionEdition(st) ? st.chefNext : null;
     const choice = portionEdition(st) ? cookingChoice(st) : null;
@@ -2335,9 +2345,9 @@ function sunday() {
       if (!party || !detail) continue;
       const key = `promise:${id}`;
       parts.push(
-        `<section class="card party-card" id="party-${esc(id)}" tabindex="-1" aria-label="${esc(detail.host)}"><p>${esc(party.booked)}</p><p class="party-time">${esc(detail.night)} · ${clock(detail.at)} · out by ${clock(detail.servedBy)}</p><p>${esc(detail.order)}</p><p>Promise: ${esc(detail.signature)}</p>${detail.cook ? `<p class="hand"><b>${esc(nameOf(st, detail.cook.who))}</b>: “${esc(detail.cook.text)}”</p>` : ''}<div class="row">${[
+        `<section class="card party-card" id="party-${esc(id)}" tabindex="-1" aria-label="${esc(detail.host)}"><p>${esc(party.booked)}</p><p class="party-time">${esc(detail.night)} · ${clock(detail.at)} · serve by ${clock(detail.servedBy)}</p><p>${esc(detail.order)}</p><p>Promise: ${esc(detail.signature)}</p>${detail.cook ? `<p class="hand"><b>${esc(nameOf(st, detail.cook.who))}</b>: “${esc(detail.cook.text)}”</p>` : ''}<div class="row">${[
           ['promise', 'Promise it'],
-          ['plain', 'As it comes'],
+          ['plain', 'No promise'],
         ]
           .map(
             ([value, label]) =>

@@ -60,3 +60,7 @@ it('explains the meal break in recorded board answers without altering replay te
   );
   expect(recorded).toContain('twenty minutes for a plate');
 });
+
+it('describes covering a station literally without changing the recorded reply', () => {
+  expect(gloss('I’m holding the grill until 18:10.')).toBe('I’m working at the grill until 18:10.');
+});

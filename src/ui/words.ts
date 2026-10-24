@@ -18,6 +18,7 @@ export function gloss(text: string, currency = false): string {
 /** Display-only edits keep journals and replay hashes unchanged. */
 export function plainEnglish(text: string): string {
   return text
+    .replace(/I’m holding (.+?) until (\d{2}:\d{2})\./gu, 'I’m working at $1 until $2.')
     .replace(
       /Then twenty minutes for a plate; back on (.+?) until close\./gu,
       'Then I take a 20-minute meal break. After that, I return to $1 until closing.',

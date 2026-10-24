@@ -27,3 +27,30 @@ Use the exact package/lock pins; preserve newer authorized SDK patches. Full loc
 Delivery evidence is recorded separately. Owner request: `/Users/abdul/code/.lab-scratch/simplify/owner-request.md`. Evidence: `/Users/abdul/code/.lab-scratch/simplify/workers/pass.md`. Baseline: `6c7337d4a3d90d81ecc7d93d58b11b8055f3adca`. Follow [player text rules](docs/lab/plain-english.md). Owner acceptance of game readiness remains required. Friends’ playtests and Show HN remain paused. No new playtest rounds.
 
 Pass now enables fictional continuity automatically. Ordinary menus offer Resume, Feedback, Full screen, All games, Recording and inline-confirmed New game. Diagnostic starts, imports, continuity controls and exports require exact `?lab=1`. Conversations, work offers and releases remain gameplay in People. The actual SDK notice node mounts in a stable footer below the game so central suppression works across page replacements. New navigation identity applies to future recording; it never merges historical IDs or invents shared fictional history when browser storage blocks the shelf. UI sentence rewrites leave simulation strings and replay rules unchanged. Final CI, clean release and both-engine receipts live in the worker evidence above.
+
+
+## 2026-10-24 simplify stopped at disk threshold
+
+Goal: finish the owner's15-game simplify direction in /Users/abdul/code/.lab-scratch/simplify/owner-request.md. Technical done is reviewed source, signed/rebased commits, exact green CI, fresh clean deployment and both-engine four-size live checks; Adam accepts game readiness.
+
+### Done and verified
+
+- source head 4f6aa084580a4284a0536d187a4dad5f9ca21af1 has signature G. Central9b55b61 and Pass a4f69da have task live receipts; this repo's exact state is recorded in /Users/abdul/code/.lab-scratch/simplify/report.md.
+
+### Done but unchecked
+
+- interrupted task working changes may be uncommitted; review the saved diff and source-specific CI/live gaps before any completion claim. Murmur's current committed CI is red.
+
+### Untouched
+
+- eight queued game repos; Glance reached worktree setup only. Full15-game delivery and owner readiness are not complete.
+
+The disk guard measured 4.63 GiB (<owner 5 GB stop rule) and stopped task workers by exact PID. No implementation restart occurred. Preserve this source worktree and owner files. On explicit resume, first verify disk headroom, read the report/STOP-DISK.md, then resume THIS source session 01a16f07-6b67-72a2-bb6d-6bac5b58a5d9 rather than creating a duplicate writer. Required Node>=24/PATH, check:lane, signed Codex trailer, origin rebase, exact green CI and fresh latest-origin deploy rules still apply. No new playtest round or culture change is authorized.
+
+Next executable read: cat /Users/abdul/code/.lab-scratch/simplify/report.md. Reports/registry/queue/baselines and all saved session IDs are in that directory. The only post-stop repo write is this handoff bookkeeping; no new implementation or commit was made.
+
+## 2026-10-24 owner resume and final source follow-up
+
+The owner explicitly resumed work after clearing the disk stop. Archived stop files are historical. Current exact STOP-DISK.md or STOP-USAGE.md still stops work. The owner now requires removal of this clean merged simplify source worktree after exact green CI, and removal of its fresh deployment tree after verified live delivery. Evidence remains outside the trees in workers/pass.md. Setting worktrees and all unrelated trees are excluded.
+
+Final follow-up makes ordinary failed-start and failed-load instructions literal, hides SDK diagnostics unless lab=1, preserves saves on failed admission, and keeps technical details in logs. The display layer describes working at a station literally. Tickets reserve their full promise text, replies show complete sentences, and legacy cooking controls retain space above the notice footer. The legacy party fixture explicitly pins pass@9; current-edition party coverage stays separate. No simulation source or replay rules changed. One independent review was already completed; no extra review or playtest round is authorized.

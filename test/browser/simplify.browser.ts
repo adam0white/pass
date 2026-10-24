@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.use({ serviceWorkers: 'block' });
+
 async function quietNetwork(page: import('@playwright/test').Page) {
   await page.route('https://human.adamwhite.work/**', (route) => route.fulfill({ status: 204, body: '' }));
 }
@@ -70,6 +72,7 @@ for (const [width, height] of [
     await expect(page.locator('.people-service')).toBeVisible();
     await page.locator('[data-pick="selim"]').click();
     await expect(page.locator('.verbs button').first()).toBeVisible();
+    await expect(page.locator('.verbs')).toContainText('Rest: 10 min');
     expect(await page.locator('.panel-reply').evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(
       true,
     );
@@ -92,4 +95,41 @@ test('recording notice stays in the footer and appears once per local origin', a
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
   await page.reload();
   await expect(page.locator('.lk-telemetry-notice')).toHaveCount(0);
+});
+
+test('failed admission keeps the save and hides technical details outside lab tools', async ({ page }) => {
+  await quietNetwork(page);
+  await page.goto('/');
+  await page.locator('#new').click();
+  await expect(page.locator('.people-board')).toBeVisible();
+  const saved = await page.evaluate(() => localStorage.getItem('pass-save-v3'));
+  expect(saved).toBeTruthy();
+  // Exercise the UI's rejected-admission path. The real claim/rollback is covered in continuity.test.
+  await page.route('**/src/ui/continuity.ts*', async (route) => {
+    const response = await route.fetch();
+    const body = await response.text();
+    const injected = body.replace(
+      /async function fresh\(seed\) \{/,
+      'async function fresh(seed) { throw new Error("Shelf unavailable. Use a local file.");',
+    );
+    expect(injected).not.toBe(body);
+    await route.fulfill({ response, body: injected });
+  });
+  await page.reload();
+  await page.locator('#new').click();
+  await page.locator('#title-confirm-yes').click();
+  await expect(page.locator('#title-status')).toContainText('Your saved game is safe.');
+  await expect(page.locator('#title-status')).toContainText('Feedback');
+  await expect(page.locator('#title-status')).not.toContainText('Shelf unavailable');
+  expect(await page.evaluate(() => localStorage.getItem('pass-save-v3'))).toBe(saved);
+  await page.locator('#game-menu').click();
+  await page.locator('#menu-new').click();
+  await page.locator('#menu-new-yes').click();
+  await expect(page.locator('#save-result')).toContainText('Your current game is safe.');
+  await expect(page.locator('#save-result')).not.toContainText('Shelf unavailable');
+  expect(await page.evaluate(() => localStorage.getItem('pass-save-v3'))).toBe(saved);
+  await page.goto('/?lab=1');
+  await page.locator('#new').click();
+  await page.locator('#title-confirm-yes').click();
+  await expect(page.locator('#title-status')).toContainText('Shelf unavailable. Use a local file.');
 });

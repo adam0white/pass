@@ -259,10 +259,11 @@ body {
     line-height: 1.35;
   }
   .people-service {
-    grid-template-rows: 44px 40px 80px minmax(240px, 32dvh) 70px minmax(0, 1fr);
+    grid-template-rows: 44px 40px auto minmax(240px, 32dvh) 70px minmax(0, 1fr);
   }
   .people-service .rail {
-    height: 80px;
+    height: auto;
+    min-height: 80px;
   }
   .people-service .slip,
   .people-service .slip :is(.t, .d, .st, .party-label) {
@@ -288,7 +289,7 @@ body {
 }
 @media (min-width: 900px) {
   .people-service {
-    grid-template-rows: 56px 80px minmax(0, 1fr) 80px;
+    grid-template-rows: 56px auto minmax(0, 1fr) 80px;
   }
   .people-service .caption {
     height: 80px;
@@ -345,9 +346,41 @@ body {
 }
 @media (max-width: 767px) {
   .people-service.inspecting {
-    grid-template-rows: 44px 36px 56px clamp(120px, 23dvh, 160px) 48px minmax(0, 1fr);
+    grid-template-rows: 44px 36px auto clamp(120px, 23dvh, 160px) 48px minmax(0, 1fr);
   }
   .people-service.inspecting .scene {
     height: 100%;
   }
+}
+.people-service .verbs:has(button:nth-child(7)) button {
+  min-height: 56px;
+  height: auto;
+}
+@media (min-width: 768px) {
+  .people-service .caption,
+  .people-service .rail-clear {
+    font-size: clamp(17px, 1.6vw, 21px);
+    line-height: 1.4;
+  }
+  .people-service .verbs:has(button:nth-child(7)) button {
+    min-height: 76px;
+  }
+}
+
+/* Tickets reserve their content height instead of cutting off promises. */
+.people-service .party-slip {
+  width: 180px;
+  min-width: 180px;
+}
+@media (min-width: 768px) {
+  .people-service .party-slip {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+  }
+}
+
+/* The legacy guest label grows with its text without reserving an empty line. */
+.service.hands-on .active-party {
+  min-height: 0;
 }

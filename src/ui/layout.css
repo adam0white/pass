@@ -145,7 +145,7 @@ button.chosen {
   height: 100dvh;
   padding: 0;
   grid-template-columns: 100%;
-  grid-template-rows: 44px 36px 56px 196px 48px minmax(0, 1fr);
+  grid-template-rows: 44px 36px auto 196px 48px minmax(0, 1fr);
   grid-template-areas: "top" "state" "rail" "scene" "caption" "sheet";
   overflow: hidden;
 }
@@ -156,8 +156,9 @@ button.chosen {
 .people-service .rail {
   grid-area: rail;
   display: flex;
-  height: 56px;
+  height: auto;
   min-height: 56px;
+  max-height: min(30dvh, 240px);
   padding: 4px 8px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -348,7 +349,7 @@ button.chosen {
   }
   .people-service {
     grid-template-columns: minmax(0, 700px) 440px;
-    grid-template-rows: 56px 56px minmax(0, 1fr) 60px;
+    grid-template-rows: 56px auto minmax(0, 1fr) 60px;
     grid-template-areas: "top top" "rail sheet" "scene sheet" "caption sheet";
     column-gap: 20px;
   }

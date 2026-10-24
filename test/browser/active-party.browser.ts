@@ -5,6 +5,8 @@ import { boardDefaults, queueInput, step } from '../../src/sim/kitchen.ts';
 
 for (const [width, height] of [
   [360, 690],
+  [820, 1180],
+  [1180, 820],
   [1280, 800],
 ] as const) {
   test(`people-run party keeps its promise visible without cooking controls at ${width}x${height}`, async ({
@@ -33,7 +35,7 @@ for (const [width, height] of [
     await page.locator('#cont').click();
     const card = page.locator('.party-slip').filter({ hasText: party.host });
     await expect(card).toContainText('promised: first at the pass');
-    await expect(card).toContainText('out by');
+    await expect(card).toContainText('serve by');
     await expect(card).toContainText(`table ${s.tickets.find((t) => t.id === booking.ticket)?.table}`);
     await card.scrollIntoViewIfNeeded();
     await expect(card).toBeInViewport({ ratio: 1 });

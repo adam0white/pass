@@ -45,7 +45,7 @@ test('Begin at the second week opens two party choices and saves its Sunday', as
   await expect(page.getByRole('heading', { name: 'Sunday, week 1' })).toBeVisible();
   await expect(page.locator('.party-card')).toHaveCount(2);
   for (const card of await page.locator('.party-card').all()) {
-    for (const name of ['Promise it', 'As it comes']) {
+    for (const name of ['Promise it', 'No promise']) {
       const button = card.getByRole('button', { name, exact: true });
       await button.scrollIntoViewIfNeeded();
       await expect(button).toBeInViewport({ ratio: 1 });
@@ -79,7 +79,7 @@ test('Begin at the second week opens two party choices and saves its Sunday', as
 async function savedParty(page: Page, phase: 'board' | 'service' | 'evening', promised = true) {
   const { beginAtWeekTwo } = await import('../../src/sim/firstweek.ts');
   const { boardDefaults, partiesTonight, queueInput, step } = await import('../../src/sim/kitchen.ts');
-  const s = beginAtWeekTwo(42);
+  const s = beginAtWeekTwo(42, undefined, 'pass@9');
   expect(s.phase).toBe('sunday');
   for (const id of s.sunday?.parties ?? [])
     queueInput(s, { kind: 'choose', key: `promise:${id}`, value: promised ? 'promise' : 'plain' });
@@ -113,7 +113,7 @@ async function savedParty(page: Page, phase: 'board' | 'service' | 'evening', pr
     seed: s.seed,
     inputs: s.inputs,
     minute: s.minute,
-    pages: [{ week: 1, k: beginAtWeekTwo(42).inputs.length }],
+    pages: [{ week: 1, k: beginAtWeekTwo(42, undefined, 'pass@9').inputs.length }],
   });
   await page.goto('/?lab=1');
   await page.locator('#cont').click();
@@ -129,19 +129,19 @@ test('a promised ticket names its host, chef signature and served-by time', asyn
   await expect(ticket).toContainText('promised:');
   await expect(ticket.locator('.t')).toContainText(/· table \d+$/);
   await expect(ticket.locator('.chef-signature')).toContainText(`${party.signature.words} (Chef’s)`);
-  await expect(ticket).toContainText('out by');
-  await expect(ticket).toHaveAccessibleDescription(/promised:.*Chef’s.*out by/);
+  await expect(ticket).toContainText('serve by');
+  await expect(ticket).toHaveAccessibleDescription(/promised:.*Chef’s.*serve by/);
   await expect(page.locator('.service')).toHaveClass(/hands-on/);
   await targets(page, '[data-cook-step], [data-finish-portion], .crew button');
 });
 
-test('an unpromised ticket says as it comes', async ({ page }) => {
+test('an unpromised ticket says no promise', async ({ page }) => {
   const { partyOf } = await import('../../src/sim/campaign.ts');
   const { booking } = await savedParty(page, 'service', false);
   const ticket = page.getByRole('button', {
     name: new RegExp(`^Work ${partyOf(booking.party)?.host}, table \\d+$`),
   });
-  await expect(ticket).toContainText('as it comes');
+  await expect(ticket).toContainText('no promise');
   await expect(ticket).not.toContainText('promised:');
 });
 
