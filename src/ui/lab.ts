@@ -3,8 +3,10 @@ import { telemetryNotice } from '@adam0white/lab-kit';
 
 export const lab = createLab({ game: 'pass' });
 
-const notice = telemetryNotice();
-if (notice) {
-  notice.style.top = 'calc(env(safe-area-inset-top, 0px) + 56px)';
-  document.body.append(notice);
+// Keep the SDK's once-per-origin receipt, but render its notice in the title footer.
+let notice = telemetryNotice();
+export function noticeFooter(): string {
+  if (!notice) return '';
+  notice = null;
+  return '<p class="recording-notice">Recording links play across games on this device. You can turn it off in the menu.</p>';
 }

@@ -11,9 +11,9 @@ async function fresh(page: Page, minutes = 0) {
     minute: s.minute,
     pages: [],
   });
-  await page.goto('/');
+  await page.goto('/?lab=1');
   await page.evaluate(() => document.fonts.ready);
-  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.getByRole('button', { name: /Resume/ }).click();
 }
 
 test('Round 4 keeps cook targets and selection through request and answer', async ({ page }) => {
@@ -51,7 +51,7 @@ test('Round 4 imports, resumes and exports pass@3 under its original edition', a
   const ex = exportRun(s, '2.8.0');
   await page.clock.install({ time: new Date('2026-10-20T12:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-20T12:01:00Z'));
-  await page.goto('/');
+  await page.goto('/?lab=1');
   page.on('dialog', (dialog) => dialog.accept());
   await page.locator('#file').setInputFiles({
     name: 'legacy.json',
@@ -63,7 +63,7 @@ test('Round 4 imports, resumes and exports pass@3 under its original edition', a
   expect(saved.game).toBe('pass@3');
   expect(saved.minute).toBe(s.minute);
   await page.reload();
-  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.getByRole('button', { name: /Resume/ }).click();
   const result = await page.evaluate(async () => {
     const appPath = '/src/ui/app.ts';
     const simPath = '/src/sim/kitchen.ts';

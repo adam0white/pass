@@ -21,3 +21,7 @@ Immutable lab-client0.4.4 and lab-kit0.5.4 implement this direction. The newer o
 ## Checks and delivery
 
 Use the exact package/lock pins; preserve newer authorized SDK patches. Full local suites use `PATH=/opt/homebrew/bin:$PATH node ~/code/human-framework/scripts/suite-lock.ts -- npm run check:lane`. Package scripts do not acquire the shared lock. Deploy includes tests, so use the same wrapper with `-- npm run deploy` after exact-commit CI succeeds. Commits remain signed. Genuine shared-profile browser journeys require the machine-wide browser lease and restoration of owner data/preferences. No isolated profile or synthetic shelf injection is accepted as live proof.
+
+## Simplify increment, 2026-10-24
+
+In progress. Owner request: `/Users/abdul/code/.lab-scratch/simplify/owner-request.md`. Evidence: `/Users/abdul/code/.lab-scratch/simplify/workers/pass.md`. Baseline: `6c7337d4a3d90d81ecc7d93d58b11b8055f3adca`. Follow [player text rules](docs/lab/plain-english.md). Owner acceptance of game readiness remains required. Friends’ playtests and Show HN remain paused. No new playtest rounds.

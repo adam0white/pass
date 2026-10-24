@@ -28,19 +28,19 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     <div class="feedback-frame">
       <header class="feedback-topbar">
         <button type="button" class="feedback-back" data-feedback="back" aria-label="Back to the menu">← Back</button>
-        <span class="feedback-place">Send word</span>
+        <span class="feedback-place">Feedback</span>
         <button type="button" data-feedback="info" aria-label="Information" aria-expanded="false" aria-controls="feedback-info">i</button>
         <button type="button" data-feedback="menu" aria-label="Game menu">≡</button>
       </header>
-      <aside id="feedback-info" class="feedback-info" aria-label="About sending word" hidden>
+      <aside id="feedback-info" class="feedback-info" aria-label="About feedback" hidden>
         <button type="button" data-feedback="close-info" aria-label="Close information">×</button>
         <p>Tell us what the kitchen's record cannot show.</p>
         <p>A name is optional. Keeping a copy works even when recording is off.</p>
-        <p>Sending queues your word for the lab. Delivery may retry.</p>
+        <p>Your feedback is saved for delivery. The game retries if needed.</p>
       </aside>
       <form class="feedback-form">
         <div class="feedback-sheet">
-          <h1 id="pass-feedback-title">Send word</h1>
+          <h1 id="pass-feedback-title">Feedback</h1>
           <p>Send a note about this game. You can send a note with or without sharing play.</p>
           <fieldset class="feedback-verdicts">
             <legend>Would you keep playing? <span>(optional)</span></legend>
@@ -179,7 +179,7 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     } catch (error) {
       if (closed) return;
       status.textContent =
-        error instanceof Error ? error.message : 'Could not queue your word. Please try again.';
+        error instanceof Error ? error.message : 'Could not save your feedback. Please try again.';
     } finally {
       pending = false;
       update();

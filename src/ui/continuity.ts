@@ -68,6 +68,7 @@ export function continuity(
   _load: (s: GameState) => void,
 ) {
   const shelf = personaChannel();
+  const ready = shelf.ready.then(() => shelf.setEnabled(true));
   let heads: Record<string, PersonaEnvelope> = {},
     group: PersonaEnvelope[] = [],
     rows: OneCastRow[] = [];
@@ -131,7 +132,7 @@ export function continuity(
     savedRun = false,
     incomingState?: GameState,
   ) {
-    await shelf.ready;
+    await ready;
     const epoch = ++generation;
     stopTracking?.();
     const incoming: Record<string, PersonaEnvelope> = {};
@@ -196,24 +197,34 @@ export function continuity(
     await gate();
   }
   async function fresh(seed: number): Promise<GameState> {
-    await shelf.ready;
+    await ready;
     const epoch = ++generation;
-    stopTracking?.();
-    heads = {};
-    group = [];
-    rows = [];
-    localOnly = false;
-    fileOrigin = false;
-    fileUnlinked = false;
-    importedHistory = false;
-    pending = null;
-    recordingKey = `pass-group-${crypto.randomUUID()}`;
-    lab.setPersonaRecording(null);
-    lab.allowPersonaRecording(false);
-    if (!shelf.enabled) {
+    // Stage admission before replacing the current notebook's ownership receipts.
+    const reset = () => {
+      stopTracking?.();
+      heads = {};
+      group = [];
+      rows = [];
+      localOnly = false;
+      fileOrigin = false;
+      fileUnlinked = false;
+      importedHistory = false;
+      pending = null;
+      recordingKey = `pass-group-${crypto.randomUUID()}`;
+      lab.setPersonaRecording(null);
+      lab.allowPersonaRecording(false);
+    };
+    if (
+      !shelf.enabled ||
+      (import.meta.env.DEV &&
+        typeof location !== 'undefined' &&
+        ['localhost', '127.0.0.1'].includes(location.hostname))
+    ) {
+      const next = newGame(seed);
+      reset();
       localOnly = true;
       await gate();
-      return newGame(seed);
+      return next;
     }
     const chapter = await claimCastChapterBatch(
       shelf,
@@ -223,26 +234,26 @@ export function continuity(
       { isCurrent: () => epoch === generation },
     );
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
+    if (chapter) chapter.initial.claims = structuredClone(chapter.claims);
+    const next = chapter ? newGame(seed, GAME_VERSION, chapter.initial) : newGame(seed);
+    reset();
     if (!chapter) {
       await gate();
-      return newGame(seed);
+      return next;
     }
-    chapter.initial.claims = structuredClone(chapter.claims);
     heads = Object.fromEntries(chapter.claims.map((p) => [p.castId, p]));
     group = chapter.claims;
     importedHistory = chapter.inputs.length > 0;
     await gate();
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
-    report(
-      `Kitchen cast preflight accepted ${chapter.inputs.length} continuing people together. Remaining people use their canonical opening.${chapter.inputs.some((i) => i.parent.transfer.castPassport === 'neighbours-cast/1') ? ' Workshop repair practice and town memories stay in the town archive; no cooking qualification or shared familiarity is transferred.' : ''}`,
-    );
-    return newGame(seed, GAME_VERSION, chapter.initial);
+    report('The cooks remember their earlier experiences. Their other jobs and family duties still apply.');
+    return next;
   }
   async function chooseRecording(_value: boolean) {
     // Compatibility callback; current personaControls exposes continuity only.
   }
   async function checkpointNow() {
-    await shelf.ready;
+    await ready;
     const s = getState(),
       epoch = generation;
     if (!s || s.version !== 'pass@13' || !shelf.enabled || fileOrigin || localOnly) return;
@@ -404,7 +415,7 @@ export function continuity(
       await restore();
       localOnly = true;
     },
-    ready: shelf.ready,
+    ready,
     data,
     run,
     restore,

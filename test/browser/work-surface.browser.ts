@@ -16,8 +16,8 @@ async function start(page: Page) {
     minute: s.minute,
     pages: [],
   });
-  await page.goto('/');
-  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.goto('/?lab=1');
+  await page.getByRole('button', { name: /Resume/ }).click();
   await page.evaluate(() => {
     const app = Reflect.get(window, '__pass');
     Object.assign(app.state, { passDecision: null, request: null, staffing: [] });

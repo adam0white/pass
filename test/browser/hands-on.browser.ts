@@ -16,8 +16,8 @@ async function start(page: import('@playwright/test').Page) {
     minute: s.minute,
     pages: [],
   });
-  await page.goto('/');
-  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.goto('/?lab=1');
+  await page.getByRole('button', { name: /Resume/ }).click();
 }
 
 test('portion acts are at a station, with one actual rate and a readable ready moment', async ({ page }) => {
@@ -269,7 +269,7 @@ test('after renders cover service, chef portion, plates, requests, staffing, Sel
   await capture(page, 'staffing-phone');
   await page.getByRole('button', { name: 'Game menu', exact: true }).tap();
   await capture(page, 'menu-phone');
-  await page.getByRole('button', { name: 'Back to the kitchen', exact: true }).tap();
+  await page.getByRole('button', { name: 'Resume', exact: true }).tap();
   await page.evaluate(async () => {
     const app = { _debug: Reflect.get(window, '__pass') };
     app._debug.state.phase = 'board';

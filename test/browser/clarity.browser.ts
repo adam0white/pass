@@ -31,9 +31,7 @@ async function start(page: Page, state?: GameState) {
   }
   await page.goto('/');
   await page.evaluate(() => document.fonts.ready);
-  await page
-    .getByRole('button', { name: state === undefined ? 'See tonight’s board' : /Back to the kitchen/ })
-    .click();
+  await page.getByRole('button', { name: state === undefined ? 'New game' : /Resume/ }).click();
 }
 
 async function onScreen(page: Page, selector: string) {
@@ -199,7 +197,7 @@ test('DL-6 offers a default board and the first currency gloss before service', 
   await page.getByRole('button', { name: 'Information', exact: true }).click();
   await expect(page.locator('#phase-help')).toContainText('Turkish lira');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'See tonight’s board', exact: true }).click();
+  await page.getByRole('button', { name: 'New game', exact: true }).click();
   await expect(page.locator('.board-row')).toHaveCount(2);
   await expect(page.locator('.board-answer')).toHaveCount(2);
   await expect(page.locator('#ask-board')).toHaveCount(0);
@@ -241,7 +239,7 @@ test('DL-20 quietly glosses maghrib in the journal without changing the saved si
     pages: [],
   });
   await page.goto('/');
-  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.getByRole('button', { name: /Resume/ }).click();
   await expect(page.locator('.journal')).toContainText('maghrib (sunset prayer)');
 });
 
@@ -262,7 +260,7 @@ test('DL-15 leaves a fast-speed request open during five real seconds of reading
     pages: [],
   });
   await page.goto('/');
-  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.getByRole('button', { name: /Resume/ }).click();
   await page.getByRole('button', { name: 'fast', exact: true }).click();
   await expect(page.locator('#yes')).toBeVisible({ timeout: 25000 });
   await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 min/s');

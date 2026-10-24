@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     milestone: vi.fn(),
     build: () => ({ c: 'fixture' }),
     personaRecordingAllowed: false,
+    telemetryOn: false,
     playerId: 'fixture',
   },
 }));
@@ -92,6 +93,8 @@ it('preflights all seven expected heads once before accepting a fresh batch', as
   const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'putBatch');
   expect(puts).toHaveLength(1);
   expect(Object.keys(puts[0]![0].expectedHeads)).toHaveLength(7);
+  expect(mocks.lab.telemetryOn).toBe(false);
+  expect(mocks.lab.allowPersonaRecording.mock.calls.every(([allow]) => !allow)).toBe(true);
 });
 it('automatic linkage does not query shelf permission for file history', async () => {
   const e = await envelope();
@@ -207,4 +210,26 @@ it('ignores obsolete saved recording keys that the SDK would reject', async () =
     c.restore({ envelope: null, oneCast: [], recordingKey: 'old/head/'.repeat(30) }),
   ).resolves.toBeUndefined();
   expect(mocks.lab.setPersonaRecording).toHaveBeenLastCalledWith(null);
+});
+
+it('enables fictional continuity on startup without changing recording preferences', async () => {
+  mocks.shelf.enabled = false;
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  await c.ready;
+  expect(mocks.shelf.setEnabled).toHaveBeenCalledWith(true);
+  expect(mocks.lab.allowPersonaRecording).not.toHaveBeenCalled();
+});
+
+it('failed fresh admission preserves the running notebook receipts and recording-off state', async () => {
+  const e = await envelope();
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  await c.restore({ envelope: e, oneCast: [], ownedHeads: { [e.castId]: e }, recordingGroup: [e] });
+  c.track();
+  const stop = mocks.lab.trackRun.mock.results.at(-1)?.value;
+  const before = c.data();
+  mocks.shelf.request.mockRejectedValue(new Error('Continuity conflict'));
+  await expect(c.fresh(123)).rejects.toThrow('Continuity conflict');
+  expect(c.data()).toEqual(before);
+  expect(stop).not.toHaveBeenCalled();
+  expect(mocks.lab.telemetryOn).toBe(false);
 });

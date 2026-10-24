@@ -76,11 +76,13 @@ import { type ContinuitySave, continuity, guardedContinuity } from './continuity
 import { portionEdition } from './editions.ts';
 import { openFeedback } from './feedback.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
-import { lab } from './lab.ts';
+import { lab, noticeFooter } from './lab.ts';
 import { endingTally } from './notebook.ts';
 import { unseenSpeech } from './speech.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
+
+const LAB_TOOLS = new URLSearchParams(location.search).get('lab') === '1';
 
 const SAVE = 'pass-save-v3';
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
@@ -195,7 +197,7 @@ function clearSave() {
 // ---------- helpers ----------
 
 const esc = (x: string) =>
-  (s?.version === 'pass@13' ? episodeText(x) : x).replace(
+  (s?.version === 'pass@13' ? episodeText(gloss(x)) : gloss(x)).replace(
     /[&<>"]/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string,
   );
@@ -214,7 +216,8 @@ function wob(x1: number, y1: number, x2: number, y2: number, key: number, amp = 
   }
   return d;
 }
-const footer = () => `<div class="footer">People by the Human Framework ${FRAMEWORK_VERSION}.</div>`;
+const footer = () =>
+  `<div class="footer">People by the Human Framework ${FRAMEWORK_VERSION}.${noticeFooter()}</div>`;
 const markLink = '<button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button>';
 const INFO: Record<string, [string, string]> = {
   title: [
@@ -223,11 +226,11 @@ const INFO: Record<string, [string, string]> = {
   ],
   board: [
     'The board',
-    'Each cook gets a station, a twenty-minute break and a cover. While a cook eats, their station waits unless someone covers. The cover’s own station waits instead. Changes are proposals: cooks agree or push back before the doors open.',
+    'Each cook has a station and a 20-minute meal break. You can ask another cook to cover that break. The covering cook leaves their own station waiting. If you change the plan, the cooks can agree or refuse before opening.',
   ],
   service: [
     'Running the pass',
-    'Tap a cook and tap a job to ask. Hold to insist; it can cost trust. The pencil under each job is your guess at their answer. Ticket dots: ● is ready. The tick on the till bar is where tonight should end to stay on course for Saturday. The kitchen slows when someone speaks or needs you.',
+    'Tap a cook, then a job, to ask them to do it. Hold the job to insist. Insisting can cost trust. The words under each job show your guess at their answer. A ● means the food is ready. The mark on the money bar shows tonight’s target for paying Saturday’s bill. The kitchen slows when someone speaks or needs an answer.',
   ],
   evening: [
     'The night',
@@ -235,7 +238,7 @@ const INFO: Record<string, [string, string]> = {
   ],
   sunday: [
     'Sunday',
-    'Promises, a day off, hiring and prices take effect next week. A broken promise is a strike.',
+    'Your Sunday choices take effect next week. A broken promise counts as a strike against the restaurant.',
   ],
   end: [
     'The tally',
@@ -244,7 +247,7 @@ const INFO: Record<string, [string, string]> = {
 };
 function topBar(label: string, phase: string): string {
   const [heading, text] = INFO[phase] ?? INFO.title!;
-  return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header><div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${text}</p></div>`;
+  return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}${s?.version === 'pass@13' && phase !== 'title' ? '<button id="people">People</button>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header><div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${esc(text)}</p></div>`;
 }
 let tillStart = { key: '', amount: 0 };
 function tillBar(st: GameState): string {
@@ -274,7 +277,7 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title.slice(0, 3))} wk ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save the kitchen. Keep a copy through Send word.' : 'The kitchen waits while this menu is open.') : 'The kitchen is closed.'}</p><div class="menu-rows"><button id="send-run">Send word</button><button id="full-screen">Full screen</button><button id="to-title">To the title page</button><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Back to the kitchen</button>`;
+  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title.slice(0, 3))} wk ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save the kitchen. Keep a copy through Feedback.' : 'The kitchen waits while this menu is open.') : 'The kitchen is closed.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
   let replacing = false;
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -285,9 +288,29 @@ function openGameMenu() {
   });
   for (const id of ['menu-back', 'menu-close'])
     dialog.querySelector(`#${id}`)?.addEventListener('click', () => dialog.close());
-  dialog.querySelector('#to-title')?.addEventListener('click', () => {
-    dialog.close();
-    title();
+  dialog.querySelector('#menu-new')?.addEventListener('click', () => {
+    (dialog.querySelector('#menu-new-confirm') as HTMLElement).hidden = false;
+  });
+  dialog.querySelector('#menu-new-no')?.addEventListener('click', () => {
+    (dialog.querySelector('#menu-new-confirm') as HTMLElement).hidden = true;
+  });
+  dialog.querySelector('#menu-new-yes')?.addEventListener('click', async () => {
+    const button = dialog.querySelector('#menu-new-yes') as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+      const fresh = await cast.fresh(seed);
+      clearSave();
+      s = fresh;
+      cast.track();
+      writeSave();
+      dialog.close();
+      enter();
+    } catch {
+      button.disabled = false;
+      (dialog.querySelector('#save-result') as HTMLElement).textContent =
+        'The new game could not start. Your current game is safe. Please try again.';
+    }
   });
   dialog.querySelector('#full-screen')?.addEventListener('click', () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -322,7 +345,25 @@ function openGameMenu() {
     },
     { once: true },
   );
-  dialog.querySelector('#record-controls')?.prepend(recording, cast.controls());
+  dialog.querySelector('#record-controls')?.prepend(recording);
+  if (LAB_TOOLS) dialog.querySelector('#record-controls')?.append(cast.controls());
+  document.body.append(dialog);
+  dialog.showModal();
+}
+function openPeople() {
+  if (!s || menuOpen) return;
+  menuOpen = true;
+  const dialog = document.createElement('dialog');
+  dialog.className = 'people-dialog';
+  dialog.setAttribute('aria-label', 'People');
+  dialog.innerHTML =
+    '<h2>People</h2><p>These conversations and work offers are optional.</p><button id="people-close">Resume</button>';
+  dialog.querySelector('#people-close')?.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => {
+    dialog.remove();
+    menuOpen = false;
+    last = performance.now();
+  });
   if (s?.version === 'pass@13') {
     const actions = document.createElement('section');
     if (s.night === 1 && s.phase === 'board')
@@ -383,6 +424,7 @@ function openGameMenu() {
 }
 document.addEventListener('click', (event) => {
   if ((event.target as Element).closest('#game-menu')) openGameMenu();
+  if ((event.target as Element).closest('#people')) openPeople();
 });
 const weekTitle = (n: number) => `${planOf(n).title}, week ${planOf(n).week}`;
 /** What the week's bill comes to so far: the bill, anything carried over, and the new hands' wages. */
@@ -420,28 +462,35 @@ function title() {
   app.innerHTML = `<div class="page title-page">
     ${topBar('The Pass', 'title')}
     <div class="page-body">
-      <h1>The Pass</h1><p class="soft title-subtitle">a kitchen, four weeks of dinner services</p>
-      <p>${esc(gloss(w1.intro[0] ?? '', true))}</p>
+      <h1>The Pass</h1><p class="soft title-subtitle">Run a kitchen for four weeks.</p>
+      <p>You have inherited Nevin’s lokanta, a small restaurant. You assign jobs to the cooks. They can refuse.</p>
       <p>The bank wants ${lira(w1.bill)} (Turkish lira) by Saturday close.</p>
       ${old ? '<p class="soft">The kitchen has been rebuilt since your last visit, and last week’s notebook can’t be reopened. Start a fresh one.</p>' : ''}
-      <fieldset class="start-approaches"><legend>Before the first service</legend>
-        <label><input type="radio" name="pace" value="nevin" /><span>Selim: “I hope the regulars give us time.”<small>More time to get the lamb right. Nevin’s pace lasts all month.</small></span></label>
-        <label><input type="radio" name="pace" value="normal" checked /><span>Dilek: “Leave it as it is.”<small>The usual wait. Learn the rush with the regulars watching.</small></span></label>
-      </fieldset>
-      <button id="fresh-authored">Begin fresh local play without browser continuity</button>
-      <button id="other-ways" aria-haspopup="dialog">Other ways in</button>
+      ${
+        LAB_TOOLS
+          ? `<fieldset class="start-approaches"><legend>How long will customers wait?</legend>
+        <label><input type="radio" name="pace" value="nevin" /><span>Longer<small>Nevin’s pace gives customers more time to wait for all four weeks.</small></span></label>
+        <label><input type="radio" name="pace" value="normal" checked /><span>Normal<small>Customers wait the usual amount of time.</small></span></label>
+      </fieldset>`
+          : ''
+      }
+      ${LAB_TOOLS ? '<button id="fresh-authored">Begin without continuity</button><button id="other-ways" aria-haspopup="dialog">Lab tools</button>' : ''}
       <p id="title-status" role="status" aria-live="polite"></p>
       <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this notebook</button></div></div>
     </div>
     <div class="actions">
-      ${save ? `<button class="primary" id="cont">Back to the kitchen <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button><button id="new">A new notebook</button>` : '<button class="primary" id="new">See tonight’s board</button>'}
+      ${save ? `<button class="primary" id="cont">Resume <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button><button id="new">New game</button>` : '<button class="primary" id="new">New game</button>'}
     </div>
-    <dialog id="other-ways-sheet" class="other-ways-sheet" aria-labelledby="other-ways-heading"><h2 id="other-ways-heading">Other ways in</h2><div class="actions">
+    ${
+      LAB_TOOLS
+        ? `<dialog id="other-ways-sheet" class="other-ways-sheet" aria-labelledby="other-ways-heading"><h2 id="other-ways-heading">Other ways in</h2><div class="actions">
       <button id="week-two">Begin at the second week</button><p class="soft">A steady hand runs the first week. You take over on its Sunday.</p>
       <button id="first-party">Begin at the first party</button><p class="soft">Choose the promises on Sunday and take the pass before the first party sits.</p>
       ${turnBack}<button id="load">Load a playtest run</button><button id="close-other-ways">Back</button>
     </div></dialog>
-    <input type="file" id="file" accept="application/json" hidden />
+    <input type="file" id="file" accept="application/json" hidden />`
+        : ''
+    }
     ${footer()}
   </div>`;
   const sheet = document.getElementById('other-ways-sheet') as HTMLDialogElement;
@@ -460,7 +509,7 @@ function title() {
   };
   let confirmed: (() => void) | null = null;
   const ask = (message: string, action: () => void) => {
-    if (sheet.open) sheet.close();
+    if (sheet?.open) sheet.close();
     confirmed = action;
     (document.getElementById('title-confirm-message') as HTMLElement).textContent = message;
     (document.getElementById('title-confirm') as HTMLElement).hidden = false;
@@ -529,11 +578,11 @@ function title() {
         enterWithStatus(cast.message);
       })().catch((error: unknown) =>
         status(
-          `This chapter could not be admitted: ${error instanceof Error ? error.message.slice(0, 300) : 'unsupported source'}. Keep the existing notebook, or choose fresh local play.`,
+          `The game could not start: ${error instanceof Error ? error.message.slice(0, 300) : 'unsupported source'}. Your saved game is safe. Please try again.`,
         ),
       );
     };
-    if (save) ask('Start a new notebook? This one is put away for good.', start);
+    if (save) ask('Start a new game? This replaces your saved game.', start);
     else start();
   };
   document.getElementById('new')?.addEventListener('click', () => begin(false));
@@ -542,10 +591,10 @@ function title() {
   document.getElementById('first-party')?.addEventListener('click', () => begin(true, true));
   const file = document.getElementById('file') as HTMLInputElement;
   document.getElementById('load')?.addEventListener('click', () => file.click());
-  file.addEventListener('change', async () => {
+  file?.addEventListener('change', async () => {
     const f = file.files?.[0];
     if (!f) return;
-    if (sheet.open) sheet.close();
+    if (sheet?.open) sheet.close();
     try {
       const ex = JSON.parse(await f.text()) as Export & { minute?: number };
       if (!canReplay(ex.game)) {
@@ -714,9 +763,9 @@ function board(draft?: BoardRow[], editing: string | null = null) {
           ? `ask ${nameOf(st, row.cover)} to cover`
           : answer?.coverAccepted
             ? `${nameOf(st, row.cover)} covers`
-            : `${nameOf(st, row.cover)} not agreed; ${station} waits`
-        : `${station} waits`;
-      const summary = `${VERB_LABEL[row.station]} · break ${clock(row.breakAt)} · ${coverSummary}`;
+            : `${nameOf(st, row.cover)} has not agreed to cover. The ${station} will wait.`
+        : `The ${station} will wait.`;
+      const summary = `${nameOf(st, row.cook)} will work at the ${station}. Meal break: ${clock(row.breakAt)}, for 20 minutes. ${capital(coverSummary)}${coverSummary.endsWith('.') ? '' : '.'}`;
       if (editing === row.cook) {
         editor = `<div class="board-editor-backdrop"><section class="board-editor" id="board-fields-${esc(row.cook)}" role="dialog" aria-modal="true" aria-labelledby="board-editor-title" data-board-cook="${esc(row.cook)}"><header><h2 id="board-editor-title">${esc(nameOf(st, row.cook))}’s plan</h2><button type="button" class="board-editor-close" aria-label="Close plan">×</button></header><div class="board-editor-body"><div class="board-fields">${chips(
           row,
@@ -727,18 +776,15 @@ function board(draft?: BoardRow[], editing: string | null = null) {
         )}${chips(
           row,
           'break',
-          'Break · twenty minutes',
+          'Meal break: 20 minutes',
           breakSlots(answer?.breakAt ?? row.breakAt).map((slot) => ({
             value: String(slot.minute),
-            label: slot.label
-              .replace(' before the rush', ' · before')
-              .replace(' during the rush', ' · rush')
-              .replace(' after the rush', ' · after'),
+            label: slot.label,
           })),
           String(row.breakAt),
         )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div><footer><button type="button" id="board-done" class="primary">Done</button></footer></section></div>`;
       }
-      return `<section class="board-row" data-board-cook="${esc(row.cook)}"><h2>${esc(nameOf(st, row.cook))}</h2><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">Change</button>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</section>`;
+      return `<section class="board-row" data-board-cook="${esc(row.cook)}"><h2>${esc(nameOf(st, row.cook))}</h2><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">Change</button>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Waiting for a new answer. Previous answer' : answer.accepted ? 'Agreed' : 'Declined or changed'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</section>`;
     })
     .join(
       '',
@@ -913,8 +959,8 @@ function board(draft?: BoardRow[], editing: string | null = null) {
             ? `ask ${nameOf(st, row.cover)} to cover`
             : answer?.coverAccepted
               ? `${nameOf(st, row.cover)} covers`
-              : `${nameOf(st, row.cover)} not agreed; ${station} waits`
-          : `${station} waits`;
+              : `${nameOf(st, row.cover)} has not agreed to cover. The ${station} will wait.`
+          : `The ${station} will wait.`;
         const summary = `${VERB_LABEL[row.station]} · break ${breakSlots(row.breakAt).find((slot) => slot.minute === row.breakAt)?.label} · ${coverSummary}`;
         return `<fieldset class="board-row${editing === row.cook ? ' is-editing' : ''}" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">${editing === row.cook ? 'Done' : 'Change'}</button><div class="board-editor" id="board-fields-${esc(row.cook)}"><div class="board-fields">${chips(
           row,
@@ -925,13 +971,13 @@ function board(draft?: BoardRow[], editing: string | null = null) {
         )}${chips(
           row,
           'break',
-          'Break · twenty minutes',
+          'Meal break: 20 minutes',
           breakSlots(answer?.breakAt ?? row.breakAt).map((slot) => ({
             value: String(slot.minute),
             label: slot.label,
           })),
           String(row.breakAt),
-        )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Changes not answered. Previous answer' : answer.accepted ? 'Agreed' : 'Counter / no'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
+        )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Waiting for a new answer. Previous answer' : answer.accepted ? 'Agreed' : 'Declined or changed'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
       })
       .join(
         '',
@@ -1708,7 +1754,7 @@ function drawSheet() {
       )
         .map(
           (id) =>
-            `<button data-cover="${esc(id)}" ${queued ? 'disabled' : ''}>Ask ${esc(nameOf(st, id))} to cover${stationOf(st, id) ? `<span class="cover-tradeoff">${esc(VERB_LABEL[stationOf(st, id) as Station])} waits</span>` : '<span class="cover-tradeoff">Free at present</span>'}</button>`,
+            `<button data-cover="${esc(id)}" ${queued ? 'disabled' : ''}>Ask ${esc(nameOf(st, id))} to cover${stationOf(st, id) ? `<span class="cover-tradeoff">${esc(VERB_LABEL[stationOf(st, id) as Station])} waits</span>` : '<span class="cover-tradeoff">They are free now.</span>'}</button>`,
         )
         .join(
           '',
@@ -1761,7 +1807,7 @@ function drawSheet() {
     const opening = lines.filter((x) => x.at === openAt(st.night) - 5 && x.who === 'narrator');
     const legacyOpening = st.night === 1 && lines.slice(-3).every((x) => x.at === openAt(1) - 5);
     const journal = peopleRun(st)
-      ? `<div class="journal-heading">Tonight’s journal · earlier words</div>${opening.length ? `<details><summary>Opening notes</summary>${opening.map(lineHTML).join('')}</details>` : ''}${lines
+      ? `<div class="journal-heading">Earlier conversations</div>${opening.length ? `<details><summary>Opening notes</summary>${opening.map(lineHTML).join('')}</details>` : ''}${lines
           .filter((x) => x.at !== openAt(st.night) - 5 || x.who !== 'narrator')
           .map(lineHTML)
           .join('')}`
@@ -1798,18 +1844,18 @@ function drawSheet() {
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
-          `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(v.short)}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
+          `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div><div class="hint">${
       absent
         ? 'This cook has left the kitchen.'
         : guess
-          ? `I don’t know ${esc(m.name)} yet: these are guesses, in pencil.`
+          ? `I don’t know ${esc(m.name)} yet: these answers are guesses.`
           : seenHint.job
             ? waiting
               ? 'They heard you.'
-              : 'Hold a job to insist. On a yes it only presses.'
+              : 'Hold a job to insist. If they already agreed, this adds pressure.'
             : 'Tap a job to ask. Hold it to insist.'
     }</div>`,
   );
@@ -1824,7 +1870,7 @@ function ovenTended(st: GameState) {
 }
 
 function ovenWait(st: GameState) {
-  return ovenTended(st) ? 'Oven warming' : 'Cold. Nobody on it';
+  return ovenTended(st) ? 'The oven is warming.' : 'The oven is cold. No cook is warming it.';
 }
 
 function tipLine(st: GameState): string {
@@ -2473,8 +2519,8 @@ function ending() {
     ${st.stamps.length ? `<p class="soft">The notebook:</p>${stampList(st.stamps.map((x) => x.id))}` : ''}
     </div>
     <div class="actions">
-      <div class="end-secondaries"><button id="send">Send word</button><button id="export">Download this run</button></div>
-      <button class="primary" id="again">A new notebook</button>
+      <div class="end-secondaries"><button id="send">Feedback</button>${LAB_TOOLS ? '<button id="export">Download this run</button>' : ''}</div>
+      <button class="primary" id="again">New game</button>
     </div>
   </div>`;
   document.getElementById('export')?.addEventListener('click', download);
@@ -2515,7 +2561,7 @@ function returnPage() {
   app.innerHTML = `<div class="page"><div class="page-body">${topBar('Zeynep returns', 'end')}
     <h1>Zeynep returns</h1><p>Her cold-food trial is over. What she learned stays with her. Her sons still expect her home each evening.</p>
     <p>${esc(String((s.returnChapter.envelope.transfer.history as { id: string; summary: string }[]).find((f) => f.id === 'goodhands-encounter')?.summary ?? 'The household answer remains in this chapter’s notebook.'))}</p><p>Chef has released her kitchen shifts. This chapter gives her no new job.</p>
-    <div class="actions"><button id="export">Download this chapter</button><button id="send">Send word</button><button id="fresh">Begin a fresh kitchen</button></div></div></div>`;
+    <div class="actions">${LAB_TOOLS ? '<button id="export">Download this chapter</button>' : ''}<button id="send">Feedback</button><button id="fresh">Begin a fresh kitchen</button></div></div></div>`;
   document.getElementById('export')?.addEventListener('click', download);
   document.getElementById('send')?.addEventListener('click', sendRun);
   document.getElementById('fresh')?.addEventListener('click', () => title());

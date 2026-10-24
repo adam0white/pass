@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 test('opening voices preserve the default and the tally has no pregame preference', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?lab=1');
   const pace = page.locator('input[name="pace"][value="nevin"]');
   const normal = page.locator('input[name="pace"][value="normal"]');
   await expect(normal).toBeChecked();
   await expect(pace).not.toBeChecked();
   await expect(
-    page.getByText('More time to get the lamb right. Nevin’s pace lasts all month.'),
+    page.getByText('Nevin’s pace gives customers more time to wait for all four weeks.'),
   ).toBeVisible();
   await pace.check();
   await expect(pace).toBeChecked();
@@ -27,7 +27,7 @@ test('opening voices preserve the default and the tally has no pregame preferenc
   await expect(page.locator('#ending-tally')).toHaveCount(0);
   const boardHelp = page.getByRole('button', { name: 'Information', exact: true });
   await boardHelp.click();
-  await expect(page.locator('#phase-help')).toContainText('Changes are proposals');
+  await expect(page.locator('#phase-help')).toContainText('If you change the plan');
   await page.keyboard.press('Escape');
   await page.evaluate(async () => {
     const app = (window as unknown as { __pass: { state: { phase: string } | null; refresh(): void } })

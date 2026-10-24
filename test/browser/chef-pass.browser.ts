@@ -18,8 +18,8 @@ async function start(page: Page, minute = 1060) {
     minute: s.minute,
     pages: [],
   });
-  await page.goto('/');
-  await page.getByRole('button', { name: /Back to the kitchen/ }).click();
+  await page.goto('/?lab=1');
+  await page.getByRole('button', { name: /Resume/ }).click();
 }
 
 async function onScreen(page: Page, selector: string) {
@@ -40,13 +40,13 @@ test('Game menu autosaves and offers feedback with a downloadable copy', async (
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('button', { name: 'Save this kitchen', exact: true })).toHaveCount(0);
   await expect(menu.getByRole('button', { name: 'Download this run', exact: true })).toHaveCount(0);
-  await menu.getByRole('button', { name: 'Send word', exact: true }).click();
-  const feedback = page.getByRole('dialog', { name: 'Send word', exact: true });
+  await menu.getByRole('button', { name: 'Feedback', exact: true }).click();
+  const feedback = page.getByRole('dialog', { name: 'Feedback', exact: true });
   await expect(feedback).toBeVisible();
   await expect(feedback.getByRole('button', { name: 'Keep a copy of this run', exact: true })).toBeVisible();
   await feedback.getByRole('button', { name: 'Back to the menu', exact: true }).click();
   await expect(menu).toBeVisible();
-  await menu.getByRole('button', { name: 'Back to the kitchen', exact: true }).click();
+  await menu.getByRole('button', { name: 'Resume', exact: true }).click();
   await expect(page.locator('#game-menu')).toBeFocused();
 });
 
@@ -75,7 +75,7 @@ test('real touch and desktop renders show station work and the Game menu', async
   await page.screenshot({ path: `${shots}/chef-working-phone-d.png` });
   await page.getByRole('button', { name: 'Game menu', exact: true }).tap();
   await page.screenshot({ path: `${shots}/menu-phone-d.png` });
-  await page.getByRole('button', { name: 'Back to the kitchen', exact: true }).click();
+  await page.getByRole('button', { name: 'Resume', exact: true }).click();
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.screenshot({ path: `${shots}/chef-desktop-d.png` });
 });
@@ -83,8 +83,8 @@ test('real touch and desktop renders show station work and the Game menu', async
 test('send cancellation returns to Game menu and keeps service time still', async ({ page }) => {
   await start(page);
   await page.getByRole('button', { name: 'Game menu', exact: true }).click();
-  await page.getByRole('button', { name: 'Send word', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Send word', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Feedback', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Feedback', exact: true })).toBeVisible();
   const before = await page.locator('#clock').textContent();
   await page.clock.runFor(30000);
   expect(await page.locator('#clock').textContent()).toBe(before);
@@ -147,7 +147,7 @@ test('station limits name warming and lost gas when portions are waiting', async
     app._debug.refresh();
   });
   await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText(
-    'Cold. Nobody on it',
+    'The oven is cold. No cook is warming it.',
   );
   await page.evaluate(async () => {
     const appPath = '/src/ui/app.ts';
@@ -159,7 +159,9 @@ test('station limits name warming and lost gas when portions are waiting', async
     kitchen.personOf(s, id).activity.affordanceId = 'oven';
     app._debug.refresh();
   });
-  await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText('Oven warming');
+  await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText(
+    'The oven is warming.',
+  );
   await page.evaluate(async () => {
     const appPath = '/src/ui/app.ts';
     const campaignPath = '/src/sim/campaign.ts';
@@ -181,7 +183,7 @@ test('station limits name warming and lost gas when portions are waiting', async
 test('resuming from a scrolled title body keeps service and Game menu at the top', async ({ page }) => {
   await start(page);
   await page.reload();
-  const resume = page.getByRole('button', { name: /Back to the kitchen/ });
+  const resume = page.getByRole('button', { name: /Resume/ });
   await page.locator('.page-body').evaluate((body) => {
     body.scrollTop = body.scrollHeight;
   });

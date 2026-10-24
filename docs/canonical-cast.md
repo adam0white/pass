@@ -32,7 +32,7 @@ No generated customers become canonical by name. Ticket generation, unnamed sons
 
 ## Playable discoveries
 
-The menu presents a person’s own specific invitation only while that employed person is present and idle. Listen records a deterministic `cast-talk` input and their private disclosure. Leave records no disclosure. Importing life/biography never reveals these facts.
+The People panel presents a person’s own specific invitation only while that employed person is present and idle. Listen records a deterministic `cast-talk` input and their private disclosure. Leave records no disclosure. Importing life/biography never reveals these facts.
 
 | Person | Actually discoverable by choice | Larger outcomes deferred |
 | --- | --- | --- |
