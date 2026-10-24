@@ -196,3 +196,15 @@ it('does not cancel a pending kitchen admission when recording identity acknowle
   });
   await expect(pending).resolves.toHaveProperty('seed', 42);
 });
+
+it('ignores obsolete saved recording keys that the SDK would reject', async () => {
+  mocks.lab.setPersonaRecording.mockImplementation((key: string | null) => {
+    if (key !== null && !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(key))
+      throw new Error('Invalid persona recording key.');
+  });
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  await expect(
+    c.restore({ envelope: null, oneCast: [], recordingKey: 'old/head/'.repeat(30) }),
+  ).resolves.toBeUndefined();
+  expect(mocks.lab.setPersonaRecording).toHaveBeenLastCalledWith(null);
+});

@@ -123,7 +123,7 @@ export function continuity(
   // Recording and automatic linkage belong to the SDK's single recording switch.
   // They must never delay or cancel fictional admission/checkpoint ownership.
   const gate = async () => {
-    lab.setPersonaRecording(recordingKey ?? null);
+    lab.setPersonaRecording(null);
   };
   async function restore(
     value?: ContinuitySave,
@@ -208,7 +208,7 @@ export function continuity(
     importedHistory = false;
     pending = null;
     recordingKey = `pass-group-${crypto.randomUUID()}`;
-    lab.setPersonaRecording(recordingKey);
+    lab.setPersonaRecording(null);
     lab.allowPersonaRecording(false);
     if (!shelf.enabled) {
       localOnly = true;
