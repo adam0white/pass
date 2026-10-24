@@ -88,12 +88,12 @@ export async function prepareKitchenChapter(
       ((id === 'hulya' && parent.transfer.sourceRole === 'hulya') ||
         (id === 'zeynep' && parent.transfer.sourceRole === 'zeynep-pass'));
     const town =
-      id === 'rafi' &&
+      (id === 'rafi' || id === 'sam') &&
       ((parent.source.game === 'neighbours' && parent.source.rules === 'neighbours-cast-1') ||
         (parent.source.game === 'pass' && parent.source.rules === 'pass-13')) &&
       parent.source.engine === '2.17.0' &&
       parent.transfer.castPassport === 'neighbours-cast/1' &&
-      parent.transfer.sourceRole === 'ravi';
+      parent.transfer.sourceRole === (id === 'rafi' ? 'ravi' : 'sam');
     if (!native && !agency && !town)
       throw new Error(
         `${cast.name}: no supported native kitchen map for ${parent.source.game}. Keep the source or choose fresh local play.`,
@@ -107,7 +107,15 @@ export async function prepareKitchenChapter(
       : town
         ? 'neighbours-calendar/1'
         : 'goodhands-agency-calendar/1';
-    const sourceId = native ? id : town ? 'ravi' : id === 'zeynep' ? 'zeynep-pass' : 'hulya';
+    const sourceId = native
+      ? id
+      : town
+        ? id === 'rafi'
+          ? 'ravi'
+          : 'sam'
+        : id === 'zeynep'
+          ? 'zeynep-pass'
+          : 'hulya';
     const receipt = parent.transfer.checkpoint as Record<string, unknown> | undefined;
     if (
       p.mappingVersion !== mapping ||
@@ -128,7 +136,7 @@ export async function prepareKitchenChapter(
       throw new Error(
         'This chapter needs a quiet native daytime boundary before 17:25. Existing family and work duties remain at source.',
       );
-    // Rafi's duty-free workshop boundary changes only chapter clock labels, not body age/time.
+    // These two duty-free workshop boundaries changes only chapter clock labels, not body age/time.
     // Other maps retain wall-clock duties and their explicit whole-day map.
     if (town && portable.calendar.commitments.length)
       throw new Error('An unresolved source duty has no kitchen map.');
@@ -184,7 +192,9 @@ export async function prepareKitchenChapter(
     if (shifted.calendar.owed.length || shifted.calendar.lapse)
       throw new Error('Keep actual unresolved debt at source; this kitchen has no repayment map.');
     const opening = freshActor(id, seed, arrival);
+    opening.body.health = p.health.health;
     opening.body.fitness = p.health.fitness;
+    opening.body.circadianPeak = p.health.circadianPeak;
     opening.life.bornAt = p.life.bornAt + offset;
     if (p.source.now - p.life.bornAt < cast.age * MINUTES_PER_YEAR)
       throw new Error('Canonical age mismatch.');

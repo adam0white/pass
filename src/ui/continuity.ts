@@ -234,7 +234,7 @@ export function continuity(
     await gate();
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
     report(
-      `Kitchen cast preflight accepted ${chapter.inputs.length} continuing people together. Remaining people use their canonical opening.${chapter.inputs.some((i) => i.parent.transfer.castPassport === 'neighbours-cast/1') ? ' Rafi’s repair practice and town memories stay in the town archive; no cooking qualification or shared familiarity is transferred.' : ''}`,
+      `Kitchen cast preflight accepted ${chapter.inputs.length} continuing people together. Remaining people use their canonical opening.${chapter.inputs.some((i) => i.parent.transfer.castPassport === 'neighbours-cast/1') ? ' Workshop repair practice and town memories stay in the town archive; no cooking qualification or shared familiarity is transferred.' : ''}`,
     );
     return newGame(seed, GAME_VERSION, chapter.initial);
   }
