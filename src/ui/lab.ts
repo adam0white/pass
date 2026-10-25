@@ -12,14 +12,10 @@ export function mountNotice(): void {
   if (!notice) return;
   const footer = document.createElement('footer');
   footer.id = 'recording-footer';
-  notice.querySelector('button')?.remove();
-  Object.assign(notice.style, {
-    background: 'transparent',
-    color: 'inherit',
-    border: '0',
-    padding: '0',
-    font: 'inherit',
-  });
+  // Pass has a 17px root. Keep the full disclosure on one line at normal phone size,
+  // while allowing it to grow and wrap when the reader enlarges the root text.
+  notice.style.fontSize = 'max(14px, 0.82rem)';
+  notice.style.paddingInline = '0.45rem';
   footer.append(notice);
   document.body.append(footer);
   const resize = new ResizeObserver(() => {

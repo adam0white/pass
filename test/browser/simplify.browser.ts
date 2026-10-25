@@ -86,9 +86,43 @@ test('recording notice stays in the footer and appears once per local origin', a
   await page.goto('/');
   const notice = page.locator('#recording-footer .lk-telemetry-notice');
   await expect(notice).toBeVisible();
-  await expect(notice).toContainText('records and links');
+  await expect(notice).toHaveText('We record and link play across games on this device.');
   expect(await notice.evaluate((el) => getComputedStyle(el).position)).toBe('static');
   await expect(notice.locator('button')).toHaveCount(0);
+  await page.evaluate(() => document.fonts.ready);
+  const metrics = await notice.evaluate((el) => {
+    const style = getComputedStyle(el);
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    return {
+      font: Number.parseFloat(style.fontSize),
+      width: el.getBoundingClientRect().width,
+      rects: [...range.getClientRects()].map((r) => ({ x: r.x, y: r.y, w: r.width, h: r.height })),
+      lines: range.getClientRects().length,
+      height: el.getBoundingClientRect().height,
+      wrapper: el.parentElement!.getBoundingClientRect().height,
+    };
+  });
+  console.log('Footer metrics', metrics);
+  expect(metrics.font).toBeGreaterThanOrEqual(14);
+  expect(metrics.lines).toBe(1);
+  expect(metrics.height).toBeLessThanOrEqual(40);
+  expect(metrics.wrapper).toBeLessThanOrEqual(40);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '32px';
+  });
+  const enlarged = await notice.evaluate((el) => ({
+    height: el.getBoundingClientRect().height,
+    scroll: el.scrollHeight,
+    client: el.clientHeight,
+    overflow: document.documentElement.scrollWidth > innerWidth,
+  }));
+  expect(enlarged.height).toBeGreaterThan(metrics.height);
+  expect(enlarged.scroll).toBeLessThanOrEqual(enlarged.client + 1);
+  expect(enlarged.overflow).toBe(false);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
   await page.locator('#new').click();
   await expect(page.locator('.people-board')).toBeVisible();
   await expect(notice).toBeVisible();
