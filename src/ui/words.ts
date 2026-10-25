@@ -7,7 +7,7 @@ export function gloss(text: string, currency = false): string {
       lira(Number(amount.replaceAll(',', ''))),
     )
     .replace(/Another minute for the crust/gu, 'Leave it in for the crust')
-    .replace(/\bmaghrib\b(?! \(sunset prayer\))/gu, 'maghrib (sunset prayer)');
+    .replace(/\bmaghrib\b(?: \(sunset prayer\))?/gu, 'sunset prayer');
   return currency
     ? words.replace(/₺-?[\d,.]+(?: \(Turkish lira\))?/u, (amount) =>
         amount.endsWith('(Turkish lira)') ? amount : `${amount} (Turkish lira)`,
@@ -19,6 +19,16 @@ export function gloss(text: string, currency = false): string {
 export function plainEnglish(text: string): string {
   return text
     .replace(/I’m holding (.+?) until (\d{2}:\d{2})\./gu, 'I’m working at $1 until $2.')
+    .replaceAll('Hasan Bey', 'Mr Hasan')
+    .replaceAll('lokanta, a small restaurant', 'small restaurant')
+    .replaceAll('lokanta', 'restaurant')
+    .replace(/\bPide\b/gu, 'Flatbread')
+    .replace(/\bpide\b/gu, 'flatbread')
+    .replaceAll('köfte', 'meatballs')
+    .replaceAll('börek', 'filled pastry')
+    .replaceAll('cacık', 'yogurt and cucumber dish')
+    .replaceAll('döner chain', 'roast-meat restaurant chain')
+    .replaceAll('döner stand', 'roast-meat stand')
     .replace(
       /Then twenty minutes for a plate; back on (.+?) until close\./gu,
       'Then I take a 20-minute meal break. After that, I return to $1 until closing.',

@@ -466,7 +466,7 @@ function title() {
     ${topBar('The Pass', 'title')}
     <div class="page-body">
       <h1>The Pass</h1><p class="soft title-subtitle">Run a kitchen for four weeks.</p>
-      <p>You have inherited Nevin’s lokanta, a small restaurant. You assign jobs to the cooks. They can refuse.</p>
+      <p>You have inherited Nevin’s small restaurant. You assign jobs to the cooks. They can refuse.</p>
       <p>The bank wants ${lira(w1.bill)} (Turkish lira) by Saturday close.</p>
       ${old ? '<p class="soft">The kitchen has been rebuilt since your last visit, and last week’s notebook can’t be reopened. Start a fresh one.</p>' : ''}
       ${
@@ -1314,7 +1314,7 @@ function drawRail() {
         const dish =
           row('grill', t.doneGrill, t.grill) +
           row('cold', t.doneCold, t.cold) +
-          row('pide', t.doneOven, t.oven);
+          row('flatbread', t.doneOven, t.oven);
         if (t.due !== undefined) {
           const left = t.due - st.minute;
           return `<div class="slip wedding ${left < 15 ? 'late' : ''}"><div class="t">wedding trays</div>${dish}<div class="st">${left > 0 ? `by ${clock(t.due)}` : 'late'}</div></div>`;
@@ -1452,7 +1452,7 @@ function drawScene() {
               : 0;
     if (waiting > 0 && !off && !manned.has(name))
       parts.push(
-        `<text x="${Math.min(290, Math.max(70, x))}" y="146" text-anchor="middle" class="hand" font-size="14" fill="var(--rope)">${name === 'oven' && st.oven.heat < OVEN_HOT ? 'pide waiting' : 'nobody on it'}</text>`,
+        `<text x="${Math.min(290, Math.max(70, x))}" y="146" text-anchor="middle" class="hand" font-size="14" fill="var(--rope)">${name === 'oven' && st.oven.heat < OVEN_HOT ? 'flatbread waiting' : 'nobody on it'}</text>`,
       );
     if (name === 'grill' && !off)
       for (let k = 0; k < Math.min(6, o.grill); k++)
@@ -1956,7 +1956,7 @@ function immediateReply(saidBefore: GameState['said'][number] | undefined, text?
   const caption = document.getElementById('caption');
   if (reply && caption) {
     captionKey = 'immediate-reply';
-    caption.textContent = text ?? reply.text;
+    caption.textContent = gloss(text ?? reply.text);
     caption.setAttribute('role', 'status');
   }
 }
@@ -2435,7 +2435,7 @@ function sunday() {
     parts.push(
       card(
         'sell',
-        'The man from the döner chain came back on Sunday with a number on a card. It would clear everything, and the name over the door would go.',
+        'The man from the roast-meat restaurant chain came back on Sunday with a number on a card. It would clear everything, and the name over the door would go.',
         [
           ['keep', 'Keep Nevin’s name'],
           ['sell', 'Take the money'],
@@ -2448,7 +2448,7 @@ function sunday() {
     <div class="page-body">
     <h2>Sunday, week ${pg.week}</h2>
     ${partyLinks.length ? `<nav class="party-jumps" aria-label="Next week’s parties">Two parties next week: ${partyLinks.join(' and ')}. Choose on each card.</nav>` : ''}
-    <p class="soft">${esc(weekOf(pg.week).title)}. The lokanta is closed. I sit at the staff table with the notebook.</p>
+    <p class="soft">${esc(weekOf(pg.week).title)}. The restaurant is closed. I sit at the staff table with the notebook.</p>
     ${parts.join('')}
     ${stamps ? `<p class="soft">This week in the notebook:</p>${stamps}` : ''}
     ${nextWeek ? `<p>Next week: ${lira(nextWeek.bill)} for ${esc(nextWeek.owed)}${st.carry ? `, and ${lira(st.carry)} carried over` : ''}${st.seen ? `, and ${lira(st.seen)} more: ${esc(SEEN_WHO[pg.week] ?? 'they')} saw the queue on Saturday` : ''}.</p>` : ''}
@@ -2500,7 +2500,7 @@ function ending() {
   if (st.lost) {
     const b = [...st.reports].reverse().find((r) => r.bill)?.bill;
     head = 'The letter came on Monday.';
-    body = `${b && b.short > 0 ? `${capital(b.owed)} wanted ${lira(b.amount)}, and I was ${lira(b.short)} short. ` : ''}${b?.promiseBroken ? 'A promise broken this week: one strike. ' : ''}The man from the döner chain called the same afternoon. I said I would think about it. ${nights} nights at Nevin’s.`;
+    body = `${b && b.short > 0 ? `${capital(b.owed)} wanted ${lira(b.amount)}, and I was ${lira(b.short)} short. ` : ''}${b?.promiseBroken ? 'A promise broken this week: one strike. ' : ''}The man from the roast-meat restaurant chain called the same afternoon. I said I would think about it. ${nights} nights at Nevin’s.`;
   } else if (st.sold) {
     head = 'The sign came down on a Tuesday.';
     body =

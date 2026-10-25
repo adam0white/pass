@@ -18,6 +18,7 @@ export const PRIVATE_CLUES: Record<string, string> = {
 export function episodeText(text: string): string {
   return text
     .replaceAll('Hasan Bey', 'the window-table customer')
+    .replaceAll('Mr Hasan', 'the window-table customer')
     .replaceAll('Hasan', 'the window-table customer')
     .replaceAll('Mrs Arslan', 'the customer with a child')
     .replaceAll('Gül Arslan', 'the customer with a child')
