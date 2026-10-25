@@ -10,7 +10,7 @@ import {
   restoreState,
   step,
 } from '../src/sim/kitchen.ts';
-import { legacyHash, legacyState } from './hash.ts';
+import { legacyHash, legacyState, proseFree } from './hash.ts';
 
 interface Checkpoint {
   night: number;
@@ -53,11 +53,13 @@ describe('pass@5 baseline notebook replay', () => {
     expect(notebook.framework).toBe(baseline.framework);
     expect(notebook.inputs).toEqual(notebook.state.inputs);
     const replayed = replayNotebook(notebook);
-    expect(legacyState(replayed, notebook.framework)).toEqual(notebook.state);
-    expect({
-      ...serializedExport(replayed, notebook.framework),
-      state: legacyState(replayed, notebook.framework),
-    }).toEqual(notebook);
+    expect(proseFree(legacyState(replayed, notebook.framework))).toEqual(proseFree(notebook.state));
+    expect(
+      proseFree({
+        ...serializedExport(replayed, notebook.framework),
+        state: legacyState(replayed, notebook.framework),
+      }),
+    ).toEqual(proseFree(notebook));
   });
 
   for (const row of baseline.rows) {

@@ -15,17 +15,18 @@ export function sundayOpenLabel(s: GameState, firstPartyStart: boolean): string 
 
 export function handoverContext(s: GameState): string {
   if (peopleRun(s))
-    return 'The steady hand ran the service until now. The crew cooks and sends plates; you run the pass.';
+    return 'An experienced helper ran the service until now. The cooks make the food and send out the plates. You run the pass.';
   const food = (station: 'grill' | 'cold' | 'oven') =>
-    station === 'grill' ? 'grill portion' : station === 'cold' ? 'cold plate' : 'pide';
+    station === 'grill' ? 'grill portion' : station === 'cold' ? 'cold dish' : 'flatbread';
   const table = (ticket: number) => s.tickets.find((t) => t.id === ticket)?.table;
-  let hands = 'Your hands are empty.';
+  let hands = 'You are not cooking anything.';
   if (s.help) {
     const act = cookingStep(s);
-    hands = `You take over table ${table(s.help.ticket)}’s ${food(s.help.station)}. ${s.help.instinct ? 'Your hands are finishing it on instinct. ' : ''}${act?.text ?? 'The portion is on the station.'}`;
+    hands = `You take over table ${table(s.help.ticket)}’s ${food(s.help.station)}. ${s.help.instinct ? 'You finish it without thinking. ' : ''}${act?.text ?? 'The portion is waiting at the station.'}`;
   }
-  if (s.chefNext) hands += ` Chef’s next: table ${table(s.chefNext.ticket)}’s ${food(s.chefNext.station)}.`;
-  return `The steady hand ran the service until now. ${hands}`;
+  if (s.chefNext)
+    hands += ` Next for you, Chef: table ${table(s.chefNext.ticket)}’s ${food(s.chefNext.station)}.`;
+  return `An experienced helper ran the service until now. ${hands}`;
 }
 
 /**
@@ -33,4 +34,4 @@ export function handoverContext(s: GameState): string {
  * of what the chef held then, so they get the neutral line rather than a reading of the current kitchen.
  */
 export const handoverHands = (saved: string | undefined): string =>
-  saved ?? 'The steady hand ran the service until the hand-over.';
+  saved ?? 'An experienced helper ran the service until you took over.';

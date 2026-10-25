@@ -34,7 +34,7 @@ for (const [width, height] of [
     await page.goto('/');
     await page.locator('#cont').click();
     const card = page.locator('.party-slip').filter({ hasText: party.host });
-    await expect(card).toContainText('promised: first at the pass');
+    await expect(card).toContainText('promised: their food first');
     await expect(card).toContainText('serve by');
     await expect(card).toContainText(`table ${s.tickets.find((t) => t.id === booking.ticket)?.table}`);
     await card.scrollIntoViewIfNeeded();

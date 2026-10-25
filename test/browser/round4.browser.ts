@@ -84,7 +84,7 @@ test('Round 4 lets the chef prepare food with a visible duration and queued ackn
   const help = page.locator('[data-help]').first();
   await expect(help).toContainText(/5 min/);
   await help.click();
-  await expect(page.locator('.food-work')).toContainText(/Starting|preparing/);
+  await expect(page.locator('.food-work')).toContainText(/start your portion|preparing/);
   await page.clock.runFor(10000);
   await expect(page.locator('#sheet')).toContainText(/preparing|finished|ingredients back/);
 });
@@ -129,9 +129,9 @@ test('Round 4 keeps a departing cook selected and explains why more jobs are una
   await page.mouse.down();
   await page.clock.runFor(500);
   await page.mouse.up();
-  await page.clock.runFor(1500);
+  await page.clock.runFor(4000);
   await expect(page.locator('[data-pick="selim"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('[data-pick="selim"]')).toContainText('gone');
+  await expect(page.locator('[data-pick="selim"]')).toContainText('has left');
   await expect(page.locator('.station-duration')).toContainText('next service');
   for (const button of await page.locator('.verbs button').all()) await expect(button).toBeDisabled();
 });

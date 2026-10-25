@@ -31,36 +31,7 @@ it('routes every interpolated monetary value through lira instead of a bare numb
   }
 });
 
-it('glosses the oven choice consistently without changing its recorded words', () => {
-  const recorded = 'Another minute for the crust';
-  expect(gloss(recorded)).toBe('Leave it in for the crust');
-  expect(gloss(`I chose: ${recorded}.`)).toBe('I chose: Leave it in for the crust.');
-  expect(recorded).toBe('Another minute for the crust');
-});
-
-it('renders clipped meal and break dialogue in full sentences without changing the recorded input', () => {
-  const recorded = 'Off my ten for the grill? Let me have my ten.';
-  expect(gloss(recorded)).toBe('End my break to work at the grill? Let me finish my ten-minute break.');
-  expect(recorded).toBe('Off my ten for the grill? Let me have my ten.');
-  expect(gloss('Twenty years on Nevin’s grill. I don’t wash plates in the rush.')).toContain(
-    'I have worked on Nevin’s grill for twenty years.',
-  );
-  expect(
-    gloss(
-      'The Yıldız wedding: twenty trays for the hall across the road, by eight. Then the usual Saturday.',
-    ),
-  ).toContain('The Yıldız wedding needs twenty trays');
-});
-
-it('explains the meal break in recorded board answers without altering replay text', () => {
-  const recorded =
-    'Yes. The grill until 18:10. Then twenty minutes for a plate; back on the grill until close.';
-  expect(gloss(recorded)).toBe(
-    'Yes. I will work on the grill until 18:10. Then I take a 20-minute meal break. After that, I return to the grill until closing.',
-  );
-  expect(recorded).toContain('twenty minutes for a plate');
-});
-
-it('describes covering a station literally without changing the recorded reply', () => {
-  expect(gloss('I’m holding the grill until 18:10.')).toBe('I’m working at the grill until 18:10.');
+it('renders the recorded HF prayer label in plain English without changing person state', () => {
+  expect(gloss('I would rather pray maghrib first.')).toBe('I would rather say the sunset prayer first.');
+  expect(gloss('Time for the maghrib.')).toBe('Time for the sunset prayer.');
 });

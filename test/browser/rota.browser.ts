@@ -49,7 +49,7 @@ test('board chips use 24-hour slots and answers precede the actions', async ({ p
   await expect(page.locator('#open-service')).toHaveText('Open the doors');
   await expect(page.locator('#ask-board')).toHaveCount(0);
   await expect(page.locator('[data-board-cook="selim"] .board-gap')).toHaveText(
-    'No cover chosen; the grill waits while Selim eats. Dilek could cover; the cold side would wait.',
+    'You have not chosen anyone to take over. Nobody will work at the grill while Selim eats. Dilek could take over, but then nobody would work at the cold side.',
   );
   const dilek = page.locator('[data-board-cook="dilek"]');
   await dilek.getByRole('button', { name: 'Change', exact: true }).click();
@@ -177,10 +177,10 @@ for (const width of [360, 1280]) {
     if (width === 360) await selim.getByRole('button', { name: 'Change', exact: true }).click();
     await expect(selim.getByRole('button', { name: /Rafi/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(selim.locator('.board-answer')).toContainText('Rafi:');
-    await expect(selim.locator('.board-gap')).toContainText('Rafi has not agreed to cover');
+    await expect(selim.locator('.board-gap')).toContainText('Rafi has not agreed to take over');
     await page.screenshot({ path: `${shots}/final-tuesday-board-${width}-c.png`, fullPage: true });
-    await selim.getByRole('button', { name: 'Leave it', exact: true }).click();
-    await expect(selim.getByRole('button', { name: 'Leave it', exact: true })).toHaveAttribute(
+    await selim.getByRole('button', { name: 'Nobody', exact: true }).click();
+    await expect(selim.getByRole('button', { name: 'Nobody', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -219,9 +219,11 @@ test('a staffing break is one card with cover and leave choices and a slow clock
     ui._debug.refresh();
   });
   await expect(page.locator('.staffing-card')).toContainText('Dilek');
-  await expect(page.locator('.staffing-card')).toContainText('Cold side uncovered for about 19 min');
-  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 min/s');
-  await expect(page.getByRole('button', { name: 'Leave it uncovered', exact: true })).toBeVisible();
+  await expect(page.locator('.staffing-card')).toContainText(
+    'Nobody will work at the cold side for about 19 minutes',
+  );
+  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 minutes per second');
+  await expect(page.getByRole('button', { name: 'Leave the station empty', exact: true })).toBeVisible();
   await expect(page.locator('.verbs')).toHaveCount(0);
   for (const control of await page.locator('.staffing-card, [data-cover]').all()) {
     const box = await control.boundingBox();
@@ -232,17 +234,17 @@ test('a staffing break is one card with cover and leave choices and a slow clock
   await leave.focus();
   await page.clock.runFor(10000);
   await expect(leave).toBeFocused();
-  await expect(leave).toHaveText('Leave it uncovered');
+  await expect(leave).toHaveText('Leave the station empty');
   await page.addStyleTag({ content: ':root { --safe-t:20px; --safe-b:20px; }' });
   for (const control of await page.locator('.staffing-card, [data-cover]').all()) {
     const box = await control.boundingBox();
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(670);
   }
-  await page.getByRole('button', { name: 'Leave it uncovered', exact: true }).click();
-  await expect(page.locator('#status')).toContainText('Waiting for the cover answer');
+  await page.getByRole('button', { name: 'Leave the station empty', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Waiting for your choice of who takes over');
   await page.clock.runFor(12000);
   await expect(page.locator('.staffing-card')).toHaveCount(0);
-  await expect(page.locator('#clock-rate')).not.toContainText('needs a cover decision');
+  await expect(page.locator('#clock-rate')).not.toContainText('needs someone to take over');
 });
 
 test('current service journal excludes a previous night departure', async ({ page }) => {

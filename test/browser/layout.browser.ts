@@ -5,7 +5,7 @@ test('people-run board editor holds its draft and keeps the board action in reac
   await page.goto('/');
   await page.locator('#new').click();
   await page.locator('.board-change').first().click();
-  await page.getByRole('button', { name: 'Leave it', exact: true }).click();
+  await page.getByRole('button', { name: 'Nobody', exact: true }).click();
   await expect(page.locator('.board-editor')).toBeVisible();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.locator('.board-editor')).toHaveCount(0);

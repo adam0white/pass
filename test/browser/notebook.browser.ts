@@ -20,7 +20,7 @@ test('opening voices preserve the default and the tally has no pregame preferenc
   await help.focus();
   await page.keyboard.press('Space');
   await expect(page.locator('#phase-help')).toBeVisible();
-  await expect(page.locator('#phase-help')).toContainText('Hold the job to insist');
+  await expect(page.locator('#phase-help')).toContainText('Hold the job button to insist');
   await page.keyboard.press('Escape');
   await expect(page.locator('#phase-help')).not.toBeVisible();
   await page.locator('#new').click();

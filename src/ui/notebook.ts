@@ -2,9 +2,9 @@
 import type { GameState } from '../sim/kitchen.ts';
 
 export const START_APPROACHES = {
-  pace: 'Selim: “As patient as they were that first week, all month. I want time to get the lamb right.” Choose this for Nevin’s pace.',
+  pace: 'Selim: “Keep the customers as patient as they were in the first week, all month long. I want time to get the lamb right.” Choose this to keep Nevin’s pace.',
   normal:
-    'Dilek: “Leave it as it is. I want to learn the rush with the regulars watching.” Leave this unchosen for the usual wait.',
+    'Dilek: “Leave it as it is. I want to learn the busy hours while the regular customers watch.” Leave this unchosen to keep the usual waiting times.',
 };
 
 /** The weights belong to this game, not HF or the people in the kitchen. Never changes state. */
@@ -14,5 +14,5 @@ export function endingTally(s: GameState, enabled: boolean): string {
   const walked = s.reports.reduce((n, r) => n + r.walked, 0);
   const paid = s.reports.filter((r) => r.bill?.paid).length;
   const total = served - walked + 10 * paid;
-  return `<p><b>The kitchen’s tally: ${total}.</b> Tables served (${served}) − tables walked (${walked}) + 10 × weekly bills paid (${paid}). This is the game’s own reckoning, not a measure of people.</p>`;
+  return `<p><b>The kitchen’s tally: ${total}.</b> Tables served (${served}) − tables that left without eating (${walked}) + 10 × weekly bills paid (${paid}). This is the game’s own score. It does not measure the people.</p>`;
 }

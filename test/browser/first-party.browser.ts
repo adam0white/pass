@@ -28,9 +28,9 @@ test('first party start shows both Sunday choices and hands over the service bef
   await expect(page.locator('#board-form')).toBeVisible();
   await page.locator('#open-service').click();
   await expect(page.locator('#caption')).toContainText('You promised');
-  await expect(page.locator('#caption')).toContainText('The steady hand ran the service until now.');
-  await expect(page.locator('#caption')).toContainText('The crew cooks and sends plates');
-  await expect(page.locator('#caption')).toContainText('You have the pass.');
+  await expect(page.locator('#caption')).toContainText('An experienced helper ran the service until now.');
+  await expect(page.locator('#caption')).toContainText('The cooks are cooking and sending out food.');
+  await expect(page.locator('#caption')).toContainText('Now you run the pass.');
   const handover = await page.locator('#caption .hand').first().textContent();
   await page.reload();
   await page.locator('#cont').click();

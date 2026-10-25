@@ -1,6 +1,6 @@
 {
   "source": "test/fixtures/clarity-counter-save.json",
   "game": "pass@3",
-  "at": "1c1c0a9f73617aa1cf4ce91544aa9afb5b3dc8f847a02eaa24ce79962c55ea23",
-  "after60": "26d72199d34456d2c5c6416c72e10156cc88d54df224d7d0d13d6bb12b541c90"
+  "at": "832e9c16e81e97375a7cf76d9f398ad64f19200553e30369f64e6930919e58a4",
+  "after60": "f7611892dbc5518b22a3dada84c6ffc27818218b468d5cc39a6491ced17e1ae1"
 }

@@ -56,13 +56,13 @@ for (const [width, height] of [
     await load(page, 3, true);
     await page.getByRole('button', { name: 'Sit with Rafi on the back step' }).click();
     const response = page.getByRole('status').filter({ hasText: 'I sat with Rafi on the back step.' });
-    await expect(response).toContainText('When I look at the jar, I go scrub the trays. Okay, Chef.');
+    await expect(response).toContainText('When the jar tempts me, I’ll go and scrub the trays. Okay, Chef.');
     await expect(response).toBeInViewport({ ratio: 1 });
     await expect(page.locator('#open')).toBeEnabled();
     await page.screenshot({ path: test.info().outputPath(`rafi-${width}.png`) });
     await page.reload();
     await page.locator('#cont').click();
-    await expect(response).toContainText('When I look at the jar, I go scrub the trays. Okay, Chef.');
+    await expect(response).toContainText('When the jar tempts me, I’ll go and scrub the trays. Okay, Chef.');
     await expect(page.locator('#open')).toBeEnabled();
   });
 }

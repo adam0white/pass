@@ -71,7 +71,9 @@ test('Begin at the second week opens two party choices and saves its Sunday', as
   await page.locator('#other-ways').click();
   await expect(page.getByRole('button', { name: 'Turn back to Sunday, week 1', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Turn back to Sunday, week 1', exact: true }).click();
-  await expect(page.locator('#title-confirm')).toContainText('Everything after that page is torn out.');
+  await expect(page.locator('#title-confirm')).toContainText(
+    'Everything you played after that Sunday will be lost.',
+  );
   await page.locator('#title-confirm-yes').click();
   await expect(page.locator(`button[data-key="${key}"][data-val="promise"]`)).toBeEnabled();
 });
@@ -125,10 +127,10 @@ test('a promised ticket names its host, chef signature and served-by time', asyn
   const { booking } = await savedParty(page, 'service');
   const party = partyOf(booking.party);
   if (!party) throw new Error('Expected party words');
-  const ticket = page.getByRole('button', { name: new RegExp(`^Work ${party.host}, table \\d+$`) });
+  const ticket = page.getByRole('button', { name: new RegExp(`^Cook for ${party.host}, table \\d+$`) });
   await expect(ticket).toContainText('promised:');
   await expect(ticket.locator('.t')).toContainText(/· table \d+$/);
-  await expect(ticket.locator('.chef-signature')).toContainText(`${party.signature.words} (Chef’s)`);
+  await expect(ticket.locator('.chef-signature')).toContainText(`${party.signature.words} (the Chef’s dish)`);
   await expect(ticket).toContainText('serve by');
   await expect(ticket).toHaveAccessibleDescription(/promised:.*Chef’s.*serve by/);
   await expect(page.locator('.service')).toHaveClass(/hands-on/);
@@ -139,7 +141,7 @@ test('an unpromised ticket says no promise', async ({ page }) => {
   const { partyOf } = await import('../../src/sim/campaign.ts');
   const { booking } = await savedParty(page, 'service', false);
   const ticket = page.getByRole('button', {
-    name: new RegExp(`^Work ${partyOf(booking.party)?.host}, table \\d+$`),
+    name: new RegExp(`^Cook for ${partyOf(booking.party)?.host}, table \\d+$`),
   });
   await expect(ticket).toContainText('no promise');
   await expect(ticket).not.toContainText('promised:');
@@ -208,7 +210,9 @@ for (const width of [360, 1280]) {
         fullPage: true,
       });
       if (phase === 'board') {
-        await expect(page.locator('.board-parties')).toContainText(/No breaks overlap|break .* overlaps/);
+        await expect(page.locator('.board-parties')).toContainText(
+          /No breaks fall during the party|Breaks during the party: /,
+        );
         if (width === 360) await targets(page, '#open-service');
       }
       if (phase === 'evening') {
@@ -251,20 +255,24 @@ test('evening and loss pages name a broken promise without claiming a short bill
     app.refresh();
   });
   await expect(page.locator('.party-outcome')).toContainText(/Table 7 waited longest while I /);
-  await expect(page.locator('.page')).toContainText('A promise broken this week: one strike.');
+  await expect(page.locator('.page')).toContainText(
+    'A promise was broken this week. That is one strike against the restaurant.',
+  );
   await page.evaluate(() => {
     const app = Reflect.get(window, '__pass');
     app.state.lost = true;
     app.state.phase = 'end';
     app.refresh();
   });
-  await expect(page.locator('.page')).toContainText('A promise broken this week: one strike.');
+  await expect(page.locator('.page')).toContainText(
+    'A promise was broken this week. That is one strike against the restaurant.',
+  );
   await expect(page.locator('.page')).not.toContainText('₺0 short');
 });
 
 test('party overlap lines follow proposed and agreed meal breaks by cook name', async ({ page }) => {
   await savedParty(page, 'board');
-  await expect(page.locator('.board-parties')).toContainText('No breaks overlap.');
+  await expect(page.locator('.board-parties')).toContainText('No breaks fall during the party.');
   const selim = page.locator('[data-board-cook="selim"]');
   await selim.getByRole('button', { name: 'Change', exact: true }).tap();
   await page
@@ -273,11 +281,13 @@ test('party overlap lines follow proposed and agreed meal breaks by cook name', 
     .tap();
   await page.locator('#board-done').tap();
   await expect(page.locator('.board-parties')).toContainText(
-    'Proposed breaks: Selim’s break 19:45–20:05 overlaps.',
+    'Proposed breaks during the party: Selim’s break, 19:45–20:05.',
   );
   await page.locator('#ask-board').tap();
   await expect(selim.locator('.board-answer')).toContainText('Agreed.');
-  await expect(page.locator('.board-parties')).toContainText('Selim’s break 19:45–20:05 overlaps.');
+  await expect(page.locator('.board-parties')).toContainText(
+    'Breaks during the party: Selim’s break, 19:45–20:05.',
+  );
   await expect(page.locator('.board-parties')).not.toContainText('Proposed');
 });
 
@@ -348,8 +358,8 @@ test('the second-week board says nobody is on the oven and goes when someone tak
   for (const button of await page.locator('.party-card [data-val="plain"]').all()) await button.tap();
   await page.getByRole('button', { name: 'Open on Wednesday', exact: true }).tap();
   const note = page.locator('.board-uncovered');
-  await expect(note).toContainText('Nobody is on the oven tonight.');
-  await expect(note).toContainText('only a cook standing at it keeps it hot');
+  await expect(note).toContainText('Nobody is working at the oven tonight.');
+  await expect(note).toContainText('The oven stays hot only while a cook stands at it.');
   await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-more/ui-shots/board-oven-phone.png' });
   const rafi = page.locator('[data-board-cook="rafi"]');
   await rafi.getByRole('button', { name: 'Change', exact: true }).tap();

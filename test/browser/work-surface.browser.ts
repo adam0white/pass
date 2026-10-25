@@ -23,7 +23,7 @@ async function start(page: Page) {
     Object.assign(app.state, { passDecision: null, request: null, staffing: [] });
     app.draw();
   });
-  await page.getByRole('button', { name: 'Work grill', exact: true }).tap();
+  await page.getByRole('button', { name: 'Work at the grill', exact: true }).tap();
 }
 
 test('a large food surface carries the act and updates immediately after a touch', async ({ page }) => {
@@ -80,7 +80,7 @@ async function readyChoice(page: Page) {
 test('food choice shows both time costs and remains usable while inspecting a cook', async ({ page }) => {
   await start(page);
   await readyChoice(page);
-  await expect(page.locator('[data-cook-choice="now"]')).toContainText('Pull it now');
+  await expect(page.locator('[data-cook-choice="now"]')).toContainText('Take it off now');
   await expect(page.locator('[data-cook-choice="careful"]')).toContainText('3 more kitchen minutes');
   await page.locator('[data-pick="selim"]').tap();
   for (const target of await page.locator('[data-cook-choice], [data-finish-portion]').all()) {
@@ -92,19 +92,19 @@ test('food choice shows both time costs and remains usable while inspecting a co
   await page.locator('[data-cook-choice="careful"]').tap();
   await expect(page.locator('[data-cook-choice]')).toHaveCount(0);
   await expect(page.locator('[data-cook-step]')).toContainText('plate');
-  await expect(page.locator('#caption')).toContainText('Three more kitchen minutes');
+  await expect(page.locator('#caption')).toContainText('The food gets three more minutes');
 });
 
 test('a busy chef can reserve next and delegate the current portion without changing room speed', async ({
   page,
 }) => {
   await start(page);
-  await page.getByRole('button', { name: 'Work cold side', exact: true }).tap();
+  await page.getByRole('button', { name: 'Work at the cold side', exact: true }).tap();
   await expect(page.locator('.chef-next')).toContainText('Chef’s next');
   await page.locator('[data-pick="selim"]').tap();
   await page.locator('[data-finish-portion]').tap();
   await expect(page.locator('[data-cook-step], [data-cook-choice]')).toHaveCount(0);
-  await expect(page.locator('#clock-rate')).toContainText('Steady · 1.5 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('Steady · 1.5 minutes per second');
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3') ?? '{}'));
   expect(save.inputs.at(-1).kind).toBe('finish-portion');
 });

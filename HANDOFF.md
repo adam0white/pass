@@ -59,3 +59,7 @@ Final follow-up makes ordinary failed-start and failed-load instructions literal
 ## 2026-10-24 compact shared footer adoption
 
 Kit0.5.7 replaces0.5.6; client0.4.6 and HF/engine pins remain unchanged. Pass mounts the same asynchronously suppressed shared notice node in its stable footer. Obsolete local12px font, wrapper padding and button-removal overrides are removed. The17px game root is normalized only for the notice font and horizontal inset; enlarged root text still grows and wraps. Normal360px disclosure must fit one full line at>=14px with node and wrapper<=40px; enlarged text wraps without clipping. Existing reviewed game copy/rules/controls and cultural terms remain unchanged. Evidence and delivery receipts remain in workers/pass.md. No extra review or playtest round.
+
+## 2026-10-25 plain English at source
+
+All player-visible English in `src/sim` and `src/ui` was rewritten in place into complete plain sentences (pilot for other games). Replay pins now hash state with prose blanked (`test/hash.ts`); the fixtures' hashes were regenerated from the pre-rewrite code, so the legacy tests still prove the rules are unchanged. HF `label:` values stay as recorded. Saves replay from seed and inputs, so existing saves continue; no edition bump. Old exported files fail the lab-only import check (its fingerprint includes report and quit wording) and are refused with a start-fresh message. The display lookup table shrank to money and the HF prayer label. Report: `/Users/abdul/code/.lab-scratch/plain2/pass-report.md`.

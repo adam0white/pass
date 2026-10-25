@@ -180,7 +180,7 @@ describe('The Pass', () => {
         queueInput(t, { kind: 'ask', cook: id, verb: no.verb });
         step(t);
         expect(t.lastAnswer?.verdict).toBe('deferred');
-        expect(t.lastAnswer?.text).toMatch(/I’d do\./);
+        expect(t.lastAnswer?.text).toMatch(/I would work at .+, though\./);
         expect(t.lastAnswer?.counter).toBe(yes.verb);
         queueInput(t, { kind: 'ask', cook: id, verb: yes.verb });
         step(t);
@@ -192,7 +192,7 @@ describe('The Pass', () => {
         step(t);
         const third = t.lastAnswer;
         if (third?.verdict === 'assented') expect(third.text).toMatch(/up now anyway/);
-        else expect(third?.text).toMatch(/^I came off my .*not yet\.$/);
+        else expect(third?.text).toMatch(/^I stopped my .*\. I won’t work at .* yet\.$/);
         thirds.push(third?.verdict ?? '');
       }
     }

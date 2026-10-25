@@ -29,11 +29,14 @@ describe('pass@9 cooking playback', () => {
     while (!s.chefGrace?.some((claim) => claim.until > s.minute)) step(s);
     quiet(s);
     const before = JSON.stringify(s);
-    expect(clockPlayback(s, 2)).toMatchObject({ rate: 3.5, reason: expect.stringContaining('Yours, Chef?') });
+    expect(clockPlayback(s, 2)).toMatchObject({
+      rate: 3.5,
+      reason: expect.stringContaining('saving a portion for you'),
+    });
     expect(JSON.stringify(s)).toBe(before);
     for (const claim of s.chefGrace ?? []) claim.until = s.minute;
     expect(clockPlayback(s, 2).rate).toBe(3.5);
-    expect(clockPlayback(s, 2).reason).not.toContain('Yours, Chef?');
+    expect(clockPlayback(s, 2).reason).not.toContain('saving a portion for you');
   });
 
   it('slows ready acts at Steady and keeps the care decision readable even at Fast', () => {

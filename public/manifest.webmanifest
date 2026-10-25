@@ -1,7 +1,7 @@
 {
   "name": "The Pass",
   "short_name": "The Pass",
-  "description": "Six dinner services in your late aunt's lokanta. Every cook can say no.",
+  "description": "You run six dinner services in your late aunt's restaurant. Every cook can say no.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

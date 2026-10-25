@@ -133,7 +133,7 @@ describe('pass@8 portions', () => {
       queueInput(s, { kind: 'call-plate', ticket: t.id });
       expect(
         s.said.some((line) =>
-          line.text.includes(choice === 'careful' ? 'I can taste it' : 'Plain and filling'),
+          line.text.includes(choice === 'careful' ? 'I can taste it' : 'It was plain and filling'),
         ),
       ).toBe(true);
     }
@@ -185,6 +185,6 @@ describe('pass@8 portions', () => {
     expect(s.chefGrace?.some((g) => g.ticket === t.id && g.station === a.station)).toBe(true);
     expect(done()).toBeLessThan(t[a.station]);
     expect(done()).toBeGreaterThanOrEqual(before);
-    expect(s.said.some((x) => x.text.includes('Yours, Chef?'))).toBe(true);
+    expect(s.said.some((x) => x.text.includes('Do you want this one, Chef?'))).toBe(true);
   });
 });

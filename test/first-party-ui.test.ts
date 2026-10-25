@@ -31,14 +31,14 @@ it('hands over people-run service without a portion or table call', () => {
   expect(s.help).toBeNull();
   expect(cookingStep(s)).toBeNull();
   expect(handoverContext(s)).toBe(
-    'The steady hand ran the service until now. The crew cooks and sends plates; you run the pass.',
+    'An experienced helper ran the service until now. The cooks make the food and send out the plates. You run the pass.',
   );
   expect(JSON.stringify(s)).toBe(before);
 });
 
 it('a save without the hand-over record does not describe the current kitchen as inherited', () => {
-  expect(handoverHands(undefined)).toBe('The steady hand ran the service until the hand-over.');
-  expect(handoverHands('The steady hand ran the service until now. Your hands are empty.')).toBe(
-    'The steady hand ran the service until now. Your hands are empty.',
-  );
+  expect(handoverHands(undefined)).toBe('An experienced helper ran the service until you took over.');
+  expect(
+    handoverHands('An experienced helper ran the service until now. You are not cooking anything.'),
+  ).toBe('An experienced helper ran the service until now. You are not cooking anything.');
 });

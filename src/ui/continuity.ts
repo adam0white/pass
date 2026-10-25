@@ -314,7 +314,7 @@ export function continuity(
         } catch {
           pending = envelope;
           report(
-            `${cast.name}: the browser head changed. Export or explicitly start a new branch; no retry against a newer head.`,
+            `${cast.name}: this browser already has a newer saved copy of ${cast.name}. Download this copy, or start a separate story from it. The game will not replace the newer copy.`,
           );
           continue;
         }
@@ -325,16 +325,18 @@ export function continuity(
         save();
         await gate();
         track();
-        report(`${cast.name}: eligible kitchen checkpoint saved. Family duties remain.`);
+        report(`${cast.name}: progress from this kitchen is saved. Their family duties still apply.`);
       } catch (error) {
-        report(`${cast.name}: ${error instanceof Error ? error.message : 'unsupported departure'}`);
+        report(
+          `${cast.name}: ${error instanceof Error ? error.message : 'this progress could not be saved'}`,
+        );
       }
     }
   }
   const checkpoint = () => {
     chain = chain
       .then(checkpointNow)
-      .catch(() => report('Keep a local notebook. This checkpoint was not saved.'));
+      .catch(() => report('This progress was not saved. Keep your notebook on this device.'));
     return chain;
   };
   const download = (value: unknown, name: string) => {
@@ -370,18 +372,18 @@ export function continuity(
       const p = getState()?.people.find((p) => p.id === keyOf(cast.castId));
       if (!p) continue;
       const b = document.createElement('button');
-      b.textContent = `Download ${cast.name}’s accepted person`;
+      b.textContent = `Download ${cast.name}’s saved record`;
       b.disabled = !heads[cast.castId];
       b.onclick = () => download(heads[cast.castId], `pass-${p.id}-person.json`);
       section.append(b);
     }
     if (pending) {
       const b = document.createElement('button');
-      b.textContent = 'Download refused checkpoint';
+      b.textContent = 'Download the unsaved progress';
       b.onclick = () => download(pending, 'pass-refused-person.json');
       section.append(b);
       const fork = document.createElement('button');
-      fork.textContent = 'Explicitly start a different branch from this played checkpoint';
+      fork.textContent = 'Start a separate story from this point';
       fork.onclick = () => {
         chain = chain
           .then(async () => {
@@ -402,9 +404,9 @@ export function continuity(
             pending = null;
             await gate();
             save();
-            report('A separate played branch is active; earlier history remains retained.');
+            report('A separate story is now active. The earlier story is still kept.');
           })
-          .catch(() => report('The alternative could not be saved. Keep its file.'));
+          .catch(() => report('The separate story could not be saved. Keep its file.'));
       };
       section.append(fork);
     }

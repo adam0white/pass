@@ -29,10 +29,10 @@ describe('clock playback', () => {
     const offer = s.chefGrace.find((claim) => claim.until > s.minute);
     if (!offer) throw new Error('Expected a chef offer');
     const before = JSON.stringify(s);
-    const reason = 'A cook is holding a portion for you: Yours, Chef?';
-    expect(clockPlayback(s, 0)).toMatchObject({ rate: 0.1, label: 'Slow · 0.1 min/s', reason });
-    expect(clockPlayback(s, 1)).toMatchObject({ rate: 0.1, label: 'Slow · 0.1 min/s', reason });
-    expect(clockPlayback(s, 2)).toMatchObject({ rate: 3.5, label: 'Fast · 3.5 min/s', reason });
+    const reason = 'A cook is saving a portion for you to cook. Time is slowed so you can answer.';
+    expect(clockPlayback(s, 0)).toMatchObject({ rate: 0.1, label: 'Slow · 0.1 minutes per second', reason });
+    expect(clockPlayback(s, 1)).toMatchObject({ rate: 0.1, label: 'Slow · 0.1 minutes per second', reason });
+    expect(clockPlayback(s, 2)).toMatchObject({ rate: 3.5, label: 'Fast · 3.5 minutes per second', reason });
     expect(JSON.stringify(s)).toBe(before);
     expect(helpOptions(s)).toContainEqual(
       expect.objectContaining({ ticket: offer.ticket, station: offer.station }),
@@ -45,7 +45,11 @@ describe('clock playback', () => {
     const s = newGame(42, 'pass@4');
     for (const t of s.tickets) t.at += 30;
     const before = JSON.stringify(s);
-    expect(clockPlayback(s, 1)).toMatchObject({ rate: 6, label: 'Steady · 6 min/s', reason: 'Rail clear.' });
+    expect(clockPlayback(s, 1)).toMatchObject({
+      rate: 6,
+      label: 'Steady · 6 minutes per second',
+      reason: 'No orders are waiting.',
+    });
     expect(JSON.stringify(s)).toBe(before);
     const first = s.tickets[0];
     if (!first) throw new Error('Expected a seeded ticket');
@@ -54,7 +58,7 @@ describe('clock playback', () => {
     first.cold = 0;
     expect(clockPlayback(s, 2)).toMatchObject({
       rate: 3.5,
-      label: 'Fast · 3.5 min/s',
+      label: 'Fast · 3.5 minutes per second',
       reason: 'Your chosen speed.',
     });
     // Policy calls are reads, including a first-service unanswered request.
@@ -103,7 +107,7 @@ describe('clock playback', () => {
         state: 'asking',
       },
     ];
-    expect(clockPlayback(s, 2)).toMatchObject({ rate: 0.1, reason: 'Selim needs a cover decision.' });
+    expect(clockPlayback(s, 2)).toMatchObject({ rate: 0.1, reason: 'Selim needs someone to take over.' });
     const staffing = s.staffing[0];
     if (!staffing) throw new Error('Expected staffing decision');
     staffing.state = 'left';

@@ -22,14 +22,14 @@ export interface ServiceStatus {
 export function serviceStatus(s: GameState): ServiceStatus {
   const status = (text: string, needsResponse = false): ServiceStatus => ({ text, needsResponse });
   if (s.passDecision?.state === 'asking' && !s.help)
-    return status('The rush is backing up; choose which table the cooks put first.', true);
+    return status('Orders are piling up. Choose which table the cooks serve first.', true);
   const queued = s.inputs.slice(s.applied).filter((input) => input.at <= s.minute);
   const staffing = s.staffing?.find((decision) => decision.state === 'asking');
   if (staffing) {
     if (queued.some((input) => input.kind === 'staff' && input.id === staffing.id))
-      return status('Waiting for the cover answer.');
+      return status('Waiting for your choice of who takes over.');
     return status(
-      `${nameOf(s, staffing.who)} is leaving ${staffing.station}; choose cover or leave it uncovered.`,
+      `${nameOf(s, staffing.who)} is leaving ${VERB_WORD[staffing.station]}. Choose someone to take over, or leave it empty.`,
       true,
     );
   }
@@ -52,8 +52,8 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (!open.length)
     return status(
       s.tickets.some((t) => t.status === 'waiting')
-        ? 'Waiting for the next ticket.'
-        : 'The rail is clear; waiting for closing.',
+        ? 'Waiting for the next order.'
+        : 'No orders are waiting. Waiting for closing time.',
     );
 
   const staffed = new Set<Station | null>(onShift(s).map((id) => stationOf(s, id)));
@@ -65,8 +65,8 @@ export function serviceStatus(s: GameState): ServiceStatus {
       return status('Food is waiting for clean plates.');
     return status(
       ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
-        ? 'Food needs clean plates; dish is uncovered.'
-        : 'Food needs clean plates; select a cook for dish.',
+        ? 'Nobody is washing dishes, so food is waiting for clean plates.'
+        : 'Food is waiting for clean plates. Choose a cook to wash the dishes.',
       !['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version),
     );
   }
@@ -75,22 +75,27 @@ export function serviceStatus(s: GameState): ServiceStatus {
   const dark = gasOut(s);
   const missing = needed.filter((st) => !staffed.has(st) && (!dark || st === 'cold'));
   if (missing.length) {
-    const names = missing.length === 3 ? 'grill, cold and oven' : missing.join(' and ');
+    const names =
+      missing.length === 3
+        ? 'the grill, the cold side and the oven'
+        : missing.map((st) => VERB_WORD[st]).join(' and ');
     return status(
       ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
-        ? `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'is' : 'are'} uncovered under tonight’s board.`
-        : `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'needs' : 'need'} a cook; select a cook.`,
+        ? `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'has' : 'have'} nobody in tonight’s plan.`
+        : `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'needs' : 'need'} a cook.`,
       !['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version),
     );
   }
 
   if (dark && (remaining.grill > 0 || remaining.oven > 0))
-    return status('Waiting for gas; the grill and oven are dark.');
+    return status('Waiting for gas. The grill and the oven are off.');
   if (remaining.oven > 0 && s.oven.heat < OVEN_HOT)
     return status(
-      s.oven.heat <= 0.15 ? 'Waiting for the cold oven to warm.' : 'Waiting for the oven to warm.',
+      s.oven.heat <= 0.15
+        ? 'The oven is cold. Waiting for it to heat up.'
+        : 'Waiting for the oven to heat up.',
     );
-  if (needed.length) return status('Waiting for cooking.');
+  if (needed.length) return status('Waiting for the cooks to finish the food.');
 
   return status('Food is ready for the pass.');
 }
@@ -120,7 +125,7 @@ export function journalWords(s: GameState, line: Said): string {
       line.text.startsWith(`${prefix}${VERB_WORD[place]} for ${station}`),
     );
     if (!from || !new RegExp(` for ${station}(?:[;,.])`, 'u').test(line.text)) continue;
-    return `${name}: “I said no to ${station} for the whole night. I can take a short stretch now. I left ${line.text.slice(prefix.length)}”`;
+    return `${name}: “I said no to ${station} for the whole night. But I can work there for a short time now. I left ${line.text.slice(prefix.length)}”`;
   }
   return line.text;
 }

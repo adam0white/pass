@@ -54,8 +54,8 @@ it('Selim refuses plates in the rush even when insisted, with his own line and a
     queueInput(s, { kind: 'ask', cook: 'selim', verb: 'dish', insist });
     step(s);
     expect(s.lastAnswer?.verdict).toBe('refused');
-    expect(s.lastAnswer?.text).toContain('Twenty years on Nevin’s grill');
-    expect(s.lastAnswer?.text).toContain('I don’t wash plates in the rush.');
+    expect(s.lastAnswer?.text).toContain('I have worked on Nevin’s grill for twenty years.');
+    expect(s.lastAnswer?.text).toContain('I don’t wash the dishes in the rush.');
     expect(cookOf(s, 'selim').cover?.station).not.toBe('dish');
   }
 });
@@ -116,8 +116,8 @@ it('an inertia deferral says the current break and retains that reason until its
   queueInput(s, { kind: 'ask', cook: 'dilek', verb: 'cold' });
   step(s);
   const first = s.lastAnswer?.text;
-  expect(first).toContain('Off my cigarette for the cold side? Let me finish it.');
-  expect(first).not.toContain('I’d do.');
+  expect(first).toContain('Put out my cigarette for the cold side? Let me finish it first.');
+  expect(first).not.toContain('I would work at');
   expect(hints(s, 'dilek').find((h) => h.verb === 'cold')?.short).toBe('let me finish my cigarette');
   // A later HF explanation changes; the original no remains until this break ends.
   const restored = restoreState(cloneState(s));
@@ -154,14 +154,14 @@ it('a body forecast on a break says the body reason, even when legacy reason say
     decidedBy: { kind: 'term', source: 'forecast:body' },
   });
   const words = suggestionWords(p, r, 'grill');
-  expect(words?.text).toBe('That job would leave me spent for the rest of the service, Chef.');
-  expect(words?.short).toBe('I’d be spent later');
-  expect(words?.text).not.toMatch(/cigarette|I’d do|habit|forecast|margin/);
+  expect(words?.text).toBe('That job would leave me too tired for the rest of the service, Chef.');
+  expect(words?.short).toBe('I’d be too tired later');
+  expect(words?.text).not.toMatch(/cigarette|I would work at|habit|forecast|margin/);
 });
 
 it.each([
-  ['effort', 'I’d rather take the lighter job, Chef.', 'rather the lighter job'],
-  ['material', 'I’d rather stay on paid work, Chef.', 'rather paid work'],
+  ['effort', 'I’d rather take the lighter job, Chef.', 'I prefer the lighter job'],
+  ['material', 'I’d rather keep doing paid work, Chef.', 'I prefer paid work'],
 ])('phrases the actual %s source in kitchen words', (source, text, short) => {
   expect(
     suggestionWords(

@@ -300,7 +300,7 @@ export async function kitchenTransfer(person: Person) {
     },
     limitations: [
       ...kitchenPerson.person.limitations,
-      'Unmapped trade practice, raw memories and source relationships remain in the full local kitchen notebook.',
+      'Other work skills, detailed memories and relationships from this kitchen stay in the full kitchen notebook on this device.',
     ],
   };
 }

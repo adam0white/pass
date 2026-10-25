@@ -221,19 +221,19 @@ const markLink = '<button id="game-menu" class="menu-trigger" aria-label="Game m
 const INFO: Record<string, [string, string]> = {
   title: [
     'The kitchen',
-    'Tap a cook, then a job. Hold the job to insist. They can say no. Promises put a party first. Nevin’s pace gives tables longer to wait. Money is in Turkish lira.',
+    'Tap a cook, then tap a job. Hold the job button to insist. A cook can say no. A promise means a party’s food comes first. With Nevin’s pace, tables wait longer before they leave. Money is in Turkish lira.',
   ],
   board: [
-    'The board',
-    'Each cook has a station and a 20-minute meal break. You can ask another cook to cover that break. The covering cook leaves their own station waiting. If you change the plan, the cooks can agree or refuse before opening.',
+    'Tonight’s plan',
+    'Each cook has a station and a 20-minute meal break. During a break, another cook can work at that station in their place. That cook leaves their own station empty while they do it. If you change the plan, each cook can agree or refuse before the doors open.',
   ],
   service: [
     'Running the pass',
-    'The pass is the counter where food waits to be served. Tap a cook, then a job, to ask them to do it. Hold the job to insist. Insisting can cost trust. The words under each job show your guess at their answer. A ● means the food is ready. The mark on the money bar shows tonight’s target for paying Saturday’s bill. The kitchen slows when someone speaks or needs an answer.',
+    'The pass is the counter where finished food waits to be served. To give a cook a job, tap the cook and then tap the job. To insist, hold the job button down. Insisting can cost you some of the cook’s trust. The words under each job are your guess at how the cook will answer. A ● means a dish is ready to serve. The bar at the top shows the money taken tonight. The mark on the bar shows how much you need tonight to pay Saturday’s bill. Time slows down when someone speaks to you or needs an answer.',
   ],
   evening: [
     'The night',
-    'The pace line divides the money still needed by the nights left this week. The bill is paid from the till at Saturday close.',
+    'The pace line shows the money still needed, divided by the nights left this week. The till is the money taken at the restaurant. The bill is paid from the till at closing time on Saturday.',
   ],
   sunday: [
     'Sunday',
@@ -241,7 +241,7 @@ const INFO: Record<string, [string, string]> = {
   ],
   end: [
     'The tally',
-    'The tally counts tables served minus tables walked out, plus ten per paid bill. This is the game’s own convention.',
+    'The tally is the number of tables served, minus the tables that left without eating, plus ten for each bill you paid. This is the game’s own way of scoring.',
   ],
 };
 function topBar(label: string, phase: string): string {
@@ -266,7 +266,7 @@ function tillBar(st: GameState): string {
   const per = Math.ceil(Math.max(0, target - tonight) / Math.max(1, nights) / 10) * 10;
   const tick = Math.min(100, Math.max(0, ((tonight + per) / target) * 100));
   const progress = Math.min(100, Math.max(0, (st.till / target) * 100));
-  return `<div class="till-bar"><span>${lira(st.till)}</span><span class="till-track" aria-label="Progress toward Saturday’s bill"><span style="width:${progress}%"></span><i style="left:${tick}%"></i></span><span class="till-label">${lira(target)} by Sat</span></div>`;
+  return `<div class="till-bar"><span>${lira(st.till)}</span><span class="till-track" aria-label="Progress toward Saturday’s bill"><span style="width:${progress}%"></span><i style="left:${tick}%"></i></span><span class="till-label">${lira(target)} due Saturday</span></div>`;
 }
 function openGameMenu() {
   if (menuOpen) return;
@@ -276,7 +276,7 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title.slice(0, 3))} wk ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save your game. You can keep a copy through Feedback.' : 'The game is paused while this menu is open.') : 'No game has started.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
+  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title)}, week ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save your game. You can keep a copy of it through Feedback.' : 'The game is paused while this menu is open.') : 'No game has started.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
   let replacing = false;
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -309,7 +309,7 @@ function openGameMenu() {
       console.error('New game failed', error);
       button.disabled = false;
       (dialog.querySelector('#save-result') as HTMLElement).textContent =
-        'The new game could not start. Your current game is safe. You can try New game again or send Feedback.' +
+        'The new game could not start. Your current game is safe. You can try New game again, or send Feedback.' +
         (LAB_TOOLS
           ? ` Details: ${error instanceof Error ? error.message.slice(0, 300) : 'Unknown error'}`
           : '');
@@ -360,7 +360,7 @@ function openPeople() {
   dialog.className = 'people-dialog';
   dialog.setAttribute('aria-label', 'People');
   dialog.innerHTML =
-    '<h2>People</h2><p>These conversations and work offers are optional.</p><button id="people-close">Resume</button>';
+    '<h2>People</h2><p>You do not have to have these conversations or make these work offers.</p><button id="people-close">Resume</button>';
   dialog.querySelector('#people-close')?.addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -374,7 +374,7 @@ function openPeople() {
         if (s.crew.some((m) => m.id === id) || s.inputs.some((i) => i.kind === 'cast-invite' && i.who === id))
           continue;
         const invite = document.createElement('button');
-        invite.textContent = `Offer ${s.castChapter!.actors[id]!.name} paid kitchen work, keeping their own leaving hours${s.castChapter!.facts[id]?.startsAtHome ? ' — offer a shared plate first' : ''}`;
+        invite.textContent = `Offer ${s.castChapter!.actors[id]!.name} paid work in the kitchen. They keep their own hours for leaving.${s.castChapter!.facts[id]?.startsAtHome ? ' First, offer to share a meal with them.' : ''}`;
         invite.onclick = () => {
           if (!s) return;
           queueInput(s, { kind: 'cast-invite', who: id });
@@ -398,7 +398,7 @@ function openPeople() {
         };
         actions.append(b);
         const decline = document.createElement('button');
-        decline.textContent = `Leave ${m.name}’s conversation for another time`;
+        decline.textContent = `Talk with ${m.name} another time`;
         decline.onclick = () => {
           if (!s) return;
           queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'leave' });
@@ -409,7 +409,7 @@ function openPeople() {
       }
       if (['evening', 'sunday', 'end'].includes(s.phase)) {
         const release = document.createElement('button');
-        release.textContent = `Finish ${m.name}’s kitchen stint`;
+        release.textContent = `End ${m.name}’s time working in the kitchen`;
         release.onclick = () => {
           if (!s) return;
           queueInput(s, { kind: 'cast-release', who: m.id });
@@ -465,10 +465,10 @@ function title() {
   app.innerHTML = `<div class="page title-page">
     ${topBar('The Pass', 'title')}
     <div class="page-body">
-      <h1>The Pass</h1><p class="soft title-subtitle">Run a kitchen for four weeks.</p>
-      <p>You have inherited Nevin’s small restaurant. You assign jobs to the cooks. They can refuse.</p>
-      <p>The bank wants ${lira(w1.bill)} (Turkish lira) by Saturday close.</p>
-      ${old ? '<p class="soft">The kitchen has been rebuilt since your last visit, and last week’s notebook can’t be reopened. Start a fresh one.</p>' : ''}
+      <h1>The Pass</h1><p class="soft title-subtitle">Run a restaurant kitchen for four weeks.</p>
+      <p>You have taken over Nevin’s small restaurant. You give the cooks their jobs. They can refuse.</p>
+      <p>The bank wants ${lira(w1.bill)} (Turkish lira) by closing time on Saturday.</p>
+      ${old ? '<p class="soft">The game has changed since you last played. Your old saved game cannot be opened. Start a new game instead.</p>' : ''}
       ${
         LAB_TOOLS
           ? `<fieldset class="start-approaches"><legend>How long will customers wait?</legend>
@@ -487,7 +487,7 @@ function title() {
     ${
       LAB_TOOLS
         ? `<dialog id="other-ways-sheet" class="other-ways-sheet" aria-labelledby="other-ways-heading"><h2 id="other-ways-heading">Other ways in</h2><div class="actions">
-      <button id="week-two">Begin at the second week</button><p class="soft">A steady hand runs the first week. You take over on its Sunday.</p>
+      <button id="week-two">Begin at the second week</button><p class="soft">An experienced helper runs the first week for you. You take over on the Sunday after it.</p>
       <button id="first-party">Begin at the first party</button><p class="soft">Choose the promises on Sunday and take the pass before the first party sits.</p>
       ${turnBack}<button id="load">Load a playtest run</button><button id="close-other-ways">Back</button>
     </div></dialog>
@@ -540,7 +540,7 @@ function title() {
       enterWithStatus();
     } catch {
       status(
-        'Your saved game could not be opened. It is still saved. You can try Resume again, start a New game, or send Feedback from the menu.',
+        'Your saved game could not be opened. It is still saved. You can try Resume again, start a new game, or send Feedback from the menu.',
       );
     }
   });
@@ -550,7 +550,7 @@ function title() {
       const week = Number(b.dataset.page);
       const page = save.pages.find((p) => p.week === week);
       if (!page) return;
-      ask(`Turn back to Sunday of week ${week}? Everything after that page is torn out.`, () => {
+      ask(`Go back to Sunday of week ${week}? Everything you played after that Sunday will be lost.`, () => {
         void (async () => {
           const restored = replayExport({
             ...save,
@@ -565,7 +565,7 @@ function title() {
           cast.track();
           writeSave();
           enterWithStatus();
-        })().catch(() => status('That Sunday page could not be validated.'));
+        })().catch(() => status('That Sunday could not be loaded.'));
       });
     });
   const begin = (secondWeek: boolean, firstParty = false, authored = false) => {
@@ -585,7 +585,7 @@ function title() {
       })().catch((error: unknown) => {
         console.error('New game failed', error);
         status(
-          'The game could not start. Your saved game is safe. You can try New game again or send Feedback from the menu.' +
+          'The game could not start. Your saved game is safe. You can try New game again, or send Feedback from the menu.' +
             (LAB_TOOLS
               ? ` Details: ${error instanceof Error ? error.message.slice(0, 300) : 'Unknown error'}`
               : ''),
@@ -609,7 +609,7 @@ function title() {
       const ex = JSON.parse(await f.text()) as Export & { minute?: number };
       if (!canReplay(ex.game)) {
         status(
-          `That run is from an earlier edition of The Pass (${ex.game ?? 'unknown'}). This kitchen (${GAME_VERSION}) cooks differently, so it can’t be replayed here.`,
+          `This file comes from an older version of The Pass (${ex.game ?? 'unknown'}). This version is ${GAME_VERSION}. The file cannot be loaded. Start a new game instead.`,
         );
         return;
       }
@@ -618,7 +618,9 @@ function title() {
       const load = () => {
         void (async () => {
           if (!same) {
-            status('The replay differs from the exported state. This file was not loaded.');
+            status(
+              'This file does not replay the same way in this version of The Pass. It may come from an older version. The file was not loaded. Start a new game instead.',
+            );
             return;
           }
           await cast.restore(
@@ -633,13 +635,13 @@ function title() {
           partyHandover = null;
           pages = [];
           writeSave();
-          enterWithStatus('Replayed the run: it matches the exported state.');
-        })().catch(() => status('That file could not be validated.'));
+          enterWithStatus('The game was replayed. It matches the saved game in the file.');
+        })().catch(() => status('That file could not be loaded.'));
       };
-      if (save) ask('Load this run? It replaces the saved notebook.', load);
+      if (save) ask('Load this game? It replaces your saved game.', load);
       else load();
     } catch {
-      status('That file is not a run from The Pass.');
+      status('That file is not a saved game from The Pass.');
     }
   });
 }
@@ -713,7 +715,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
   const stationName: Record<Station, string> = {
     grill: 'grill',
     cold: 'cold side',
-    dish: 'dish pit',
+    dish: 'dishes',
     oven: 'oven',
   };
   const parties = partiesTonight(st)
@@ -725,7 +727,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
       const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
         (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
       );
-      return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))} at ${clock(booking.at)} · ${changed ? 'Proposed breaks: ' : ''}${overlaps.length ? `${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')} overlaps.` : 'No breaks overlap.'}</p>`;
+      return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))}’s party arrives at ${clock(booking.at)}. ${overlaps.length ? `${changed ? 'Proposed breaks' : 'Breaks'} during the party: ${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break, ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')}.` : `${changed ? 'In your proposed plan, no' : 'No'} breaks fall during the party.`}</p>`;
     })
     .join('');
   const chips = (
@@ -740,18 +742,18 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     (place) => stationsTonight(st).includes(place) && !rows.some((row) => row.station === place),
   );
   const bareNote = bare.length
-    ? `<p class="board-uncovered">Nobody is on the ${bare.map((place) => stationName[place]).join(' or the ')} tonight.${bare.includes('oven') ? ' Pide bakes only in a hot oven, and only a cook standing at it keeps it hot; I cannot tend it and cook.' : ''} Change someone’s station, or those tables wait.</p>`
+    ? `<p class="board-uncovered">Nobody is working at the ${bare.map((place) => stationName[place]).join(' or the ')} tonight.${bare.includes('oven') ? ' Flatbread bakes only in a hot oven. The oven stays hot only while a cook stands at it. I cannot look after the oven and cook as well.' : ''} Give someone that station, or those tables will have to wait.</p>`
     : '';
   const boardScroll = app.querySelector('.board-body')?.scrollTop ?? 0;
   const editorScroll = app.querySelector('.board-editor-body')?.scrollTop ?? 0;
   let editor = '';
-  app.innerHTML = `<div class="board-page people-board">${topBar(`Board · ${planOf(st.night).title.slice(0, 3)} wk ${planOf(st.night).week} · doors ${clock(openAt(st.night))}`, 'board')}${tillBar(st)}<form id="board-form"><div class="board-body">${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<div class="board-rows">${rows
+  app.innerHTML = `<div class="board-page people-board">${topBar(`${planOf(st.night).title}, week ${planOf(st.night).week} · Doors open at ${clock(openAt(st.night))}`, 'board')}${tillBar(st)}<form id="board-form"><div class="board-body">${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<div class="board-rows">${rows
     .map((row) => {
       const answer = agreed.find((r) => r.cook === row.cook);
       const revised = changed;
       const coverRow = rows.find((r) => r.cook === row.cover);
       const station = stationName[row.station];
-      const tradeoff = coverRow ? `the ${stationName[coverRow.station]} waits` : '';
+      const tradeoff = coverRow ? `Nobody will work at the ${stationName[coverRow.station]}` : '';
       // Keep an imported choice visible even if another edit makes its interval conflict.
       const covers = rows.filter(
         (other) =>
@@ -759,23 +761,24 @@ function board(draft?: BoardRow[], editing: string | null = null) {
           (other.cook === row.cover || Math.abs(other.breakAt - row.breakAt) >= 20),
       );
       const alternatives = covers.map(
-        (other) => `${nameOf(st, other.cook)} could cover; the ${stationName[other.station]} would wait.`,
+        (other) =>
+          `${nameOf(st, other.cook)} could take over, but then nobody would work at the ${stationName[other.station]}.`,
       );
       const gap = row.cover
         ? revised
-          ? `Ask ${nameOf(st, row.cover)} to cover; ${tradeoff} for twenty minutes.`
+          ? `You will ask ${nameOf(st, row.cover)} to work at the ${station} in ${nameOf(st, row.cook)}’s place. ${tradeoff} for those twenty minutes.`
           : answer?.coverAccepted
-            ? `${nameOf(st, row.cover)} covers; ${tradeoff} for twenty minutes.`
-            : `${nameOf(st, row.cover)} has not agreed to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`
-        : `${covers.length ? 'No cover chosen' : 'No one to cover'}; the ${station} waits while ${nameOf(st, row.cook)} eats.${alternatives.length ? ` ${alternatives.join(' ')}` : ''}`;
+            ? `${nameOf(st, row.cover)} will work at the ${station} in ${nameOf(st, row.cook)}’s place. ${tradeoff} for those twenty minutes.`
+            : `${nameOf(st, row.cover)} has not agreed to take over. Nobody will work at the ${station} while ${nameOf(st, row.cook)} eats.`
+        : `${covers.length ? 'You have not chosen anyone to take over' : 'Nobody is free to take over'}. Nobody will work at the ${station} while ${nameOf(st, row.cook)} eats.${alternatives.length ? ` ${alternatives.join(' ')}` : ''}`;
       const coverSummary = row.cover
         ? revised
-          ? `ask ${nameOf(st, row.cover)} to cover`
+          ? `you will ask ${nameOf(st, row.cover)} to take over`
           : answer?.coverAccepted
-            ? `${nameOf(st, row.cover)} covers`
-            : `${nameOf(st, row.cover)} has not agreed to cover. The ${station} will wait.`
-        : `The ${station} will wait.`;
-      const summary = `${nameOf(st, row.cook)} will work at the ${station}. Meal break: ${clock(row.breakAt)}, for 20 minutes. ${capital(coverSummary)}${coverSummary.endsWith('.') ? '' : '.'}`;
+            ? `${nameOf(st, row.cover)} will take over`
+            : `${nameOf(st, row.cover)} has not agreed to take over. Nobody will work at the ${station} during the break.`
+        : `Nobody will work at the ${station} during the break.`;
+      const summary = `${nameOf(st, row.cook)} will work at the ${station}. The meal break is at ${clock(row.breakAt)}, for 20 minutes. ${capital(coverSummary)}${coverSummary.endsWith('.') ? '' : '.'}`;
       if (editing === row.cook) {
         editor = `<div class="board-editor-backdrop"><section class="board-editor" id="board-fields-${esc(row.cook)}" role="dialog" aria-modal="true" aria-labelledby="board-editor-title" data-board-cook="${esc(row.cook)}"><header><h2 id="board-editor-title">${esc(nameOf(st, row.cook))}’s plan</h2><button type="button" class="board-editor-close" aria-label="Close plan">×</button></header><div class="board-editor-body"><div class="board-fields">${chips(
           row,
@@ -792,13 +795,13 @@ function board(draft?: BoardRow[], editing: string | null = null) {
             label: slot.label,
           })),
           String(row.breakAt),
-        )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div><footer><button type="button" id="board-done" class="primary">Done</button></footer></section></div>`;
+        )}${chips(row, 'cover', 'Who takes over', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Nobody' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div><footer><button type="button" id="board-done" class="primary">Done</button></footer></section></div>`;
       }
-      return `<section class="board-row" data-board-cook="${esc(row.cook)}"><h2>${esc(nameOf(st, row.cook))}</h2><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">Change</button>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Waiting for a new answer. Previous answer' : answer.accepted ? 'Agreed' : 'Declined or changed'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</section>`;
+      return `<section class="board-row" data-board-cook="${esc(row.cook)}"><h2>${esc(nameOf(st, row.cook))}</h2><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">Change</button>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Waiting for a new answer. Previous answer' : answer.accepted ? 'Agreed' : 'Refused or asked for a change'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</section>`;
     })
     .join(
       '',
-    )}</div></div><div class="actions">${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : '<button class="primary" type="button" id="open-service">Open the doors</button>'}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form>${editor}</div>`;
+    )}</div></div><div class="actions">${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : '<button class="primary" type="button" id="open-service">Open the doors</button>'}${st.previousBoard?.length ? '<button type="button" id="same-board">Same plan as last night</button>' : ''}</div></form>${editor}</div>`;
   const boardBody = app.querySelector('.board-body');
   if (boardBody) boardBody.scrollTop = boardScroll;
   const editorBody = app.querySelector('.board-editor-body');
@@ -912,7 +915,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     const stationName: Record<Station, string> = {
       grill: 'grill',
       cold: 'cold side',
-      dish: 'dish pit',
+      dish: 'dishes',
       oven: 'oven',
     };
     const parties = partiesTonight(st)
@@ -924,7 +927,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
         const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
           (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
         );
-        return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))} at ${clock(booking.at)} · ${changed ? 'Proposed breaks: ' : ''}${overlaps.length ? `${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')} overlaps.` : 'No breaks overlap.'}</p>`;
+        return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))}’s party arrives at ${clock(booking.at)}. ${overlaps.length ? `${changed ? 'Proposed breaks' : 'Breaks'} during the party: ${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break, ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')}.` : `${changed ? 'In your proposed plan, no' : 'No'} breaks fall during the party.`}</p>`;
       })
       .join('');
     const chips = (
@@ -939,15 +942,15 @@ function board(draft?: BoardRow[], editing: string | null = null) {
       (place) => stationsTonight(st).includes(place) && !rows.some((row) => row.station === place),
     );
     const bareNote = bare.length
-      ? `<p class="board-uncovered">Nobody is on the ${bare.map((place) => stationName[place]).join(' or the ')} tonight.${bare.includes('oven') ? ' Pide bakes only in a hot oven, and only a cook standing at it keeps it hot; I cannot tend it and cook.' : ''} Change someone’s station, or those tables wait.</p>`
+      ? `<p class="board-uncovered">Nobody is working at the ${bare.map((place) => stationName[place]).join(' or the ')} tonight.${bare.includes('oven') ? ' Flatbread bakes only in a hot oven. The oven stays hot only while a cook stands at it. I cannot look after the oven and cook as well.' : ''} Give someone that station, or those tables will have to wait.</p>`
       : '';
-    app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s board</h1><p>${esc(weekTitle(st.night))} · doors at ${clock(openAt(st.night))}</p>${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<form id="board-form"><div class="board-rows">${rows
+    app.innerHTML = `<div class="page board-page">${markLink}<h1>Tonight’s plan</h1><p>${esc(weekTitle(st.night))} · Doors open at ${clock(openAt(st.night))}</p>${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<form id="board-form"><div class="board-rows">${rows
       .map((row) => {
         const answer = agreed.find((r) => r.cook === row.cook);
         const revised = changed;
         const coverRow = rows.find((r) => r.cook === row.cover);
         const station = stationName[row.station];
-        const tradeoff = coverRow ? `the ${stationName[coverRow.station]} waits` : '';
+        const tradeoff = coverRow ? `Nobody will work at the ${stationName[coverRow.station]}` : '';
         // Keep an imported choice visible even if another edit makes its interval conflict.
         const covers = rows.filter(
           (other) =>
@@ -955,23 +958,24 @@ function board(draft?: BoardRow[], editing: string | null = null) {
             (other.cook === row.cover || Math.abs(other.breakAt - row.breakAt) >= 20),
         );
         const alternatives = covers.map(
-          (other) => `${nameOf(st, other.cook)} could cover; the ${stationName[other.station]} would wait.`,
+          (other) =>
+            `${nameOf(st, other.cook)} could take over, but then nobody would work at the ${stationName[other.station]}.`,
         );
         const gap = row.cover
           ? revised
-            ? `Ask ${nameOf(st, row.cover)} to cover; ${tradeoff} for twenty minutes.`
+            ? `You will ask ${nameOf(st, row.cover)} to work at the ${station} in ${nameOf(st, row.cook)}’s place. ${tradeoff} for those twenty minutes.`
             : answer?.coverAccepted
-              ? `${nameOf(st, row.cover)} covers; ${tradeoff} for twenty minutes.`
-              : `${nameOf(st, row.cover)} has not agreed to cover; the ${station} waits while ${nameOf(st, row.cook)} eats.`
-          : `${covers.length ? 'No cover chosen' : 'No one to cover'}; the ${station} waits while ${nameOf(st, row.cook)} eats.${alternatives.length ? ` ${alternatives.join(' ')}` : ''}`;
+              ? `${nameOf(st, row.cover)} will work at the ${station} in ${nameOf(st, row.cook)}’s place. ${tradeoff} for those twenty minutes.`
+              : `${nameOf(st, row.cover)} has not agreed to take over. Nobody will work at the ${station} while ${nameOf(st, row.cook)} eats.`
+          : `${covers.length ? 'You have not chosen anyone to take over' : 'Nobody is free to take over'}. Nobody will work at the ${station} while ${nameOf(st, row.cook)} eats.${alternatives.length ? ` ${alternatives.join(' ')}` : ''}`;
         const coverSummary = row.cover
           ? revised
-            ? `ask ${nameOf(st, row.cover)} to cover`
+            ? `you will ask ${nameOf(st, row.cover)} to take over`
             : answer?.coverAccepted
-              ? `${nameOf(st, row.cover)} covers`
-              : `${nameOf(st, row.cover)} has not agreed to cover. The ${station} will wait.`
-          : `The ${station} will wait.`;
-        const summary = `${VERB_LABEL[row.station]} · break ${breakSlots(row.breakAt).find((slot) => slot.minute === row.breakAt)?.label} · ${coverSummary}`;
+              ? `${nameOf(st, row.cover)} will take over`
+              : `${nameOf(st, row.cover)} has not agreed to take over. Nobody will work at the ${station} during the break.`
+          : `Nobody will work at the ${station} during the break.`;
+        const summary = `${VERB_LABEL[row.station]} · Break at ${breakSlots(row.breakAt).find((slot) => slot.minute === row.breakAt)?.label} · ${coverSummary}`;
         return `<fieldset class="board-row${editing === row.cook ? ' is-editing' : ''}" data-board-cook="${esc(row.cook)}"><legend>${esc(nameOf(st, row.cook))}</legend><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">${editing === row.cook ? 'Done' : 'Change'}</button><div class="board-editor" id="board-fields-${esc(row.cook)}"><div class="board-fields">${chips(
           row,
           'station',
@@ -987,11 +991,11 @@ function board(draft?: BoardRow[], editing: string | null = null) {
             label: slot.label,
           })),
           String(row.breakAt),
-        )}${chips(row, 'cover', 'Cover', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Leave it' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Waiting for a new answer. Previous answer' : answer.accepted ? 'Agreed' : 'Declined or changed'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
+        )}${chips(row, 'cover', 'Who takes over', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Nobody' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Waiting for a new answer. Previous answer' : answer.accepted ? 'Agreed' : 'Refused or asked for a change'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</fieldset>`;
       })
       .join(
         '',
-      )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same as last night</button>' : ''}</div></form><button type="button" class="info-button" popovertarget="board-help" aria-label="About the board">i</button><div id="board-help" popover="auto" class="info-popover"><h2>About the board</h2><p>Agreed stations last until close. Break cover lasts until the cook returns. A cook can refuse a part; their answer stays on the board. You may revise it or open with that gap.</p><p>Money is in Turkish lira (${lira(1)}).</p></div>${footer()}</div>`;
+      )}</div><div class="actions"><button class="primary" type="button" id="open-service" ${changed ? 'disabled' : ''}>Open the doors</button>${changed ? '<button class="primary" id="ask-board" type="submit">Ask them about the changes</button>' : ''}${st.previousBoard?.length ? '<button type="button" id="same-board">Same plan as last night</button>' : ''}</div></form><button type="button" class="info-button" popovertarget="board-help" aria-label="About tonight’s plan">i</button><div id="board-help" popover="auto" class="info-popover"><h2>About tonight’s plan</h2><p>When a cook agrees to a station, they stay there until closing time. A cook who takes over during a break works there until the other cook comes back. A cook can refuse part of the plan. Their answer stays on the plan. You can change the plan, or open the doors with that station empty.</p><p>Money is in Turkish lira (${lira(1)}).</p></div>${footer()}</div>`;
     const actions = app.querySelector<HTMLElement>('#board-form > .actions');
     if (actions) {
       const measure = () =>
@@ -1229,10 +1233,10 @@ function drawTop() {
   if (!s) return;
   if (!peopleRun(s)) {
     const pl = planOf(s.night);
-    (document.getElementById('night') as HTMLElement).textContent = `${pl.title} · wk ${pl.week}`;
+    (document.getElementById('night') as HTMLElement).textContent = `${pl.title}, week ${pl.week}`;
     (document.getElementById('clock') as HTMLElement).textContent = clock(s.minute);
     (document.getElementById('till') as HTMLElement).innerHTML =
-      `till <b>${lira(s.till)}</b> <span class="soft">/ ${lira(billNow(s))} by Sat</span>`;
+      `Till: <b>${lira(s.till)}</b> <span class="soft">/ ${lira(billNow(s))} due Saturday</span>`;
     const playback = automaticClockPlayback(
       s,
       {
@@ -1250,7 +1254,7 @@ function drawTop() {
     return;
   }
   const pl = planOf(s.night);
-  const label = `${pl.title} · wk ${pl.week}`;
+  const label = `${pl.title}, week ${pl.week}`;
   const night = document.getElementById('night');
   if (night) night.textContent = label;
   const words = app.querySelector('.people-service .bar-words');
@@ -1264,12 +1268,12 @@ function drawTop() {
   });
   if (playback.rate <= 0.5) {
     const reason = selected
-      ? `you’re with ${nameOf(s, selected)}`
+      ? `You are talking to ${nameOf(s, selected)}.`
       : performance.now() < readingUntil
-        ? `${nameOf(s, s.said.filter((x) => x.who !== 'narrator').at(-1)?.who ?? 'selim')} is answering`
+        ? `${nameOf(s, s.said.filter((x) => x.who !== 'narrator').at(-1)?.who ?? 'selim')} is answering.`
         : playback.reason;
     const label = till.querySelector('.till-label');
-    if (label) label.textContent = `slowed: ${reason}`;
+    if (label) label.textContent = `Time is slowed. ${reason}`;
   }
 }
 
@@ -1313,17 +1317,17 @@ function drawRail() {
             : `<div class="d">${name} ${((!peopleRun(st) && st.version === 'pass@7') || portionEdition(st)) && n > 5 ? `${done}/${n}` : '●'.repeat(done) + '○'.repeat(n - done)}</div>`;
         const dish =
           row('grill', t.doneGrill, t.grill) +
-          row('cold', t.doneCold, t.cold) +
+          row('cold side', t.doneCold, t.cold) +
           row('flatbread', t.doneOven, t.oven);
         if (t.due !== undefined) {
           const left = t.due - st.minute;
-          return `<div class="slip wedding ${left < 15 ? 'late' : ''}"><div class="t">wedding trays</div>${dish}<div class="st">${left > 0 ? `by ${clock(t.due)}` : 'late'}</div></div>`;
+          return `<div class="slip wedding ${left < 15 ? 'late' : ''}"><div class="t">wedding trays</div>${dish}<div class="st">${left > 0 ? `due by ${clock(t.due)}` : 'late'}</div></div>`;
         }
         const reg = t.regular ? regularOf(t.regular) : undefined;
         const party = t.party ? partyOf(t.party) : undefined;
         const booking = bookingOf(st, t.id);
         const partyLabel = party
-          ? `<div class="party-label" id="party-label-${t.id}">${booking?.promised ? (peopleRun(st) ? `promised: first at the pass · serve by ${clock(booking.servedBy)}` : `promised: <span class="chef-signature">${esc(party.signature.words)} (Chef’s)</span> · serve by ${clock(booking.servedBy)}`) : 'no promise'}</div>`
+          ? `<div class="party-label" id="party-label-${t.id}">${booking?.promised ? (peopleRun(st) ? `promised: their food first · serve by ${clock(booking.servedBy)}` : `promised: <span class="chef-signature">${esc(party.signature.words)} (the Chef’s dish)</span> · serve by ${clock(booking.servedBy)}`) : 'no promise'}</div>`
           : '';
         const who = party
           ? party.host
@@ -1339,13 +1343,13 @@ function drawRail() {
             portionEdition(st)) &&
           helpOptions(st).find((o) => o.ticket === t.id);
         const priority =
-          st.passDecision?.ticket === t.id ? '<div class="priority-mark">First on the pass</div>' : '';
+          st.passDecision?.ticket === t.id ? '<div class="priority-mark">Served first</div>' : '';
         if (
           (!peopleRun(st) && st.version === 'pass@6') ||
           (!peopleRun(st) && st.version === 'pass@7') ||
           portionEdition(st)
         )
-          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Work ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(!peopleRun(st) && st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : option ? 'Tap to work a portion' : 'Cooking / ready'}</div>${priority}</button>`;
+          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Cook for ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(!peopleRun(st) && st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : option ? 'Tap to cook a portion' : 'Cooking or ready'}</div>${priority}</button>`;
         return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
       })
       .join(''),
@@ -1430,15 +1434,15 @@ function drawScene() {
     const label =
       name === 'oven'
         ? off
-          ? 'oven, dark'
+          ? 'oven, no gas'
           : st.oven.heat >= OVEN_HOT
             ? 'oven, hot'
             : st.oven.heat > 0.15
               ? 'oven, warming'
               : 'oven, cold'
         : off
-          ? 'grill, dark'
-          : name;
+          ? 'grill, no gas'
+          : (({ cold: 'cold side', dish: 'dishes' } as Record<string, string>)[name] ?? name);
     parts.push(`<text x="${x}" y="194" text-anchor="middle" font-size="12" fill="${stroke}">${label}</text>`);
     const waiting =
       name === 'grill'
@@ -1452,7 +1456,7 @@ function drawScene() {
               : 0;
     if (waiting > 0 && !off && !manned.has(name))
       parts.push(
-        `<text x="${Math.min(290, Math.max(70, x))}" y="146" text-anchor="middle" class="hand" font-size="14" fill="var(--rope)">${name === 'oven' && st.oven.heat < OVEN_HOT ? 'flatbread waiting' : 'nobody on it'}</text>`,
+        `<text x="${Math.min(290, Math.max(70, x))}" y="146" text-anchor="middle" class="hand" font-size="14" fill="var(--rope)">${name === 'oven' && st.oven.heat < OVEN_HOT ? 'flatbread waiting' : 'nobody here'}</text>`,
       );
     if (name === 'grill' && !off)
       for (let k = 0; k < Math.min(6, o.grill); k++)
@@ -1481,11 +1485,11 @@ function drawScene() {
     );
   if (st.plates.clean === 0)
     parts.push(
-      `<text x="96" y="234" text-anchor="middle" class="hand" font-size="16" fill="var(--rope)">no plates</text>`,
+      `<text x="96" y="234" text-anchor="middle" class="hand" font-size="16" fill="var(--rope)">no clean plates</text>`,
     );
   if (planOf(st.night).week >= 3)
     parts.push(
-      `<rect x="200" y="226" width="22" height="15" stroke="${soft}" stroke-width="1.1" fill="var(--paper-2)"/><text x="211" y="258" text-anchor="middle" font-size="10" fill="${soft}">ledger</text>`,
+      `<rect x="200" y="226" width="22" height="15" stroke="${soft}" stroke-width="1.1" fill="var(--paper-2)"/><text x="211" y="258" text-anchor="middle" font-size="10" fill="${soft}">accounts</text>`,
     );
   if (st.night >= 2) {
     const jx = st.jarPlace === 'pass' ? 250 : 270;
@@ -1499,7 +1503,7 @@ function drawScene() {
         `<circle cx="${jx - 5 + (i % 3) * 5}" cy="${jy - 3 - Math.floor(i / 3) * 4}" r="2" fill="${soft}"/>`,
       );
     parts.push(
-      `<text x="${jx}" y="${jy + 12}" text-anchor="middle" font-size="10" fill="${soft}">tips</text>`,
+      `<text x="${jx}" y="${jy + 12}" text-anchor="middle" font-size="10" fill="${soft}">tip jar</text>`,
     );
   }
   const at: Record<string, number> = {};
@@ -1509,7 +1513,7 @@ function drawScene() {
     const c = cookOf(st, m.id);
     if (c.gone) {
       parts.push(
-        `<text x="352" y="${92 + goneRow * 13}" text-anchor="end" font-size="11" fill="${soft}">${esc(m.name)}: gone</text>`,
+        `<text x="352" y="${92 + goneRow * 13}" text-anchor="end" font-size="11" fill="${soft}">${esc(m.name)} has left</text>`,
       );
       goneRow += 1;
       return;
@@ -1614,7 +1618,7 @@ function drawCaption() {
   if (partyHandover && s.night === partyHandover.night && s.minute <= partyHandover.at - HANDOVER_LEAD + 10) {
     const party = partyOf(partyHandover.party);
     if (party)
-      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)} sit at ${clock(partyHandover.at)}. ${partyHandover.promised ? (peopleRun(s) ? 'You promised their order first and on time.' : `You promised ${party.signature.words}.`) : 'You promised nothing; they come anyway.'} ${peopleRun(s) ? 'The steady hand ran the service until now. The crew cooks and sends plates.' : handoverHands(partyHandover.hands)} You have the pass.`)}</span>`;
+      handover = `<span class="hand">${esc(`${party.host.charAt(0).toUpperCase()}${party.host.slice(1)}’s party sits down at ${clock(partyHandover.at)}. ${partyHandover.promised ? (peopleRun(s) ? 'You promised to serve their order first and on time.' : `You promised ${party.signature.words}.`) : 'You made no promise. They are coming anyway.'} ${peopleRun(s) ? 'An experienced helper ran the service until now. The cooks are cooking and sending out food.' : handoverHands(partyHandover.hands)} Now you run the pass.`)}</span>`;
   }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
@@ -1628,7 +1632,7 @@ function drawCaption() {
     el.innerHTML =
       handover ||
       esc(
-        peopleRun(s) && serviceStatus(s).text === 'Waiting for the next ticket.'
+        peopleRun(s) && serviceStatus(s).text === 'Waiting for the next order.'
           ? 'No orders are waiting. The cooks do not need an answer.'
           : serviceStatus(s).text,
       );
@@ -1661,20 +1665,20 @@ function hintsFor(id: CookId) {
 const VERB_LABEL: Record<Verb, string> = {
   grill: 'Grill',
   cold: 'Cold side',
-  dish: 'Dish pit',
+  dish: 'Dishes',
   oven: 'Oven',
-  break: 'Rest: 10 min',
+  break: '10-minute break',
   eat: 'Eat',
   home: 'Go home',
 };
 
 const ANSWERS: Record<string, [string, string]> = {
-  mother: ['Go. Now.', 'Can you stay till nine?'],
+  mother: ['Go. Now.', 'Can you stay until nine?'],
   advance: [`Give him ${lira(50)} from the till`, 'Not this week'],
-  phone: ['Go on, five minutes', 'After close'],
-  'leave-early': ['Go at nine', 'I need you till close'],
-  'eat-first': ['Eat first', 'After the rush'],
-  'my-way': ['Your oven, your way', 'My kitchen, my way'],
+  phone: ['Go on. Take five minutes.', 'After closing time'],
+  'leave-early': ['Go at nine', 'I need you until closing time'],
+  'eat-first': ['Eat first', 'After the busy time'],
+  'my-way': ['It’s your oven. Do it your way.', 'It’s my kitchen. Do it my way.'],
 };
 
 /** Update sheet text and attributes in place so clock ticks keep focused and pressed controls. */
@@ -1736,7 +1740,7 @@ function drawSheet() {
   if (priorityWaiting) {
     renderPanel(
       el,
-      `${crewHeader()}<div class="card priority-card"><b>Call a table first</b><div>${st.help ? 'Your hands are full. Finish this portion before calling a table first.' : 'The other tables wait.'}</div><div class="priority-options">${priorityOptions(
+      `${crewHeader()}<div class="card priority-card"><b>Choose a table to serve first</b><div>${st.help ? 'Your hands are full. Finish this portion before you choose a table to serve first.' : 'The other tables will wait.'}</div><div class="priority-options">${priorityOptions(
         st,
       )
         .map((o) => `<button class="primary" data-priority="${o.ticket}">${esc(o.text)}</button>`)
@@ -1758,17 +1762,17 @@ function drawSheet() {
     sheetKey = `staff${staffing.id}${st.inputs.length}`;
     renderPanel(
       el,
-      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>${esc(VERB_LABEL[staffing.station])} uncovered for about ${Math.max(1, staffing.until - st.minute)} min, until ${clock(staffing.until)}.</div><div class="staffing-options">${staffingOptions(
+      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>Nobody will work at the ${esc(VERB_LABEL[staffing.station].toLowerCase())} for about ${Math.max(1, staffing.until - st.minute)} minutes, until ${clock(staffing.until)}.</div><div class="staffing-options">${staffingOptions(
         st,
         staffing,
       )
         .map(
           (id) =>
-            `<button data-cover="${esc(id)}" ${queued ? 'disabled' : ''}>Ask ${esc(nameOf(st, id))} to cover${stationOf(st, id) ? `<span class="cover-tradeoff">${esc(VERB_LABEL[stationOf(st, id) as Station])} waits</span>` : '<span class="cover-tradeoff">They are free now.</span>'}</button>`,
+            `<button data-cover="${esc(id)}" ${queued ? 'disabled' : ''}>Ask ${esc(nameOf(st, id))} to take over${stationOf(st, id) ? `<span class="cover-tradeoff">Then nobody works at the ${esc(VERB_LABEL[stationOf(st, id) as Station].toLowerCase())}.</span>` : '<span class="cover-tradeoff">They are free now.</span>'}</button>`,
         )
         .join(
           '',
-        )}<button data-cover="" ${queued ? 'disabled' : ''}>Leave it uncovered</button></div>${queued ? '<div class="soft">They heard you. Waiting for the cover answer.</div>' : ''}</div>`,
+        )}<button data-cover="" ${queued ? 'disabled' : ''}>Leave the station empty</button></div>${queued ? '<div class="soft">They heard you. You are waiting for their answer.</div>' : ''}</div>`,
     );
     bindCrew(el);
     for (const button of el.querySelectorAll<HTMLButtonElement>('[data-cover]'))
@@ -1850,7 +1854,7 @@ function drawSheet() {
   renderPanel(
     el,
     `${crewHeader()}
-    <div class="station-duration">${esc(absent ? `${m.name} has left. Ask again next service.` : `${peopleRun(st) && !stationOf(st, selected) ? `Now: ${doing} · ${WHERE[placeOf(selected)] ?? 'free'}. ` : ''}${pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''}`)}</div>
+    <div class="station-duration">${esc(absent ? `${m.name} has left. You can ask again at the next service.` : `${peopleRun(st) && !stationOf(st, selected) ? `Now: ${doing}, ${WHERE[placeOf(selected)] ?? 'free'}. ` : ''}${pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''}`)}</div>
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
@@ -1861,11 +1865,11 @@ function drawSheet() {
       absent
         ? 'This cook has left the kitchen.'
         : guess
-          ? `I don’t know ${esc(m.name)} yet: these answers are guesses.`
+          ? `I don’t know ${esc(m.name)} well yet. These answers are only guesses.`
           : seenHint.job
             ? waiting
               ? 'They heard you.'
-              : 'Hold a job to insist. If they already agreed, this adds pressure.'
+              : 'Hold a job button to insist. If they already agreed, insisting puts more pressure on them.'
             : 'Tap a job to ask. Hold it to insist.'
     }</div>`,
   );
@@ -1890,22 +1894,24 @@ function tipLine(st: GameState): string {
   if (st.night === 1 && !seenHint.tap) t = 'Tap a cook.';
   else if (st.night === 2 && mm < 40) t = 'Plates come back dirty. Someone has to wash them.';
   else if (pl.week === 2 && pl.weekday === 2 && mm < 50)
-    t = 'Pide bakes only in a hot oven. A cook has to stand at it to warm it, and it cools if left.';
+    t =
+      'Flatbread bakes only in a hot oven. A cook has to stand at the oven to warm it. The oven cools down when nobody is there.';
   else if (pl.week === 2 && pl.weekday === 2 && mm < 90)
-    t = 'Regulars come on their own nights. Keep them waiting and they stop coming.';
+    t = 'Regular customers come on their own nights. If you keep them waiting, they stop coming.';
   else if (pl.week === 3 && pl.weekday === 3 && mm < 40 && st.crew.some((m) => !m.founder && m.since === 4))
-    t = 'A new cook: you don’t know them yet. What they’ll say is a guess, in pencil, until you do.';
+    t =
+      'You have a new cook. You don’t know them yet. Until you do, their answers are only guesses, written in pencil.';
   return t ? `<div class="hint">${t}</div>` : '';
 }
 
 const WHERE: Record<string, string> = {
-  grill: 'on grill',
-  cold: 'on cold',
-  dish: 'on dish',
-  oven: 'on oven',
-  yard: 'out back',
+  grill: 'grill',
+  cold: 'cold side',
+  dish: 'dishes',
+  oven: 'oven',
+  yard: 'outside',
   table: 'eating',
-  store: 'storeroom',
+  store: 'in the storeroom',
   idle: 'free',
 };
 
@@ -1916,21 +1922,21 @@ function crewRow(): string {
     .filter((m) => !m.left && cookOf(st, m.id).here)
     .map((m) => {
       const c = cookOf(st, m.id);
-      return `<button data-pick="${m.id}" aria-pressed="${selected === m.id}" ${c.gone ? 'disabled' : ''}><b>${esc(m.name)}</b><span class="soft">${c.gone ? 'gone' : (WHERE[placeOf(m.id)] ?? '')}</span></button>`;
+      return `<button data-pick="${m.id}" aria-pressed="${selected === m.id}" ${c.gone ? 'disabled' : ''}><b>${esc(m.name)}</b><span class="soft">${c.gone ? 'has left' : (WHERE[placeOf(m.id)] ?? '')}</span></button>`;
     })
     .join('')}</div>`;
 }
 
 function crewHeader(): string {
-  return `<div class="who">${crewRow()}<button class="x" id="close" aria-label="close" ${selected ? '' : 'style="visibility:hidden"'}>×</button></div>`;
+  return `<div class="who">${crewRow()}<button class="x" id="close" aria-label="Close" ${selected ? '' : 'style="visibility:hidden"'}>×</button></div>`;
 }
 
 function foodWork(st: GameState): string {
   if (peopleRun(st)) return '';
   if (st.inputs.slice(st.applied).some((i) => i.kind === 'help'))
-    return '<div class="food-work">Starting your portion on the next kitchen minute.</div>';
+    return '<div class="food-work">You will start your portion in the next kitchen minute.</div>';
   if (st.help)
-    return `<div class="food-work">You’re preparing ${st.help.station === 'grill' ? 'a grill portion' : 'a cold plate'} for table ${st.tickets.find((t) => t.id === st.help?.ticket)?.table ?? ''}, until ${clock(st.help.until)}.</div>`;
+    return `<div class="food-work">You’re preparing ${st.help.station === 'grill' ? 'a grill portion' : 'a cold dish'} for table ${st.tickets.find((t) => t.id === st.help?.ticket)?.table ?? ''}, until ${clock(st.help.until)}.</div>`;
   const options = helpOptions(st);
   if (!options.length) return '';
   return `<div class="food-work">${options
@@ -2003,26 +2009,26 @@ function drawChefWork() {
     const choice = portionEdition(st) ? cookingChoice(st) : null;
     const actText =
       act?.station === 'oven' && st.oven.heat < OVEN_HOT && !gasOut(st) && !ovenTended(st)
-        ? 'Waiting for the oven. Nobody is on it to warm it.'
+        ? 'Waiting for the oven. Nobody is at the oven to warm it.'
         : (act?.text ?? '');
     const actControl = choice
-      ? `<div class="food-choices"><button class="primary" data-cook-choice="now" data-choice-ticket="${choice.ticket}">${esc(choice.plain)}<span class="work-duration">Plain. Ready sooner.</span></button><button class="primary" data-cook-choice="careful" data-choice-ticket="${choice.ticket}">${esc(gloss(choice.careful))}<span class="work-duration">${choice.minutes} more kitchen minutes. Other tables wait.</span></button></div>`
+      ? `<div class="food-choices"><button class="primary" data-cook-choice="now" data-choice-ticket="${choice.ticket}">${esc(choice.plain)}<span class="work-duration">Plain food. It is ready sooner.</span></button><button class="primary" data-cook-choice="careful" data-choice-ticket="${choice.ticket}">${esc(gloss(choice.careful))}<span class="work-duration">It takes ${choice.minutes} more kitchen minutes. Other tables wait longer.</span></button></div>`
       : act
         ? `<button class="portion-act ${act.ready ? 'ready' : ''}" data-cook-step="${act.ticket}" aria-label="${esc(actText)}" ${act.ready ? '' : 'disabled'}>${esc(actText)}</button>`
         : '';
     renderPanel(
       el,
-      `${active ? `<section class="active-portion" aria-label="Your active portion"><div class="portion-heading"><b>Table ${table} · ${station === 'cold' ? 'cold side' : station}</b><span class="work-duration">${st.chef.body.exertion > 0.45 ? 'My arms are tired.' : 'Working my arms.'}</span></div><div class="active-party">${partyContext}</div><div class="food-surface food-${station}"><div class="food-drawing" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="food-acts">${actControl}</div></div>${portionEdition(st) ? `<button class="finish-portion" data-finish-portion="${st.help?.ticket}">Finish on instinct<span class="work-duration">Plain food. Keep the room’s speed.</span></button>` : ''}</section>` : `<div class="chef-line">${esc(st.help?.instinct ? 'My hands finish this portion on instinct. Plain food.' : chefLine(st))}</div>`}
-      ${next ? `<div class="chef-next">Chef’s next: table ${st.tickets.find((t) => t.id === next.ticket)?.table} · ${next.station === 'cold' ? 'cold side' : next.station}</div>` : ''}
+      `${active ? `<section class="active-portion" aria-label="Your active portion"><div class="portion-heading"><b>Table ${table} · ${station === 'cold' ? 'cold side' : station}</b><span class="work-duration">${st.chef.body.exertion > 0.45 ? 'My arms are tired.' : 'My arms are working hard.'}</span></div><div class="active-party">${partyContext}</div><div class="food-surface food-${station}"><div class="food-drawing" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="food-acts">${actControl}</div></div>${portionEdition(st) ? `<button class="finish-portion" data-finish-portion="${st.help?.ticket}">Finish by habit<span class="work-duration">Plain food. Time keeps its normal speed.</span></button>` : ''}</section>` : `<div class="chef-line">${esc(st.help?.instinct ? 'My hands finish this portion by habit. It will be plain food.' : chefLine(st))}</div>`}
+      ${next ? `<div class="chef-next">Chef’s next portion: table ${st.tickets.find((t) => t.id === next.ticket)?.table} · ${next.station === 'cold' ? 'cold side' : next.station}</div>` : ''}
       <div class="chef-stations">${(['grill', 'cold', 'oven'] as const)
         .filter((place) => stationsTonight(st).includes(place))
         .map((place) => {
           const option = options.find((o) => o.station === place);
-          return `<button data-chef-station="${place}" data-portion-ticket="${option?.ticket ?? ''}" aria-label="Work ${place === 'cold' ? 'cold side' : place}" ${(st.help && !portionEdition(st)) || !option ? 'disabled' : ''}>${st.help && portionEdition(st) ? 'Next: ' : 'Work '}${place === 'cold' ? 'cold side' : place}<span class="work-duration">${option ? `Table ${st.tickets.find((t) => t.id === option.ticket)?.table}${st.help ? '. Reserve it.' : '. Take a portion.'}` : st.help ? 'Hands full' : owed(st)[place] > 0 && place !== 'cold' && gasOut(st) ? 'Waiting for gas' : owed(st)[place] > 0 && place === 'oven' && st.oven.heat < OVEN_HOT ? ovenWait(st) : 'Nothing waiting'}</span></button>`;
+          return `<button data-chef-station="${place}" data-portion-ticket="${option?.ticket ?? ''}" aria-label="Work at the ${place === 'cold' ? 'cold side' : place}" ${(st.help && !portionEdition(st)) || !option ? 'disabled' : ''}>${st.help && portionEdition(st) ? 'Next: ' : 'Work at the '}${place === 'cold' ? 'cold side' : place}<span class="work-duration">${option ? `Table ${st.tickets.find((t) => t.id === option.ticket)?.table}${st.help ? '. Save it for later.' : '. Cook a portion.'}` : st.help ? 'Your hands are full' : owed(st)[place] > 0 && place !== 'cold' && gasOut(st) ? 'Waiting for the gas' : owed(st)[place] > 0 && place === 'oven' && st.oven.heat < OVEN_HOT ? ovenWait(st) : 'Nothing is waiting'}</span></button>`;
         })
         .join(
           '',
-        )}</div><div class="pass-plates" aria-label="Plates at the pass">${plates.map((plate) => `<button data-call-plate="${plate.ticket}">${esc(plate.text.split('!')[0] ?? plate.text)}!<span class="work-duration">${plate.text.includes('cooling') ? 'Cooling.' : 'Out hot.'}</span></button>`).join('')}</div>`,
+        )}</div><div class="pass-plates" aria-label="Plates at the pass">${plates.map((plate) => `<button data-call-plate="${plate.ticket}">${esc(plate.text.split('!')[0] ?? plate.text)}!<span class="work-duration">${plate.text.includes('cooling') ? 'It is cooling.' : 'It goes out hot.'}</span></button>`).join('')}</div>`,
     );
     for (const button of el.querySelectorAll<HTMLButtonElement>('[data-cook-choice]'))
       button.onclick = () =>
@@ -2054,23 +2060,23 @@ function drawChefWork() {
       .filter((station) => stationsTonight(st).includes(station))
       .map(
         (station) =>
-          `<button data-chef-station="${station}" aria-label="Work ${station === 'cold' ? 'cold side' : station}" ${options.some((o) => o.station === station) ? '' : 'disabled'}>Work ${station === 'cold' ? 'cold side' : station}<span class="work-duration">${
+          `<button data-chef-station="${station}" aria-label="Work at the ${station === 'cold' ? 'cold side' : station}" ${options.some((o) => o.station === station) ? '' : 'disabled'}>Work at the ${station === 'cold' ? 'cold side' : station}<span class="work-duration">${
             options
               .find((o) => o.station === station)
               ?.text.split(' · ')
               .at(-1) ??
             (st.help
-              ? 'Hands full'
+              ? 'Your hands are full'
               : owed(st)[station] > 0 && station !== 'cold' && gasOut(st)
-                ? 'Waiting for gas'
+                ? 'Waiting for the gas'
                 : owed(st)[station] > 0 && station === 'oven' && st.oven.heat < OVEN_HOT
                   ? ovenWait(st)
-                  : 'Nothing waiting')
+                  : 'Nothing is waiting')
           }</span></button>`,
       )
       .join(
         '',
-      )}</div><div class="chef-tradeoff">${st.help ? 'Your hands are full. Finish this portion before calling a table first.' : options.length ? 'One portion takes your hands away from managing the pass.' : 'No portion is waiting. The cooks keep working.'}</div>`,
+      )}</div><div class="chef-tradeoff">${st.help ? 'Your hands are full. Finish this portion before you choose a table to serve first.' : options.length ? 'While you cook a portion, your hands are busy and you cannot run the pass.' : 'No portion is waiting. The cooks keep working.'}</div>`,
   );
   for (const button of el.querySelectorAll<HTMLButtonElement>('[data-chef-station]'))
     button.onclick = () => {
@@ -2176,19 +2182,19 @@ function evening() {
   const lightJar = r.skimmed > 0 && r.skimmed >= prevSkim;
   const crit =
     r.critic === 'pleased'
-      ? '<p>The one with the notebook smiled at the door. Saturday’s paper will be kind.</p>'
+      ? '<p>The customer with the notebook smiled at the door. Saturday’s newspaper will be kind to us.</p>'
       : r.critic === 'cold'
         ? '<p>The food writer ate and left without a word.</p>'
         : r.critic === 'walked'
-          ? '<p>One of the tables that walked out had a notebook.</p>'
+          ? '<p>Someone with a notebook sat at one of the tables that left without eating.</p>'
           : '';
   const wedding =
     r.wedding === 'on time'
       ? ''
       : r.wedding === 'late'
-        ? '<p>The wedding trays went over late. We were paid less, and the street will hear.</p>'
+        ? '<p>The wedding trays arrived late. We were paid less, and people on the street will hear about it.</p>'
         : r.wedding === 'lost'
-          ? '<p>The wedding went to the place on the corner. Nevin catered every Yıldız wedding for twenty years.</p>'
+          ? '<p>The wedding hall ordered its food from the restaurant on the corner instead. For twenty years, Nevin made the food for every Yıldız family wedding.</p>'
           : '';
   const parties = (r.parties ?? [])
     .map((result) => {
@@ -2197,9 +2203,9 @@ function evening() {
       if (peopleRun(st)) {
         const words =
           result.outcome === 'kept'
-            ? `${party.host}: “On time, as promised. Thank you.”`
+            ? `${party.host}: “It came on time, as you promised. Thank you.”`
             : result.outcome === 'broken'
-              ? `${party.host}: “We had agreed a time.”`
+              ? `${party.host}: “We had agreed on a time.”`
               : party[result.outcome];
         return `<p class="party-outcome">${result.walked ? `${esc(party.walked)}${result.promised ? ' I had promised them.' : ''}` : esc(words)}</p>`;
       }
@@ -2216,8 +2222,8 @@ function evening() {
   const toSunday = !ended && !st.lost && isLastOfWeek(r.night);
   const jarChoice =
     !ended && r.night === 3 && !st.jarDecided
-      ? `<div class="card"><div>${lightJar ? 'The jar was light again tonight. Nevin used to say nothing about it.' : st.jarPlace === 'pass' ? 'The jar sits on the pass now.' : 'The jar sits by the back door, out of my sight.'}</div>
-        <div class="row" style="flex-direction:column"><button data-jar="talk">Sit with Rafi on the back step</button><button data-jar="move">Move the jar to the pass</button><button data-jar="leave">Leave it</button></div></div>`
+      ? `<div class="card"><div>${lightJar ? 'The tip jar was light again tonight. Nevin never said anything about it.' : st.jarPlace === 'pass' ? 'The tip jar sits on the pass now.' : 'The tip jar sits by the back door, where I cannot see it.'}</div>
+        <div class="row" style="flex-direction:column"><button data-jar="talk">Sit with Rafi on the back step</button><button data-jar="move">Move the jar to the pass</button><button data-jar="leave">Leave the jar where it is</button></div></div>`
       : '';
   // Jar answers are already authored by the simulation after the shift closes.
   const jarReply =
@@ -2232,8 +2238,8 @@ function evening() {
       : '';
   const bill = r.bill
     ? r.bill.paid
-      ? `<p><b>Saturday close.</b> I counted out ${lira(r.bill.amount)} for ${esc(r.bill.owed)}. ${lira(st.till)} left in the till.</p>`
-      : `<p><b>Saturday close.</b> ${esc(capital(r.bill.owed))} wanted ${lira(r.bill.amount)}. I had ${lira(r.bill.amount - r.bill.short)}. ${st.lost ? '' : `The rest, ${lira(r.bill.short)}, and a fee on top, is due next Saturday.`}</p>`
+      ? `<p><b>Closing time on Saturday.</b> I counted out ${lira(r.bill.amount)} for ${esc(r.bill.owed)}. ${lira(st.till)} is left in the till.</p>`
+      : `<p><b>Closing time on Saturday.</b> ${esc(capital(r.bill.owed))} wanted ${lira(r.bill.amount)}. I had only ${lira(r.bill.amount - r.bill.short)}. ${st.lost ? '' : `The rest, ${lira(r.bill.short)}, is due next Saturday, with an extra fee.`}</p>`
     : '';
   const tonight = stampList(r.stamps);
   const nextBtn = st.lost
@@ -2241,24 +2247,24 @@ function evening() {
     : ended
       ? '<button class="primary" id="end">Close the notebook</button>'
       : toSunday
-        ? '<button class="primary" id="open">Turn to Sunday</button>'
+        ? '<button class="primary" id="open">Go to Sunday</button>'
         : `<button class="primary" id="open" ${r.night === 3 && !st.jarDecided ? 'disabled' : ''}>Open on ${esc(next?.title ?? '')}</button>`;
   app.innerHTML = `<div class="page evening-page">
-    ${topBar(`After close · ${weekTitle(r.night)}`, 'evening')}
+    ${topBar(`After closing · ${weekTitle(r.night)}`, 'evening')}
     <div class="page-body">
-    <h2>${esc(weekTitle(r.night))}, after close</h2>
-    <div class="plates" aria-label="${r.served} tables served, ${r.walked} walked out">${plates}</div>
+    <h2>${esc(weekTitle(r.night))}, after closing time</h2>
+    <div class="plates" aria-label="${r.served} tables served, ${r.walked} left without eating">${plates}</div>
     ${!ended && !r.bill ? `<p class="evening-pace">${paceLine(st, r.night)}</p>` : ''}
     ${tillBar(st)}
-    <p>${r.served} of ${total} tables fed. ${lira(r.takings)} earned tonight.</p>
+    <p>We served ${r.served} of ${total} tables. We earned ${lira(r.takings)} tonight.</p>
     ${lightJar && r.night !== 3 && st.jarPlace === 'counter' ? '<p>The tip jar was lighter than it should have been.</p>' : ''}
     ${crit}${wedding}${parties}
-    ${r.apron ? '<p>Selim wore Nevin’s apron until close. Nobody mentioned it.</p>' : ''}
+    ${r.apron ? '<p>Selim wore Nevin’s apron until closing time. Nobody mentioned it.</p>' : ''}
     ${reviews}
-    ${bill}${r.bill?.promiseBroken ? '<p>A promise broken this week: one strike.</p>' : ''}
+    ${bill}${r.bill?.promiseBroken ? '<p>A promise was broken this week. That is one strike against the restaurant.</p>' : ''}
     ${tonight ? `<p class="soft">In the notebook tonight:</p>${tonight}` : ''}
     ${jarChoice}${jarReply}
-    ${zeynepDepartureStatus(st).canRelease ? '<section class="card"><p>Zeynep’s stint can end here. Chef can release her remaining kitchen shifts.</p><button id="zeynep-release">Chef: “Your shifts here are finished, Zeynep.”</button></section>' : ''}
+    ${zeynepDepartureStatus(st).canRelease ? '<section class="card"><p>Zeynep’s time in the kitchen can end here. Chef can free her from the rest of her kitchen shifts.</p><button id="zeynep-release">Chef: “Your shifts here are finished, Zeynep.”</button></section>' : ''}
     </div>
     <div class="actions">
       ${nextBtn}
@@ -2301,7 +2307,7 @@ function paceLine(st: GameState, night: number): string {
   const left = weekOf(week).weekdays.filter((d) => d > planOf(night).weekday).length;
   const need = billNow(st) - st.till;
   if (need <= 0)
-    return `${capital(weekOf(week).owed)}’s money is already in the till. Everything now is ours.`;
+    return `The money for ${weekOf(week).owed} is already in the till. Everything we earn now is ours.`;
   if (left === 0) return '';
   const per = Math.ceil(need / left / 10) * 10;
   return `I need about ${lira(per)} a night for the ${left} night${left > 1 ? 's' : ''} left this week.`;
@@ -2337,7 +2343,7 @@ function sunday() {
   const parts: string[] = [];
   if (pg.parties?.length) {
     parts.push(
-      '<p class="soft party-note">A promise kept pays and brings them back; a promise broken is a strike on Saturday.</p>',
+      '<p class="soft party-note">A kept promise earns money and brings the party back. A broken promise counts as a strike against the restaurant on Saturday.</p>',
     );
     for (const id of pg.parties) {
       const party = partyOf(id);
@@ -2359,19 +2365,19 @@ function sunday() {
   }
   for (const q of pg.quits)
     parts.push(
-      `<div class="cookline ink-in"><b>${esc(nameOf(st, q.id))}</b> didn’t come in on Sunday. A note under the door: <div class="hand">“${esc(q.words)}”</div></div>`,
+      `<div class="cookline ink-in"><b>${esc(nameOf(st, q.id))}</b> didn’t come in on Sunday. There was a note under the door: <div class="hand">“${esc(q.words)}”</div></div>`,
     );
   if (pg.changes.length > 0)
     parts.push(
-      `<p class="soft">What I noticed this week, writing it up:</p>${pg.changes.map((c) => `<p class="hand" style="font-size:20px">${esc(gloss(c.line))}</p>`).join('')}`,
+      `<p class="soft">What I noticed this week, as I wrote it all down:</p>${pg.changes.map((c) => `<p class="hand" style="font-size:20px">${esc(gloss(c.line))}</p>`).join('')}`,
     );
   if (pg.offday)
     parts.push(
       card(
         'offday',
-        'Dilek stayed behind after Saturday close. “Wednesdays, Chef. My mother has her clinic on Wednesdays. Could I have them off?” Without her, the cold side is someone else’s on Wednesday.',
+        'Dilek stayed late after closing time on Saturday. “It’s about Wednesdays, Chef. My mother goes to her clinic on Wednesdays. Could I have them off?” Without her, someone else must work at the cold side on Wednesdays.',
         [
-          ['yes', 'Take Wednesdays'],
+          ['yes', 'Take Wednesdays off'],
           ['no', 'I need you every night'],
         ],
       ),
@@ -2381,7 +2387,7 @@ function sunday() {
       const t = hireTemplate(id);
       return [id, t ? `${t.name}, ${t.home} (${lira(t.wage)} a night)` : id];
     });
-    opts.push(['none', 'Nobody this week']);
+    opts.push(['none', 'Hire nobody this week']);
     parts.push(
       `<div class="card"><div>Two people came to the back door about the job.</div>${pg.candidates
         .map((id) => {
@@ -2404,11 +2410,11 @@ function sunday() {
     parts.push(
       card(
         `tab:${id}`,
-        `Nevin’s ledger: <b>${esc(r.name)}</b>, ${lira(r.owes)}.${r.margin ? ` In the margin, in her hand: <span class="hand" style="font-size:19px">“${esc(r.margin)}”</span>` : ''}`,
+        `In Nevin’s account book, <b>${esc(r.name)}</b> owes ${lira(r.owes)}.${r.margin ? ` In the margin, in her handwriting: <span class="hand" style="font-size:19px">“${esc(r.margin)}”</span>` : ''}`,
         [
-          ['keep', 'Leave the tab as it is'],
-          ['ask', 'Ask, gently, next time'],
-          ['forgive', 'Cross it out'],
+          ['keep', 'Leave the debt as it is'],
+          ['ask', 'Ask them gently next time'],
+          ['forgive', 'Cross the debt out'],
         ],
       ),
     );
@@ -2417,14 +2423,14 @@ function sunday() {
     const opts: [string, string][] = activeCrew(st)
       .filter((m) => m.since <= pg.week)
       .map((m) => [m.id, `Let ${m.name} go`]);
-    opts.unshift(['none', 'Keep everyone on']);
-    parts.push(card('letgo', 'The landlord’s rent goes up. Wages are the one thing I can cut.', opts));
+    opts.unshift(['none', 'Keep everyone']);
+    parts.push(card('letgo', 'The landlord is raising the rent. Wages are the only thing I can cut.', opts));
   }
   if (pg.price)
     parts.push(
       card(
         'price',
-        `Supper is ${lira(st.price)}. Nevin never changed it. More would help the bills; the street would notice.`,
+        `Supper costs ${lira(st.price)}. Nevin never changed the price. A higher price would help pay the bills, but people on the street would notice.`,
         [
           ['keep', `Keep it at ${lira(st.price)}`],
           ['raise', `Raise it to ${lira(st.price + 5)}`],
@@ -2435,7 +2441,7 @@ function sunday() {
     parts.push(
       card(
         'sell',
-        'The man from the roast-meat restaurant chain came back on Sunday with a number on a card. It would clear everything, and the name over the door would go.',
+        'The man from the roast-meat restaurant chain came back on Sunday with a price written on a card. It would pay everything we owe, but the name over the door would come down.',
         [
           ['keep', 'Keep Nevin’s name'],
           ['sell', 'Take the money'],
@@ -2447,11 +2453,11 @@ function sunday() {
     ${topBar(`Sunday · week ${pg.week}`, 'sunday')}
     <div class="page-body">
     <h2>Sunday, week ${pg.week}</h2>
-    ${partyLinks.length ? `<nav class="party-jumps" aria-label="Next week’s parties">Two parties next week: ${partyLinks.join(' and ')}. Choose on each card.</nav>` : ''}
+    ${partyLinks.length ? `<nav class="party-jumps" aria-label="Next week’s parties">Two parties are coming next week: ${partyLinks.join(' and ')}. Make a choice on each card.</nav>` : ''}
     <p class="soft">${esc(weekOf(pg.week).title)}. The restaurant is closed. I sit at the staff table with the notebook.</p>
     ${parts.join('')}
     ${stamps ? `<p class="soft">This week in the notebook:</p>${stamps}` : ''}
-    ${nextWeek ? `<p>Next week: ${lira(nextWeek.bill)} for ${esc(nextWeek.owed)}${st.carry ? `, and ${lira(st.carry)} carried over` : ''}${st.seen ? `, and ${lira(st.seen)} more: ${esc(SEEN_WHO[pg.week] ?? 'they')} saw the queue on Saturday` : ''}.</p>` : ''}
+    ${nextWeek ? `<p>Next week we must pay ${lira(nextWeek.bill)} to ${esc(nextWeek.owed)}${st.carry ? `, plus ${lira(st.carry)} left over from this week` : ''}${st.seen ? `, plus ${lira(st.seen)} more, because ${esc(SEEN_WHO[pg.week] ?? 'they')} saw the queue of customers on Saturday` : ''}.</p>` : ''}
     </div>
     <div class="actions">
       <button class="primary" id="open">${esc(sundayOpenLabel(st, firstPartyStart))}</button>
@@ -2500,21 +2506,21 @@ function ending() {
   if (st.lost) {
     const b = [...st.reports].reverse().find((r) => r.bill)?.bill;
     head = 'The letter came on Monday.';
-    body = `${b && b.short > 0 ? `${capital(b.owed)} wanted ${lira(b.amount)}, and I was ${lira(b.short)} short. ` : ''}${b?.promiseBroken ? 'A promise broken this week: one strike. ' : ''}The man from the roast-meat restaurant chain called the same afternoon. I said I would think about it. ${nights} nights at Nevin’s.`;
+    body = `${b && b.short > 0 ? `${capital(b.owed)} wanted ${lira(b.amount)}, and I was ${lira(b.short)} short. ` : ''}${b?.promiseBroken ? 'A promise was broken this week. That is one strike against the restaurant. ' : ''}The man from the roast-meat restaurant chain called the same afternoon. I said I would think about it. I worked ${nights} nights at Nevin’s.`;
   } else if (st.sold) {
     head = 'The sign came down on a Tuesday.';
     body =
-      'The chain paid everything, and some over. Selim took the ledger home. I don’t know what he did with it.';
+      'The chain paid everything we owed, and a little more. Selim took Nevin’s account book home. I don’t know what he did with it.';
   } else {
     head = 'Nevin’s name is still over the door.';
-    body = `The last of the arrears went to the bank on Monday morning, with ${lira(st.till)} left in the till.${st.reports.some((r) => r.apron) ? ' Selim keeps the apron on the hook by the grill now.' : ''}`;
+    body = `On Monday morning, the last of the money we owed went to the bank. ${lira(st.till)} was left in the till.${st.reports.some((r) => r.apron) ? ' Selim keeps the apron on the hook by the grill now.' : ''}`;
   }
   const together =
     warm >= Math.max(2, crew.length - 1)
-      ? 'After the last close, the crew stayed and ate together at the staff table. Selim said Nevin would have laughed at me, then helped.'
+      ? 'After closing time on the last night, the cooks stayed and ate together at the staff table. Selim said Nevin would have laughed at me, and then helped me.'
       : warm >= 1
-        ? 'After the last close, one of them stayed to help me stack the chairs.'
-        : 'After the last close, they left without a word. The kitchen was very quiet.';
+        ? 'After closing time on the last night, one of them stayed to help me stack the chairs.'
+        : 'After closing time on the last night, they left without a word. The kitchen was very quiet.';
   const gone = st.crew.filter((m) => m.left);
   app.innerHTML = `<div class="page ending-page">
     ${topBar('The notebook', 'end')}
@@ -2523,8 +2529,8 @@ function ending() {
     <p>${esc(body)}</p>
     <p>${esc(together)}</p>
     <details class="ending-reckoning"><summary>See the tally</summary><div id="ending-tally">${endingTally(st, true)}</div></details>
-    ${gone.length ? `<p class="soft">Gone from the kitchen: ${gone.map((m) => esc(m.name)).join(', ')}.</p>` : ''}
-    <h2 class="hand" style="font-size:28px">What the crew said about me</h2>
+    ${gone.length ? `<p class="soft">Cooks who left the kitchen: ${gone.map((m) => esc(m.name)).join(', ')}.</p>` : ''}
+    <h2 class="hand" style="font-size:28px">What the cooks said about me</h2>
     ${lastLines.map((l) => `<div class="cookline"><b>${esc(nameOf(st, l.id))}</b><div class="hand">“${esc(l.t)}”</div></div>`).join('')}
     ${st.stamps.length ? `<p class="soft">The notebook:</p>${stampList(st.stamps.map((x) => x.id))}` : ''}
     </div>
@@ -2569,9 +2575,9 @@ function returnPage() {
   if (!s?.returnChapter) return;
   cancelAnimationFrame(raf);
   app.innerHTML = `<div class="page"><div class="page-body">${topBar('Zeynep returns', 'end')}
-    <h1>Zeynep returns</h1><p>Her cold-food trial is over. What she learned stays with her. Her sons still expect her home each evening.</p>
-    <p>${esc(String((s.returnChapter.envelope.transfer.history as { id: string; summary: string }[]).find((f) => f.id === 'goodhands-encounter')?.summary ?? 'The household answer remains in this chapter’s notebook.'))}</p><p>Chef has released her kitchen shifts. This chapter gives her no new job.</p>
-    <div class="actions">${LAB_TOOLS ? '<button id="export">Download this chapter</button>' : ''}<button id="send">Feedback</button><button id="fresh">Begin a fresh kitchen</button></div></div></div>`;
+    <h1>Zeynep returns</h1><p>Her trial at the cold side is over. What she learned stays with her. Her sons still expect her home each evening.</p>
+    <p>${esc(String((s.returnChapter.envelope.transfer.history as { id: string; summary: string }[]).find((f) => f.id === 'goodhands-encounter')?.summary ?? 'Her family’s answer is written in this chapter’s notebook.'))}</p><p>Chef has freed her from her kitchen shifts. She has no new job in this chapter.</p>
+    <div class="actions">${LAB_TOOLS ? '<button id="export">Download this chapter</button>' : ''}<button id="send">Feedback</button><button id="fresh">Start a new game</button></div></div></div>`;
   document.getElementById('export')?.addEventListener('click', download);
   document.getElementById('send')?.addEventListener('click', sendRun);
   document.getElementById('fresh')?.addEventListener('click', () => title());

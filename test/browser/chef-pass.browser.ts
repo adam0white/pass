@@ -52,7 +52,7 @@ test('Game menu autosaves and offers feedback with a downloadable copy', async (
 
 test('station control reserves a portion immediately and keeps its exact label', async ({ page }) => {
   await start(page, 1060);
-  const grill = page.getByRole('button', { name: 'Work grill', exact: true });
+  const grill = page.getByRole('button', { name: 'Work at the grill', exact: true });
   await expect(grill).toBeEnabled();
   const position = await grill.boundingBox();
   await grill.tap();
@@ -71,7 +71,7 @@ test('real touch and desktop renders show station work and the Game menu', async
   await start(page, 1060);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${shots}/chef-phone-d.png` });
-  await page.getByRole('button', { name: 'Work grill', exact: true }).tap();
+  await page.getByRole('button', { name: 'Work at the grill', exact: true }).tap();
   await page.screenshot({ path: `${shots}/chef-working-phone-d.png` });
   await page.getByRole('button', { name: 'Game menu', exact: true }).tap();
   await page.screenshot({ path: `${shots}/menu-phone-d.png` });
@@ -105,11 +105,11 @@ test('priority decision slows playback and marks the chosen table before restori
 }) => {
   await start(page);
   await page.getByRole('button', { name: 'fast', exact: true }).click();
-  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 minutes per second');
   await onScreen(page, '.priority-card, .priority-options button');
   await page.locator('[data-priority]').first().tap();
-  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
-  await expect(page.locator('#rail')).toContainText('First on the pass');
+  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 minutes per second');
+  await expect(page.locator('#rail')).toContainText('Served first');
   await expect(page.locator('.journal')).toContainText(/first/);
   await expect(page.getByRole('button', { name: 'fast', exact: true })).toHaveClass(/on/);
 });
@@ -117,10 +117,10 @@ test('priority decision slows playback and marks the chosen table before restori
 test('working a portion leaves a priority call waiting without slowing its completion', async ({ page }) => {
   await start(page);
   await page.getByRole('button', { name: 'fast', exact: true }).click();
-  await page.getByRole('button', { name: 'Work grill', exact: true }).tap();
+  await page.getByRole('button', { name: 'Work at the grill', exact: true }).tap();
   await expect(page.locator('.priority-options button')).toHaveCount(0);
   await expect(page.locator('.priority-card')).toContainText('Finish this portion');
-  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 minutes per second');
 });
 
 test('cook inspection keeps every job reachable on the phone after a priority call', async ({ page }) => {
@@ -146,7 +146,7 @@ test('station limits name warming and lost gas when portions are waiting', async
     s.tickets = [{ ...s.tickets[0], status: 'open', oven: 1, doneOven: 0 }];
     app._debug.refresh();
   });
-  await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText(
+  await expect(page.getByRole('button', { name: 'Work at the oven', exact: true })).toContainText(
     'The oven is cold. No cook is warming it.',
   );
   await page.evaluate(async () => {
@@ -159,7 +159,7 @@ test('station limits name warming and lost gas when portions are waiting', async
     kitchen.personOf(s, id).activity.affordanceId = 'oven';
     app._debug.refresh();
   });
-  await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText(
+  await expect(page.getByRole('button', { name: 'Work at the oven', exact: true })).toContainText(
     'The oven is warming.',
   );
   await page.evaluate(async () => {
@@ -174,10 +174,12 @@ test('station limits name warming and lost gas when portions are waiting', async
     s.minute = campaign.nightStart(n) + plan.gasOut.from;
     app._debug.refresh();
   });
-  await expect(page.getByRole('button', { name: 'Work grill', exact: true })).toContainText(
-    'Waiting for gas',
+  await expect(page.getByRole('button', { name: 'Work at the grill', exact: true })).toContainText(
+    'Waiting for the gas',
   );
-  await expect(page.getByRole('button', { name: 'Work oven', exact: true })).toContainText('Waiting for gas');
+  await expect(page.getByRole('button', { name: 'Work at the oven', exact: true })).toContainText(
+    'Waiting for the gas',
+  );
 });
 
 test('resuming from a scrolled title body keeps service and Game menu at the top', async ({ page }) => {

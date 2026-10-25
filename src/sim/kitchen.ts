@@ -115,9 +115,9 @@ const HF_WAGE = 6;
 export const OVEN_HOT = 0.7;
 const OFF_LINE = ['break', 'smoke', 'eat', 'phone'];
 const REST_WORD: Record<string, string> = {
-  break: 'ten',
+  break: 'ten-minute break',
   smoke: 'cigarette',
-  eat: 'plate',
+  eat: 'meal',
   phone: 'phone call',
 };
 
@@ -1069,7 +1069,7 @@ function crewShort(s: GameState, id: CookId, verb: Verb, offers: Affordance[]): 
   const out = onShift(s)
     .filter((x) => x !== id && !inKitchen(s, x))
     .map((x) => nameOf(s, x));
-  return out.length ? `not with ${listOf(out)} out` : 'someone must stay';
+  return out.length ? `not now, ${listOf(out)} stepped out` : 'someone must stay';
 }
 
 const afterless = (label: string) => label.replace(/^after I /, '');
@@ -1100,9 +1100,9 @@ function shortOf(r: SuggestionResolution, s: GameState, p: Person, verb: Verb): 
     case 'deferred':
       return r.counterOffer?.label ? `after I ${afterless(r.counterOffer.label)}` : 'not now';
     case 'modified':
-      return r.counterOffer?.label ? `rather ${r.counterOffer.label}` : 'something else';
+      return r.counterOffer?.label ? `I’d rather ${r.counterOffer.label}` : 'something else';
     case 'refused':
-      return r.kind === 'cannot' ? "can't" : 'no';
+      return r.kind === 'cannot' ? "I can't" : 'no';
     default:
       return '';
   }
@@ -1188,7 +1188,7 @@ function apply(s: GameState, inp: Input) {
         { now: s.minute },
       );
       if (choice.chosenAffordanceId !== 'kitchen-job') {
-        say(s, p.id, 'I’ll keep my own plans today. My source chapter remains in the notebook.', 'answer');
+        say(s, p.id, 'I’ll keep my own plans today. My own story stays as it was in the notebook.', 'answer');
         return;
       }
       acceptKitchenShift(p, s.minute);
@@ -1213,7 +1213,7 @@ function apply(s: GameState, inp: Input) {
       say(
         s,
         p.id,
-        'I’ll take the paid kitchen work. My own promises and leaving hours still stand.',
+        'I’ll take the paid kitchen work. I still keep my own promises, and I still leave at my usual time.',
         'answer',
       );
       return;
@@ -1227,12 +1227,12 @@ function apply(s: GameState, inp: Input) {
       s.releasedCast ??= [];
       s.releasedCast.push(p.id);
       const m = s.crew.find((m) => m.id === p.id);
-      if (m) m.left = { night: s.night, words: 'My kitchen stint has been explicitly released.' };
+      if (m) m.left = { night: s.night, words: 'The chef has released me from my kitchen shifts.' };
       s.said.push({
         at: s.minute,
         who: 'chef',
         kind: 'journal',
-        text: `${p.name}, your remaining kitchen shifts are released. Your own duties remain.`,
+        text: `${p.name}, you do not have to work any more kitchen shifts. Your own duties still stand.`,
       });
       return;
     }
@@ -1284,12 +1284,13 @@ function apply(s: GameState, inp: Input) {
               say(
                 s,
                 inp.cover,
-                `My ${VERB_WORD[own.station]} waits while I cover ${VERB_WORD[decision.station]} until ${clock(decision.until)}.`,
+                `Nobody will work at ${VERB_WORD[own.station]} while I work at ${VERB_WORD[decision.station]} until ${clock(decision.until)}.`,
                 'answer',
               );
             }
           }
-        } else say(s, inp.cover, 'I cannot cover that. You will need another arrangement.', 'answer');
+        } else
+          say(s, inp.cover, 'I cannot take over that station. You will need to find someone else.', 'answer');
       }
       return;
     }
@@ -1305,7 +1306,7 @@ function apply(s: GameState, inp: Input) {
         p.activity?.affordanceId === inp.verb &&
         isStation(inp.verb)
       ) {
-        say(s, c.id, 'I’m on it, Chef.', 'answer');
+        say(s, c.id, 'I’m already working there, Chef.', 'answer');
         return;
       }
       c.night.asked += 1;
@@ -1328,12 +1329,17 @@ function apply(s: GameState, inp: Input) {
       say(
         s,
         'narrator',
-        `I called table ${t.table} first. Their next portions and the next clean plate go ahead of the others.`,
+        `I called table ${t.table} first. Their next portions and the next clean plate go to them before the other tables.`,
         'journal',
       );
       const cook = onShift(s).find((id) => stationOf(s, id) && stationOf(s, id) !== 'dish');
       if (cook)
-        say(s, cook, `Table ${t.table} first, Chef. The others will wait for those portions.`, 'answer');
+        say(
+          s,
+          cook,
+          `Table ${t.table} goes first, Chef. The other tables will wait for those portions.`,
+          'answer',
+        );
       return;
     }
     case 'cook-choice': {
@@ -1358,7 +1364,7 @@ function apply(s: GameState, inp: Input) {
       say(
         s,
         'narrator',
-        'I will finish this whole portion on instinct. A plain portion; the room keeps its pace.',
+        'I will finish this whole portion by habit. It will be plain food, and time keeps its normal speed.',
         'answer',
       );
       return;
@@ -1377,11 +1383,18 @@ function apply(s: GameState, inp: Input) {
       const action = cookingStep(s);
       if (portionEdition(s) && cookingChoice(s)) {
         if (inp.instinct) chooseCooking(s, 'now');
-        else say(s, 'narrator', 'I can finish it now, or spend three more minutes taking care.', 'answer');
+        else
+          say(
+            s,
+            'narrator',
+            'I can finish it now, or I can spend three more minutes and cook it with care.',
+            'answer',
+          );
         return;
       }
       if (action?.ready) performCookingStep(s, !!inp.instinct);
-      else if (!inp.instinct) say(s, 'narrator', action?.text ?? 'That portion has moved.', 'answer');
+      else if (!inp.instinct)
+        say(s, 'narrator', action?.text ?? 'That portion is no longer waiting for me.', 'answer');
       return;
     }
     case 'call-plate': {
@@ -1409,7 +1422,7 @@ function apply(s: GameState, inp: Input) {
           say(
             s,
             'narrator',
-            'The promised signature is Chef’s next. It stays behind my current portion.',
+            'The promised dish is my next portion. I will start it after the portion in my hands.',
             'answer',
           );
           return;
@@ -1419,7 +1432,7 @@ function apply(s: GameState, inp: Input) {
         say(
           s,
           'narrator',
-          `Table ${t?.table}'s ${foodWords(inp.station)} is Chef’s next. The crew leaves that portion for me.`,
+          `My next portion is ${foodWords(inp.station)} for table ${t?.table}. The cooks will leave it for me.`,
           'answer',
         );
         return;
@@ -1458,8 +1471,8 @@ function apply(s: GameState, inp: Input) {
           s,
           'narrator',
           handsOn(s)
-            ? `I took ${foodWords(inp.station)} for table ${t.table}. The crew leaves that portion to me. I will ${COOK_ACTS[inp.station].join(', then ')}; the work tires my arms.`
-            : `I took ${foodWords(inp.station)} for table ${t.table}. The crew leaves that portion to me; about ${minutes} minutes.`,
+            ? `I took ${foodWords(inp.station)} for table ${t.table}. The cooks will leave that portion to me. I will ${COOK_ACTS[inp.station].join(', then ')}. The work tires my arms.`
+            : `I took ${foodWords(inp.station)} for table ${t.table}. The cooks will leave that portion to me. It takes about ${minutes} minutes.`,
           'journal',
         );
         return;
@@ -1468,7 +1481,7 @@ function apply(s: GameState, inp: Input) {
       say(
         s,
         'narrator',
-        `I started ${inp.station === 'grill' ? 'a grill portion' : 'a cold plate'} for table ${s.tickets.find((t) => t.id === inp.ticket)?.table}. Five minutes at the pass.`,
+        `I started ${inp.station === 'grill' ? 'a grill portion' : 'a cold dish'} for table ${s.tickets.find((t) => t.id === inp.ticket)?.table}. It takes five minutes at the pass.`,
         'journal',
       );
       return;
@@ -1519,7 +1532,7 @@ function jarChoice(s: GameState, choice: 'move' | 'talk' | 'leave') {
     say(
       s,
       'narrator',
-      'I moved the jar to the pass, where I can see it. Rafi watched me carry it and said nothing.',
+      'I moved the tip jar to the pass, where I can see it. Rafi watched me carry it and said nothing.',
       'journal',
     );
   } else if (choice === 'talk') {
@@ -1543,8 +1556,8 @@ function jarChoice(s: GameState, choice: 'move' | 'talk' | 'leave') {
       responses: [{ id: 'trays', kind: 'redirect', practice: 0.2 }],
     });
     say(s, 'narrator', 'I sat with Rafi on the back step. I did not say the word thief.', 'journal');
-    say(s, 'rafi', 'When I look at the jar, I go scrub the trays. Okay, Chef.', 'answer');
-  } else say(s, 'narrator', 'I left the jar where it was.', 'journal');
+    say(s, 'rafi', 'When the jar tempts me, I’ll go and scrub the trays. Okay, Chef.', 'answer');
+  } else say(s, 'narrator', 'I left the tip jar where it was.', 'journal');
 }
 
 // ---------- requests ----------
@@ -1690,7 +1703,12 @@ export function step(s: GameState): void {
     if (t.due !== undefined) {
       if (m > t.due + 60) {
         t.status = 'walked';
-        say(s, 'narrator', 'The hall sent someone to the place on the corner for the trays.', 'journal');
+        say(
+          s,
+          'narrator',
+          'The wedding hall sent someone to the restaurant on the corner for the trays.',
+          'journal',
+        );
       }
       continue;
     }
@@ -1731,7 +1749,7 @@ function arrive(s: GameState, t: Ticket) {
       say(
         s,
         'narrator',
-        `Table ${t.table} comes first, as promised. Out by ${clock(booking.servedBy)}.`,
+        `Table ${t.table} comes first, as promised. Their food must go out by ${clock(booking.servedBy)}.`,
         'call',
       );
     } else if (booking.promised) {
@@ -1739,7 +1757,7 @@ function arrive(s: GameState, t: Ticket) {
       say(
         s,
         'narrator',
-        `Table ${t.table}'s ${p?.signature.words} is promised. Chef’s next, by ${clock(booking.servedBy)}.`,
+        `I promised table ${t.table} ${p?.signature.words}. It is my next portion, due by ${clock(booking.servedBy)}.`,
         'call',
       );
     }
@@ -1754,7 +1772,7 @@ function arrive(s: GameState, t: Ticket) {
     } else if (r && t.friend) say(s, 'narrator', `${capital(r.name)} brought a friend tonight.`, 'journal');
   }
   if (t.due !== undefined)
-    say(s, 'narrator', 'The wedding order is on the rail: twenty trays, by eight.', 'journal');
+    say(s, 'narrator', 'The wedding order has come in. They want twenty trays by eight o’clock.', 'journal');
 }
 
 function walk(s: GameState, t: Ticket) {
@@ -1788,9 +1806,19 @@ function scripted(s: GameState, m: number, pl: NightPlan) {
   }
   if (pl.gasOut) {
     if (m === d + pl.gasOut.from)
-      say(s, 'narrator', 'The gas went with a sigh. The grill and the oven are dark.', 'journal');
+      say(
+        s,
+        'narrator',
+        'The gas went out with a soft hiss. There is no flame in the grill or the oven.',
+        'journal',
+      );
     if (m === d + pl.gasOut.until)
-      say(s, 'narrator', 'The gas came back. Selim swore at it, fondly.', 'journal');
+      say(
+        s,
+        'narrator',
+        'The gas came back. Selim swore at it, the way you swear at an old friend.',
+        'journal',
+      );
   }
 }
 
@@ -1911,19 +1939,24 @@ function cookMinute(s: GameState, c: CookState) {
       went && s.request?.kind === 'mother'
         ? 'Dilek took her coat and ran.'
         : went
-          ? `${nameOf(s, c.id)} said goodnight and went.`
+          ? `${nameOf(s, c.id)} said goodnight and left.`
           : `${nameOf(s, c.id)} hung up the apron and went home.`,
       'journal',
     );
   }
-  if (aff.id === 'pray' && !s.said.some((x) => x.at >= openAt(s.night) && x.text.includes('maghrib')))
-    say(s, 'narrator', 'Selim stepped into the storeroom for maghrib.', 'journal');
+  if (
+    aff.id === 'pray' &&
+    !s.said.some(
+      (x) => x.at >= openAt(s.night) && (x.text.includes('maghrib') || x.text.includes('sunset prayer')),
+    )
+  )
+    say(s, 'narrator', 'Selim stepped into the storeroom to say the sunset prayer.', 'journal');
   if (aff.id === 'apron') {
     s.apron = c.id;
     say(
       s,
       'narrator',
-      'Selim came out of the storeroom and tied on Nevin’s apron. He said nothing. He called the next ticket.',
+      'Selim came out of the storeroom and tied on Nevin’s apron. He said nothing. He called out the next order.',
       'journal',
     );
     stamp(s, 'apron');
@@ -1962,7 +1995,9 @@ function answered(
       .filter((x) => x !== c.id && !inKitchen(s, x))
       .map((x) => nameOf(s, x));
     text =
-      out.length > 0 ? `Not with ${listOf(out)} already out there.` : 'Somebody has to stay on the line.';
+      out.length > 0
+        ? `I can’t go yet. ${listOf(out)} already stepped out of the kitchen.`
+        : 'Somebody has to stay and cook.';
   }
   // A break turns down one station but not another: say what is different about this one.
   if (
@@ -1974,17 +2009,18 @@ function answered(
     const job = VERB_WORD[verb] ?? verb;
     const why =
       onBreak.affordanceId === 'eat'
-        ? `Leave my plate for ${job}? Let me eat first.`
+        ? `Stop eating to work at ${job}? Let me eat first.`
         : onBreak.affordanceId === 'smoke'
-          ? `Off my cigarette for ${job}? Let me finish it.`
+          ? `Put out my cigarette to work at ${job}? Let me finish it.`
           : onBreak.affordanceId === 'phone'
-            ? `Off the phone for ${job}? One minute.`
-            : `Off my ten for ${job}? Let me have my ten.`;
-    text = reason?.text ?? `${why}${would[0] ? ` ${capital(VERB_WORD[would[0]] ?? '')} I’d do.` : ''}`;
+            ? `End my call to work at ${job}? Give me one minute.`
+            : `Cut my ten-minute break short to work at ${job}? Let me have my break.`;
+    text =
+      reason?.text ?? `${why}${would[0] ? ` I would work at ${VERB_WORD[would[0]] ?? ''}, though.` : ''}`;
     c.breakDeferred = {
       verb,
       endsAt: onBreak.endsAt,
-      rest: REST_WORD[onBreak.affordanceId] ?? 'ten',
+      rest: REST_WORD[onBreak.affordanceId] ?? 'ten-minute break',
       ...(reason ? { reason: reason.text, short: reason.short } : {}),
     };
     if (
@@ -2005,7 +2041,7 @@ function answered(
     const came = on && on in VERB_WORD ? ` for ${VERB_WORD[on]}` : '';
     text = ['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version)
       ? (c.breakDeferred.reason ?? reason?.text ?? 'Not now, Chef.')
-      : `I came off my ${c.breakDeferred.rest}${came}. ${capital(VERB_WORD[verb] ?? verb)}, not yet.`;
+      : `I stopped my ${c.breakDeferred.rest}${came}. I won’t work at ${VERB_WORD[verb] ?? verb} yet.`;
   } else if (
     onBreak &&
     (r.verdict === 'assented' || r.verdict === 'complied') &&
@@ -2014,16 +2050,16 @@ function answered(
   ) {
     // Off a break for the job: a person says what they are giving up.
     const cut: Record<string, string> = {
-      eat: 'Leaving my plate, then.',
-      smoke: 'Out with the cigarette.',
-      phone: 'I’ll ring back.',
-      break: 'There goes my ten.',
+      eat: 'I’ll leave my food, then.',
+      smoke: 'I’ll put out the cigarette.',
+      phone: 'I’ll call back later.',
+      break: 'There goes my ten-minute break.',
     };
     text = `${cut[onBreak.affordanceId] ?? cut.break} ${text}`;
     if (c.breakDeferred?.verb === verb) c.breakDeferred = null;
   } else if (r.verdict === 'assented' && c.breakDeferred?.verb === verb) {
     if (s.minute < c.breakDeferred.endsAt && !onBreak)
-      text = `I’m up now anyway. ${capital(VERB_WORD[verb] ?? verb)}, fine.`;
+      text = `I’m up now anyway. Fine, I’ll work at ${VERB_WORD[verb] ?? verb}.`;
     c.breakDeferred = null;
   }
   if (
@@ -2040,7 +2076,7 @@ function answered(
   )
     text = `${text} ${stationPromise(s, verb)}`;
   if (hasBoard(s) && isStation(verb) && ['deferred', 'modified'].includes(r.verdict))
-    text += ' That is not promised cover. Please arrange someone else, or ask again later.';
+    text += ' I am not promising to work there. Please find someone else, or ask me again later.';
   const verdict = voice.counter && r.verdict === 'assented' ? 'countered' : r.verdict;
   c.night.events.push({ at: s.minute, verb, verdict, insisted: !!voice.s.insist, crewRule });
   if (voice.quiet) return;
@@ -2062,15 +2098,16 @@ function notePrompt(s: GameState, id: CookId, p: Person) {
   if (r.outcome === 'assented') return;
   if (
     s.said.some(
-      (x) => x.at >= openAt(s.night) && x.kind === 'prompt' && x.text.startsWith('Rafi looked at the jar'),
+      (x) =>
+        x.at >= openAt(s.night) && x.kind === 'prompt' && x.text.startsWith('Rafi looked at the tip jar'),
     )
   )
     return;
   // HF's lens vocabulary is not a caption (docs/hf-requests.md); the game says what a watcher would see.
   const line =
     r.outcome === 'turned'
-      ? 'Rafi looked at the jar, then went and scrubbed the trays.'
-      : 'Rafi looked at the jar a long moment, and left it.';
+      ? 'Rafi looked at the tip jar, then went and scrubbed the trays.'
+      : 'Rafi looked at the tip jar for a long moment, and then he left it alone.';
   say(s, 'narrator', line, 'prompt');
 }
 
@@ -2144,9 +2181,9 @@ export const pileOf = (s: GameState): number => s.plates.pile;
 
 /** What the open tickets still owe each station, in portions. */
 const CLEAR: Record<string, string> = {
-  grill: 'the grill was clear',
-  cold: 'the cold side was clear',
-  dish: 'the plates were done',
+  grill: 'nothing was waiting at the grill',
+  cold: 'nothing was waiting on the cold side',
+  dish: 'the dishes were all clean',
   oven: 'nothing was in the oven',
 };
 
@@ -2276,8 +2313,8 @@ function pass(s: GameState) {
           s,
           'narrator',
           peopleRun(s)
-            ? `Table ${t.table} got the first portions and plate, as promised. The other tables move again.`
-            : `Table ${t.table} got the first portions and plate I called for. The other tables move again.`,
+            ? `Table ${t.table} got the first portions and the first clean plate, as promised. The other tables are moving again.`
+            : `Table ${t.table} got the first portions and the first clean plate, as I asked. The other tables are moving again.`,
           'journal',
         );
       t.status = 'served';
@@ -2289,8 +2326,8 @@ function pass(s: GameState) {
         s,
         'narrator',
         onTime
-          ? 'Twenty trays across the road, on time. The bride’s father paid in an envelope and kissed Selim on both cheeks.'
-          : 'The trays went over late. The bride’s father paid, less, and did not look at me.',
+          ? 'The twenty trays went across the road on time. The bride’s father paid in an envelope and kissed Selim on both cheeks.'
+          : 'The trays went over late. The bride’s father paid less than we agreed, and he did not look at me.',
         'journal',
       );
       if (onTime) stamp(s, 'wedding');
@@ -2303,7 +2340,12 @@ function pass(s: GameState) {
         t.platedAt = s.minute;
         t.quality ??= 'plain';
         t.freshness = 'hot';
-        say(s, 'narrator', `Table ${t.table}'s plate waits at the pass. Call it while it is hot.`, 'call');
+        say(
+          s,
+          'narrator',
+          `Table ${t.table}'s food is waiting at the pass. Call it out while it is hot.`,
+          'call',
+        );
       }
       const age = s.minute - t.platedAt;
       if (!t.called && age < (s.help ? 8 : 12)) continue;
@@ -2312,8 +2354,8 @@ function pass(s: GameState) {
         s,
         'narrator',
         t.called
-          ? `Service, table ${t.table}! ${t.freshness === 'hot' ? 'Out hot.' : 'The plate has cooled while it waited.'}`
-          : `The runner called table ${t.table}. A little colder after waiting at the pass.`,
+          ? `Service, table ${t.table}! ${t.freshness === 'hot' ? 'It went out hot.' : 'The food cooled while it waited.'}`
+          : `The waiter took table ${t.table}'s food. It was a little colder after waiting at the pass.`,
         'call',
       );
       if (portionEdition(s)) {
@@ -2325,7 +2367,7 @@ function pass(s: GameState) {
             ? `${guest}: “Some of this had extra care. The rest was plain and filling.”`
             : t.quality === 'careful'
               ? `${guest}: “You took time with this. I can taste it.”`
-              : `${guest}: “Plain and filling. We were hungry.”`,
+              : `${guest}: “It was plain and filling. We were hungry.”`,
           'journal',
         );
       } else if (t.quality === 'careful')
@@ -2340,8 +2382,8 @@ function pass(s: GameState) {
         s,
         'narrator',
         peopleRun(s)
-          ? `Table ${t.table} got the first portions and plate, as promised. The other tables move again.`
-          : `Table ${t.table} got the first portions and plate I called for. The other tables move again.`,
+          ? `Table ${t.table} got the first portions and the first clean plate, as promised. The other tables are moving again.`
+          : `Table ${t.table} got the first portions and the first clean plate, as I asked. The other tables are moving again.`,
         'journal',
       );
     t.status = 'served';
@@ -2360,7 +2402,7 @@ function pass(s: GameState) {
         say(
           s,
           'narrator',
-          `${capital(r.name)} put ₺${part} on the pass without a word. Then the price of supper.`,
+          `${capital(r.name)} put ₺${part} on the pass without a word. Then they paid for supper too.`,
           'journal',
         );
       }
@@ -2708,10 +2750,10 @@ function decideQuits(s: GameState, _week: number): { id: CookId; words: string }
     if (rec.chosenAffordanceId !== 'leave') continue;
     const words =
       pushed >= 3
-        ? 'You push too hard, Chef. I’ve found a kitchen that asks.'
+        ? 'You push people too hard, Chef. I’ve found a kitchen that asks instead of orders.'
         : trust < 0.35
           ? 'I don’t trust this kitchen any more. Nevin’s gone, and so am I.'
-          : 'I’m tired, Chef. I’ve found something closer to home.';
+          : 'I’m tired, Chef. I’ve found work closer to home.';
     m.left = { night: s.night, words };
     out.push({ id: m.id, words });
   }
@@ -2755,7 +2797,7 @@ function choose(s: GameState, key: string, value: string) {
       say(
         s,
         'narrator',
-        `${t.name}’s earlier visitor snapshot cannot be advanced through unplayed duties. Start an explicit compatible chapter instead.`,
+        `${t.name} cannot join from here. Their saved story from another game would skip days they have not lived. Start a matching chapter for them instead.`,
         'journal',
       );
       return;
@@ -2935,48 +2977,48 @@ function stationPromise(s: GameState, station: Station): string {
   const until = coverUntil(s);
   const end = clock(until);
   return until === nightStart(s.night) + RUSH_TO
-    ? `I’ll hold ${VERB_WORD[station]} till the rush eases at ${end}.`
-    : `I’ll hold ${VERB_WORD[station]} until ${end}.`;
+    ? `I will work at ${VERB_WORD[station]} until the rush slows down at ${end}.`
+    : `I will work at ${VERB_WORD[station]} until ${end}.`;
 }
 
 export function stationRequestLine(s: GameState, _id: CookId): string | null {
   return hasCover(s)
-    ? `Ask for station cover until ${clock(coverUntil(s))}. Another request can change it.`
-    : 'A station request covers one 25-minute stretch. Then the cook chooses again.';
+    ? `Ask the cook to work at a station until ${clock(coverUntil(s))}. Another request can change it.`
+    : 'A station request lasts for one 25-minute stretch. Then the cook chooses again.';
 }
 
 export function coverLine(s: GameState, id: CookId): string | null {
   const cover = cookOf(s, id).cover;
   return hasCover(s) && cover && s.minute < cover.until
-    ? `I’m holding ${VERB_WORD[cover.station]} until ${clock(cover.until)}.`
+    ? `I will work at ${VERB_WORD[cover.station]} until ${clock(cover.until)}.`
     : null;
 }
 
 const foodWork = (station: FoodStation) =>
   station === 'grill' ? GRILL_WORK : station === 'cold' ? COLD_WORK : OVEN_WORK;
 const foodWords = (station: FoodStation) =>
-  station === 'grill' ? 'a grill portion' : station === 'cold' ? 'a cold plate' : 'a pide';
+  station === 'grill' ? 'a grill portion' : station === 'cold' ? 'a cold dish' : 'a flatbread';
 const chefPace = (s: GameState, station: FoodStation) =>
   (0.55 + 0.75 * (s.chef.skills[station]?.level ?? 0.3)) * (0.4 + 0.6 * readPerson(s.chef).body.capacity);
 
 export function chefLine(s: GameState): string {
   if (portionEdition(s) && s.help?.instinct) {
     const t = s.tickets.find((t) => t.id === s.help?.ticket);
-    return `I’m finishing table ${t?.table}'s ${foodWords(s.help.station)} on instinct. A plain portion.${s.chefNext ? ' Chef’s next is reserved.' : ''}`;
+    return `I’m finishing ${foodWords(s.help.station)} for table ${t?.table} by habit. It will be plain food.${s.chefNext ? ' My next portion is already chosen.' : ''}`;
   }
   if (portionEdition(s) && !s.help && s.chefNext) {
     const t = s.tickets.find((t) => t.id === s.chefNext?.ticket);
-    return `Chef’s next: table ${t?.table}'s ${foodWords(s.chefNext.station)}. I’m waiting for the station; the crew leaves it for me.`;
+    return `My next portion: ${foodWords(s.chefNext.station)} for table ${t?.table}. I’m waiting for the station. The cooks will leave it for me.`;
   }
   if (handsOn(s) && s.help)
-    return `${cookingStep(s)?.text ?? 'My portion is on the station.'}${s.chef.body.exertion > 0.45 ? ' My arms are tired.' : ''}`;
+    return `${cookingStep(s)?.text ?? 'My portion is cooking.'}${s.chef.body.exertion > 0.45 ? ' My arms are tired.' : ''}`;
   if (s.help) {
     const t = s.tickets.find((t) => t.id === s.help?.ticket);
-    return `Table ${t?.table}: ${foodWords(s.help.station)}, about ${Math.max(1, s.help.until - s.minute)} min left.${s.chef.body.exertion > 0.45 ? ' My arms are tired.' : ''}`;
+    return `Table ${t?.table}: ${foodWords(s.help.station)}. About ${Math.max(1, s.help.until - s.minute)} minutes are left.${s.chef.body.exertion > 0.45 ? ' My arms are tired.' : ''}`;
   }
   return s.chef.body.exertion > 0.45
     ? 'My arms are tired. I can take a portion, but I’ll be slower.'
-    : 'I can take a waiting portion. The crew keeps the rest moving.';
+    : 'I can cook a portion that is waiting. The cooks will keep the rest moving.';
 }
 
 export function helpOptions(s: GameState): { ticket: number; station: FoodStation; text: string }[] {
@@ -3003,12 +3045,12 @@ export function helpOptions(s: GameState): { ticket: number; station: FoodStatio
           station,
           text:
             portionEdition(s) && s.help
-              ? `Chef’s next: table ${t.table}, ${foodWords(station)}.`
+              ? `Next for me: table ${t.table}, ${foodWords(station)}.`
               : handsOn(s)
                 ? `Take table ${t.table}: ${COOK_ACTS[station].join(', ')}. My hands tire as I work.`
                 : chefEdition(s)
-                  ? `Take table ${t.table}: ${foodWords(station)} · about ${Math.ceil(foodWork(station) / chefPace(s, station))} min`
-                  : `Help table ${t.table}: ${station === 'grill' ? 'grill one portion' : 'make one cold plate'} · 5 min`,
+                  ? `Take table ${t.table}: ${foodWords(station)} · about ${Math.ceil(foodWork(station) / chefPace(s, station))} minutes`
+                  : `Help table ${t.table}: ${station === 'grill' ? 'grill one portion' : 'make one cold dish'} · 5 minutes`,
         })),
     );
 }
@@ -3026,7 +3068,12 @@ function chefMinute(s: GameState) {
   if (t?.status !== 'open') {
     if (chefEdition(s)) {
       if (s.chef.activity) endActivity(s.chef, 'interrupted', s.minute);
-      say(s, 'narrator', 'That table left. I stopped their portion; nothing was banked.', 'journal');
+      say(
+        s,
+        'narrator',
+        'That table left. I stopped cooking their portion, and that work was lost.',
+        'journal',
+      );
     }
     s.help = null;
     return;
@@ -3045,7 +3092,7 @@ function chefMinute(s: GameState) {
       say(
         s,
         'narrator',
-        `The crew finished table ${t.table}’s ${h.station === 'grill' ? 'grill portions' : 'cold plates'} before me. I put my ingredients back.`,
+        `The cooks finished table ${t.table}’s ${h.station === 'grill' ? 'grill portions' : 'cold dishes'} before me. I put my ingredients back.`,
         'journal',
       );
       s.help = null;
@@ -3084,13 +3131,13 @@ export function priorityOptions(s: GameState): { ticket: number; text: string }[
     const who = t.critic
       ? 'the critic'
       : t.regular
-        ? (regularOf(t.regular)?.name ?? 'a regular')
+        ? (regularOf(t.regular)?.name ?? 'a regular customer')
         : t.grill + t.cold + t.oven >= 3
           ? 'the big order'
           : t.id === oldest
             ? 'waiting longest'
-            : 'small order';
-    return { ticket: t.id, text: `Table ${t.table} · ${who} · waiting ${s.minute - t.at} min` };
+            : 'a small order';
+    return { ticket: t.id, text: `Table ${t.table} · ${who} · waiting ${s.minute - t.at} minutes` };
   });
 }
 
@@ -3113,7 +3160,7 @@ function detectPassOverload(s: GameState) {
   say(
     s,
     cook ?? 'narrator',
-    'The orders are ahead of the line. Which table goes first, Chef? The others will wait for its portions and plate.',
+    'There are more orders than we can cook. Which table goes first, Chef? The other tables will wait for its portions and plate.',
     'call',
   );
 }
@@ -3192,13 +3239,13 @@ function takeStation(
       s,
       c.id,
       accepted
-        ? `${says} I’ll hold ${VERB_WORD[station]} until ${clock(until)}.`
-        : `${says} That part is not agreed.`,
+        ? `${says} I will work at ${VERB_WORD[station]} until ${clock(until)}.`
+        : `${says} I have not agreed to that part.`,
       'answer',
     );
   if (!accepted || !aff) return { accepted: false, says };
   if (p.activity) endActivity(p, 'interrupted', s.minute, s, c);
-  if (!begin(p, aff, rec)) return { accepted: false, says: 'I cannot start that stretch.' };
+  if (!begin(p, aff, rec)) return { accepted: false, says: 'I cannot start that work now.' };
   c.cover = { station, until };
   if (p.activity) p.activity.endsAt = until;
   if (!c.night.worked.includes(station)) c.night.worked.push(station);
@@ -3230,8 +3277,8 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     const reply = takeStation(s, c, row.station, until, true);
     row.accepted = reply.accepted;
     row.answer = row.accepted
-      ? `${reply.says} ${capital(VERB_WORD[row.station] ?? row.station)} until ${clock(until)}. Then twenty minutes for a plate; back on ${VERB_WORD[row.station]} until close.`
-      : `${reply.says} That station is not agreed. Try another station, or open with this gap.`;
+      ? `${reply.says} I will work at ${VERB_WORD[row.station] ?? row.station} until ${clock(until)}. Then I will take a twenty-minute meal break. After that, I will work at ${VERB_WORD[row.station]} until closing time.`
+      : `${reply.says} I have not agreed to that station. Try another station, or open with nobody there.`;
     // Keep the actual HF answer rather than replacing a no with a generic yes.
     say(s, id, row.answer, 'answer');
 
@@ -3251,7 +3298,8 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     );
     if ((own && Math.abs(own.breakAt - row.breakAt) < 20) || collision) {
       row.coverAccepted = false;
-      const line = 'That overlaps my other break or cover. I cannot promise both.';
+      const line =
+        'That time overlaps with my own break, or with another station I agreed to take over. I cannot promise both.';
       row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
       say(s, row.cover, line, 'answer');
       continue;
@@ -3268,8 +3316,8 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
           : undefined) ?? answer.says)
       : 'No.';
     const line = row.coverAccepted
-      ? `${says} I’ll cover ${nameOf(s, row.cook)} on ${VERB_WORD[row.station]} at ${clock(row.breakAt)}, for twenty minutes.`
-      : `${says} I haven’t agreed to that cover.`;
+      ? `${says} I will take over ${VERB_WORD[row.station]} from ${nameOf(s, row.cook)} at ${clock(row.breakAt)}, for twenty minutes.`
+      : `${says} I haven’t agreed to take over that station.`;
     row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
     say(s, row.cover, line, 'answer');
   }
@@ -3281,7 +3329,7 @@ export function pendingCoverLine(s: GameState, id: CookId): string | null {
   if (!hasBoard(s)) return null;
   const a = s.lastAnswer;
   return a?.who === id && ['deferred', 'modified'].includes(a.verdict)
-    ? 'No cover is promised. Arrange another cook, or ask again later.'
+    ? 'Nobody has promised to work there. Ask another cook, or ask again later.'
     : null;
 }
 
@@ -3305,7 +3353,7 @@ function raiseStaffing(s: GameState, who: CookId, station: Station, until: numbe
   say(
     s,
     who,
-    `${reason} ${capital(VERB_WORD[station] ?? station)} needs cover until ${clock(until)}.`,
+    `${reason} Someone needs to work at ${VERB_WORD[station] ?? station} until ${clock(until)}.`,
     'call',
   );
 }
@@ -3335,7 +3383,12 @@ function rotaMinute(s: GameState, c: CookState): boolean {
     if (activity) endActivity(p, 'completed', s.minute, s, c);
     beginBoardBreak(s, c, end);
     c.cover = null;
-    say(s, c.id, `My board break. Back on ${VERB_WORD[row.station]} at ${clock(end)}.`, 'journal');
+    say(
+      s,
+      c.id,
+      `This is my planned meal break. I will be back at ${VERB_WORD[row.station]} at ${clock(end)}.`,
+      'journal',
+    );
     if (row.cover && row.coverAccepted && inKitchen(s, row.cover)) {
       const relief = cookOf(s, row.cover);
       resumeBoardStation(s, relief, row.station, end);
@@ -3366,7 +3419,7 @@ function rotaMinute(s: GameState, c: CookState): boolean {
     });
     begin(p, meal, decide(p, [meal]));
     c.cover = null;
-    raiseStaffing(s, c.id, st, s.minute + 20, 'I need a plate and a sit down, Chef.');
+    raiseStaffing(s, c.id, st, s.minute + 20, 'I need to eat and sit down, Chef.');
     return true;
   }
   // A bodily/emergency break ends: return to the agreed station, unless sent home.
@@ -3396,7 +3449,8 @@ function beginBoardBreak(s: GameState, c: CookState, end: number, personal = tru
   notePrompt(s, c.id, p);
   noteResolve(s, c, p, rec);
   // Quiet acts have no staffing alert, objective, or reward. Return time is unchanged.
-  if (chosen?.id === 'pray') say(s, 'narrator', 'Selim stepped into the storeroom for maghrib.', 'journal');
+  if (chosen?.id === 'pray')
+    say(s, 'narrator', 'Selim stepped into the storeroom to say the sunset prayer.', 'journal');
   if (chosen?.id === 'phone' && s.request?.kind === 'phone' && s.request.who === c.id) s.request.rang = true;
 }
 
@@ -3454,15 +3508,15 @@ function detectBoardGaps(s: GameState) {
       row.cook,
       row.station,
       Math.max(s.minute + 1, until),
-      c.gone ? 'I have to leave the kitchen.' : 'I’m off my agreed station, Chef.',
+      c.gone ? 'I have to leave the kitchen.' : 'I’m not at my agreed station, Chef.',
     );
   }
 }
 
 const COOK_ACTS: Record<FoodStation, string[]> = {
-  grill: ['sear the lamb', 'turn the lamb', 'rest the lamb', 'plate the lamb'],
-  cold: ['cut the vegetables', 'dress the salad', 'plate the salad'],
-  oven: ['shape the pide', 'bake the pide', 'plate the pide'],
+  grill: ['brown the lamb', 'turn the lamb', 'let the lamb rest', 'put the lamb on a plate'],
+  cold: ['cut the vegetables', 'dress the salad', 'put the salad on a plate'],
+  oven: ['shape the flatbread', 'bake the flatbread', 'put the flatbread on a plate'],
 };
 
 export function cookingStep(s: GameState): {
@@ -3481,9 +3535,9 @@ export function cookingStep(s: GameState): {
   const act = COOK_ACTS[h.station][h.act ?? 0];
   const equipmentWait =
     (h.station === 'grill' || h.station === 'oven') && gasOut(s)
-      ? 'Waiting for gas.'
+      ? 'I am waiting for the gas to come back.'
       : h.station === 'oven' && s.oven.heat < OVEN_HOT
-        ? 'Waiting for the oven to warm.'
+        ? 'I am waiting for the oven to get hot.'
         : null;
   return {
     ticket: h.ticket,
@@ -3494,8 +3548,8 @@ export function cookingStep(s: GameState): {
     text:
       equipmentWait ??
       (s.minute >= readyAt
-        ? `Table ${t.table}: ready to ${act}.`
-        : `Table ${t.table}: ${act} at ${clock(readyAt)}.`),
+        ? `Table ${t.table}: I am ready to ${act}.`
+        : `Table ${t.table}: I will ${act} at ${clock(readyAt)}.`),
   };
 }
 
@@ -3505,7 +3559,7 @@ export function plateOptions(s: GameState): { ticket: number; text: string }[] {
     .filter((t) => t.status === 'open' && t.platedAt !== undefined)
     .map((t) => ({
       ticket: t.id,
-      text: `Service, table ${t.table}!${s.minute - (t.platedAt ?? s.minute) > 4 ? ' The plate is cooling.' : ' Out hot.'}`,
+      text: `Service, table ${t.table}!${s.minute - (t.platedAt ?? s.minute) > 4 ? ' The food is cooling.' : ' It will go out hot.'}`,
     }));
 }
 
@@ -3517,7 +3571,7 @@ function stalePortion(s: GameState, id: number) {
     say(
       s,
       'narrator',
-      `My hands are on table ${current?.table}'s ${foodWords(h.station)}. ${t ? `I did not start another portion for table ${t.table}.` : 'I did not start another portion.'}`,
+      `I am busy with ${foodWords(h.station)} for table ${current?.table}. ${t ? `I did not start another portion for table ${t.table}.` : 'I did not start another portion.'}`,
       'answer',
     );
     return;
@@ -3526,16 +3580,16 @@ function stalePortion(s: GameState, id: number) {
     s,
     'narrator',
     !t
-      ? 'That portion is no longer on the rail.'
+      ? 'That order is no longer waiting.'
       : t.status === 'walked'
         ? `Table ${t.table} already left. I did not start their portion.`
         : t.status === 'served'
           ? `Table ${t.table} has already been served.`
           : t.platedAt !== undefined
-            ? `Table ${t.table} is already plated at the pass.`
+            ? `Table ${t.table}'s food is already on a plate at the pass.`
             : ready(t)
-              ? `The crew already finished table ${t.table}'s portions; I did not start one.`
-              : `That portion for table ${t.table} is no longer available here; I did not start it.`,
+              ? `The cooks already finished table ${t.table}'s portions, so I did not start one.`
+              : `That portion for table ${t.table} is no longer available, so I did not start it.`,
     'answer',
   );
 }
@@ -3561,8 +3615,8 @@ function performCookingStep(s: GameState, instinct: boolean, skipped = false) {
     s,
     'narrator',
     skipped
-      ? `I left table ${t.table}'s ${COOK_ACTS[h.station][h.act ?? 0]} late. It will be plainer and slower.`
-      : `I ${COOK_ACTS[h.station][h.act ?? 0]} for table ${t.table}.${instinct ? ' On instinct; a plain plate.' : plain ? ' Late; a plain plate.' : ' At its moment; taking care.'}${s.chef.body.exertion > 0.45 ? ' My arms are tired.' : ''}`,
+      ? `I was late to ${COOK_ACTS[h.station][h.act ?? 0]} for table ${t.table}. The food will be plainer and slower.`
+      : `I ${COOK_ACTS[h.station][h.act ?? 0]} for table ${t.table}.${instinct ? ' I did it by habit, so the food is plain.' : plain ? ' I was late, so the food is plain.' : ' I did it at the right moment, with care.'}${s.chef.body.exertion > 0.45 ? ' My arms are tired.' : ''}`,
     'journal',
   );
   h.act = (h.act ?? 0) + 1;
@@ -3591,7 +3645,7 @@ function performCookingStep(s: GameState, instinct: boolean, skipped = false) {
   say(
     s,
     'narrator',
-    `I finished ${foodWords(h.station)} for table ${t.table}.${h.plain ? ' A plain portion.' : ' Carefully cooked.'}`,
+    `I finished ${foodWords(h.station)} for table ${t.table}.${h.plain ? ' It is plain food.' : ' I cooked it with care.'}`,
     'journal',
   );
   s.help = null;
@@ -3605,7 +3659,12 @@ function handsOnMinute(s: GameState) {
   const t = s.tickets.find((t) => t.id === h.ticket);
   if (t?.status !== 'open') {
     if (s.chef.activity) endActivity(s.chef, 'interrupted', s.minute);
-    say(s, 'narrator', 'That table left. I stopped their portion; nothing was banked.', 'journal');
+    say(
+      s,
+      'narrator',
+      'That table left. I stopped cooking their portion, and that work was lost.',
+      'journal',
+    );
     s.help = null;
     if (portionEdition(s)) startNextPortion(s);
     return;
@@ -3629,9 +3688,9 @@ function handsOnMinute(s: GameState) {
 }
 
 const FOOD_CHOICES: Record<FoodStation, { plain: string; careful: string }> = {
-  cold: { plain: 'Plate it now', careful: 'Dress it carefully' },
-  grill: { plain: 'Pull it now', careful: 'Rest it properly' },
-  oven: { plain: 'Out now', careful: 'Another minute for the crust' },
+  cold: { plain: 'Serve it now', careful: 'Dress it carefully' },
+  grill: { plain: 'Take it off now', careful: 'Let it rest properly' },
+  oven: { plain: 'Take it out now', careful: 'Leave it in for the crust' },
 };
 
 /** One time-versus-food decision per portion, at the step where care changes the food. */
@@ -3663,7 +3722,7 @@ function chooseCooking(s: GameState, choice: 'now' | 'careful') {
   say(
     s,
     'narrator',
-    `Table ${t?.table}: ${choice === 'careful' ? option.careful : option.plain}. ${choice === 'careful' ? 'Three more kitchen minutes for the food; the other tables keep waiting.' : 'A plain portion, sooner for the table.'}`,
+    `Table ${t?.table}: ${choice === 'careful' ? option.careful : option.plain}. ${choice === 'careful' ? 'The food gets three more minutes, and the other tables keep waiting.' : 'It will be plain food, but the table gets it sooner.'}`,
     'journal',
   );
   if (choice === 'now' && h.station === 'cold') performCookingStep(s, !!h.instinct);
@@ -3713,7 +3772,7 @@ function prepareChefClaims(s: GameState) {
       say(
         s,
         'narrator',
-        `Table ${t?.table ?? ''} left before I reached Chef’s next. I released that portion.`,
+        `Table ${t?.table ?? ''} left before I could start my next portion for them. I let that portion go.`,
         'answer',
       );
       s.chefNext = null;
@@ -3739,7 +3798,7 @@ function prepareChefClaims(s: GameState) {
       say(
         s,
         cook ?? 'narrator',
-        `Yours, Chef? Table ${t.table}'s ${foodWords(station)}. I’ll leave it for you a moment.`,
+        `Do you want this one, Chef? It is ${foodWords(station)} for table ${t.table}. I’ll leave it for you for a moment.`,
         'call',
       );
     }
@@ -3774,18 +3833,21 @@ export function partyCard(s: GameState, party: string): PartyCard | null {
     servedBy: b.servedBy,
     order: (['grill', 'cold', 'oven'] as const)
       .filter((st) => b.order[st] > 0)
-      .map((st) => `${words[b.order[st]] ?? b.order[st]} ${st === 'oven' ? 'pide' : st}`)
+      .map(
+        (st) =>
+          `${words[b.order[st]] ?? b.order[st]} ${st === 'oven' ? 'from the oven' : st === 'cold' ? 'from the cold side' : 'from the grill'}`,
+      )
       .join(', '),
-    signature: peopleRun(s) ? 'Their order comes first, out on time.' : p.signature.words,
+    signature: peopleRun(s) ? 'Their order comes first and goes out on time.' : p.signature.words,
     cook: cook
       ? {
           who: cook.id,
           text: peopleRun(s)
             ? band === 'warm'
-              ? 'We can put them first. Keep someone on each station.'
+              ? 'We can put them first. Keep someone at each station.'
               : band === 'cool'
                 ? 'A promise needs enough people. Do not count on me skipping my break.'
-                : 'They come first, but the other tables still need feeding.'
+                : 'They come first, but the other tables still need their food.'
             : (PROMISE_WORDS[cook.founder ? cook.id : 'hire']?.[band] ?? '')
                 .replaceAll('{host}', p.host)
                 .replaceAll('{signature}', p.signature.words),
@@ -3885,7 +3947,7 @@ function delegateSignature(s: GameState): boolean {
   say(
     s,
     'narrator',
-    'I handed the promised signature to the crew on instinct. Plain food; the promise is broken.',
+    'By habit, I handed the promised dish to the cooks. The food is plain, and the promise is broken.',
     'journal',
   );
   startNextPortion(s);
@@ -3931,8 +3993,8 @@ function finishParty(s: GameState, t: Ticket): number {
       ? p.walked
       : b.promised && peopleRun(s)
         ? kept
-          ? `${p.host}: “On time, as promised. Thank you.”`
-          : `${p.host}: “We had agreed a time.”`
+          ? `${p.host}: “It came on time, as you promised. Thank you.”`
+          : `${p.host}: “We agreed on a time.”`
         : b.promised
           ? kept
             ? p.kept
@@ -3968,7 +4030,7 @@ function partyBasePay(s: GameState, t: Ticket, b: Booking): number {
     say(
       s,
       'narrator',
-      `${capital(r.name)} put ₺${part} on the pass without a word. Then the price of supper.`,
+      `${capital(r.name)} put ₺${part} on the pass without a word. Then they paid for supper too.`,
       'journal',
     );
   }
@@ -3983,7 +4045,8 @@ function partyBasePay(s: GameState, t: Ticket, b: Booking): number {
   return pay;
 }
 
-export const PEOPLE_RUN_NOTE = 'The crew now cooks and sends plates; you run the pass through people.';
+export const PEOPLE_RUN_NOTE =
+  'From now on, the cooks cook and send out the food. You run the pass by asking your people.';
 
 /** Append one ordinary input so old history remains reproducible before the change. */
 export function continueThroughPeople(s: GameState): boolean {

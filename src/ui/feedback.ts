@@ -34,9 +34,9 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
       </header>
       <aside id="feedback-info" class="feedback-info" aria-label="About feedback" hidden>
         <button type="button" data-feedback="close-info" aria-label="Close information">×</button>
-        <p>Tell us what the kitchen's record cannot show.</p>
+        <p>Tell us what the game's record cannot show.</p>
         <p>A name is optional. Keeping a copy works even when recording is off.</p>
-        <p>Your feedback is saved for delivery. The game retries if needed.</p>
+        <p>Your feedback is saved until it is delivered. The game tries again if sending fails.</p>
       </aside>
       <form class="feedback-form">
         <div class="feedback-sheet">
@@ -48,12 +48,12 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
             <button type="button" data-verdict="mixed" aria-pressed="false">Not sure</button>
             <button type="button" data-verdict="quit" aria-pressed="false">I'd stop here</button>
           </fieldset>
-          <label class="feedback-note">What happened in the kitchen, what you wanted, what got in the way.
+          <label class="feedback-note">Tell us what happened in the kitchen, what you wanted, and what got in the way.
             <textarea name="note" rows="4"></textarea>
           </label>
-          <details class="feedback-name"><summary>+ Add a name or tester id</summary>
-            <label>Your name or tester id <input name="tester-name" type="text" maxlength="60" autocomplete="nickname" /></label>
-            <p>Your name labels this device's whole linked play history, past and future. Leave it empty to stay pseudonymous.</p>
+          <details class="feedback-name"><summary>+ Add a name or tester ID</summary>
+            <label>Your name or tester ID <input name="tester-name" type="text" maxlength="60" autocomplete="nickname" /></label>
+            <p>Your name is attached to all linked play from this device, past and future. Leave it empty if you do not want your name attached.</p>
           </details>
           <details class="feedback-preview"><summary>What is sent</summary>
             <p data-feedback="preview"></p>
@@ -92,8 +92,8 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     send.disabled = pending;
     find<HTMLElement>('[data-feedback="preview"]').textContent =
       !lab.telemetryOn && !feedbackSharePlay(personaChoice)
-        ? 'Your note, verdict and optional name only. No run or linked history is sent.'
-        : 'Your note, verdict and optional name. Available run details are included when recording permits them.';
+        ? 'Only your note, your answer and your name (if you gave one) are sent. No run or play history is sent.'
+        : 'Your note, your answer and your name (if you gave one) are sent. Run details are included when recording allows it.';
   };
   personaChoice?.addEventListener('change', update);
   const closeInfo = () => {
@@ -173,7 +173,7 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
         run: feedbackRun(),
         sharePlay,
       });
-      const sentMessage = `${noteOnly ? 'Note and verdict queued without a run or history linkage' : 'Note and verdict queued. Run details depend on recording and availability; recorded play is linked across games on this device'} · ${receipt}`;
+      const sentMessage = `${noteOnly ? 'Your note and answer are ready to send. No run or play history is attached' : 'Your note and answer are ready to send. Run details are attached when recording allows it. Recorded play is linked across games on this device'} · ${receipt}`;
       rememberName(tester);
       complete(sentMessage);
     } catch (error) {

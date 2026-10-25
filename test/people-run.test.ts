@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { expect, it } from 'vitest';
 import { beginAtWeekTwo, firstPartyBoard } from '../src/sim/firstweek.ts';
 import {
@@ -17,7 +16,7 @@ import {
   step,
 } from '../src/sim/kitchen.ts';
 import owner from './fixtures/owner-r-eezsdpskcr.json';
-import { legacyState } from './hash.ts';
+import { legacyHash } from './hash.ts';
 
 it('runs new service through people and dispatches finished food without a table call', () => {
   const s = newGame(42);
@@ -71,11 +70,7 @@ it('loads the owner notebook exactly, migrates once, and replays the continued h
     owner.minute,
     owner.game,
   );
-  expect(
-    createHash('sha256')
-      .update(JSON.stringify(legacyState(s, '2.13.0')))
-      .digest('hex'),
-  ).toBe(owner.stateSha256);
+  expect(legacyHash(s, '2.13.0')).toBe(owner.stateSha256);
   expect(continueThroughPeople(s)).toBe(true);
   expect(continueThroughPeople(s)).toBe(false);
   expect(peopleRun(s)).toBe(true);

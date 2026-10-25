@@ -23,7 +23,7 @@ async function start(page: import('@playwright/test').Page) {
 test('portion acts are at a station, with one actual rate and a readable ready moment', async ({ page }) => {
   await start(page);
   await fixture(page, 'normal');
-  await page.getByRole('button', { name: 'Work grill', exact: true }).tap();
+  await page.getByRole('button', { name: 'Work at the grill', exact: true }).tap();
   await page.clock.runFor(800);
   await expect(page.locator('[data-cook-step]')).toBeVisible();
   await page.evaluate(async () => {
@@ -241,7 +241,7 @@ test('after renders cover service, chef portion, plates, requests, staffing, Sel
   await capture(page, 'priority-phone');
   await fixture(page, 'normal');
   await capture(page, 'service-phone');
-  await page.getByRole('button', { name: 'Work grill', exact: true }).tap();
+  await page.getByRole('button', { name: 'Work at the grill', exact: true }).tap();
   await page.clock.runFor(800);
   await capture(page, 'portion-phone');
   await page.evaluate(async () => {

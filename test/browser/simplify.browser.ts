@@ -32,15 +32,15 @@ test('ordinary local new game keeps meaningful people actions outside the menu',
   await page.goto('/');
   await page.locator('#new').click();
   await expect(page.locator('.people-board')).toBeVisible();
-  await expect(page.locator('.board-summary').first()).toContainText('Meal break:');
-  await expect(page.locator('.board-answer').first()).toContainText('20-minute meal break');
+  await expect(page.locator('.board-summary').first()).toContainText('The meal break is at');
+  await expect(page.locator('.board-answer').first()).toContainText('twenty-minute meal break');
   await expect(page.locator('.people-board')).not.toContainText('minutes for a plate');
   await page.locator('#people').click();
   await expect(page.getByRole('dialog', { name: 'People', exact: true })).toBeVisible();
-  await expect(page.getByRole('dialog', { name: 'People', exact: true })).toContainText('optional');
+  await expect(page.getByRole('dialog', { name: 'People', exact: true })).toContainText('You do not have to');
   await page.locator('#people-close').click();
   await page.locator('#game-menu').click();
-  await expect(page.locator('.game-menu-dialog')).not.toContainText('kitchen stint');
+  await expect(page.locator('.game-menu-dialog')).not.toContainText('time working in the kitchen');
   await page.locator('#send-run').click();
   await expect(page.locator('.pass-feedback h1')).toHaveText('Feedback');
   await expect(page.locator('.pass-feedback textarea')).toBeVisible();
@@ -72,7 +72,7 @@ for (const [width, height] of [
     await expect(page.locator('.people-service')).toBeVisible();
     await page.locator('[data-pick="selim"]').click();
     await expect(page.locator('.verbs button').first()).toBeVisible();
-    await expect(page.locator('.verbs')).toContainText('Rest: 10 min');
+    await expect(page.locator('.verbs')).toContainText('10-minute break');
     expect(await page.locator('.panel-reply').evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(
       true,
     );

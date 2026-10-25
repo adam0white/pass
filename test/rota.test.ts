@@ -100,7 +100,7 @@ describe('board exceptions and boundaries', () => {
     personOf(s, 'dilek').body.satiety = 0.01;
     step(s);
     const d = s.staffing?.find((d) => d.who === 'dilek' && d.station === 'cold');
-    expect(d?.reason).toContain('plate');
+    expect(d?.reason).toContain('I need to eat');
     expect(d?.until).toBe(s.minute + 19);
     queueInput(s, { kind: 'staff', id: d?.id ?? -1, cover: null });
     for (let k = 0; k < 15; k++) step(s);
@@ -206,7 +206,7 @@ it('keeps prayer a quiet private choice inside the agreed break', () => {
   queueInput(s, { kind: 'open' });
   while (s.minute <= 1125) step(s);
   expect(personOf(s, 'selim').activity?.affordanceId).toBe('pray');
-  expect(s.said.some((line) => line.text.includes('maghrib'))).toBe(true);
+  expect(s.said.some((line) => line.text.includes('sunset prayer'))).toBe(true);
   expect(s.staffing).toEqual([]);
 });
 

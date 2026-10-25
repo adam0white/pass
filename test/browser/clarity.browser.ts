@@ -46,7 +46,7 @@ async function onScreen(page: Page, selector: string) {
 
 test('DL-5 shows what is waiting before and immediately after a job request', async ({ page }) => {
   await start(page, newGame(42));
-  await expect(page.locator('#status')).toContainText('next ticket');
+  await expect(page.locator('#status')).toContainText('next order');
   await page.locator('[data-pick="selim"]').click();
   await page.locator('[data-v="grill"]').click();
   await expect(page.locator('#status')).toContainText('Selim');
@@ -210,11 +210,11 @@ test('restores phone clock controls while keeping cook inspection protected', as
   await start(page, newGame(42));
   await expect(page.locator('#speed button')).toHaveCount(3);
   await page.getByRole('button', { name: 'slow', exact: true }).click();
-  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.5 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.5 minutes per second');
   await page.getByRole('button', { name: 'fast', exact: true }).click();
-  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 minutes per second');
   await page.locator('[data-pick="selim"]').click();
-  await expect(page.locator('#clock-rate')).toContainText('Reading · 0.5 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('Reading · 0.5 minutes per second');
   await expect(page.getByRole('button', { name: 'fast', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -227,7 +227,7 @@ test('DL-20 quietly glosses maghrib in the journal without changing the saved si
   page,
 }) => {
   const s = newGame(5151);
-  while (!s.said.some((x) => x.text.includes('maghrib')) && s.phase === 'service') step(s);
+  while (!s.said.some((x) => x.text.includes('sunset prayer')) && s.phase === 'service') step(s);
   // start() restores the same seed as the supplied state.
   await page.clock.install({ time: new Date('2026-10-20T12:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-20T12:01:00Z'));
@@ -240,7 +240,7 @@ test('DL-20 quietly glosses maghrib in the journal without changing the saved si
   });
   await page.goto('/');
   await page.getByRole('button', { name: /Resume/ }).click();
-  await expect(page.locator('.journal')).toContainText('maghrib (sunset prayer)');
+  await expect(page.locator('.journal')).toContainText('sunset prayer');
 });
 
 test('DL-15 leaves a fast-speed request open during five real seconds of reading', async ({ page }) => {
@@ -263,7 +263,7 @@ test('DL-15 leaves a fast-speed request open during five real seconds of reading
   await page.getByRole('button', { name: /Resume/ }).click();
   await page.getByRole('button', { name: 'fast', exact: true }).click();
   await expect(page.locator('#yes')).toBeVisible({ timeout: 25000 });
-  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 min/s');
+  await expect(page.locator('#clock-rate')).toContainText('Slow · 0.1 minutes per second');
   const minute = () =>
     page.evaluate(async () => {
       const path = '/src/ui/app.ts';

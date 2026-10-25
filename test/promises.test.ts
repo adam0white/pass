@@ -182,8 +182,8 @@ describe('returning parties and the promises the chef makes', () => {
     s.passDecision = { state: 'chosen', at: s.minute, tickets: [other.id, t.id], ticket: other.id };
     const before = s.said.length;
     step(s);
-    const dispatch = s.said.slice(before).filter((line) => line.text.startsWith('The runner called table'));
-    expect(dispatch[0]?.text).toContain(`table ${t.table}.`);
+    const dispatch = s.said.slice(before).filter((line) => line.text.startsWith('The waiter took table'));
+    expect(dispatch[0]?.text).toContain(`table ${t.table}'s food.`);
     expect(t.status).toBe('served');
   });
   it('restores the chosen normal tables last-plate reservation immediately after the promised party is served', () => {
@@ -272,13 +272,13 @@ describe('returning parties and the promises the chef makes', () => {
   });
   it('names the actual signature work on each party', () => {
     const doing = {
-      writer: 'rested the lamb',
-      hasan: 'rested the lamb',
-      arslan: 'gave the pide its minute',
-      demir: 'gave the pide its minute',
+      writer: 'let the lamb rest',
+      hasan: 'let the lamb rest',
+      arslan: 'gave the flatbread an extra minute in the oven',
+      demir: 'gave the flatbread an extra minute in the oven',
       kemal: 'dressed the salad',
-      aksoy: 'made the cacık',
-      ilyas: 'rested the köfte',
+      aksoy: 'made the yogurt and cucumber dish',
+      ilyas: 'let the meatballs rest',
     };
     expect(Object.fromEntries(PARTIES.map((p) => [p.id, p.doing]))).toEqual(doing);
   });
@@ -286,7 +286,7 @@ describe('returning parties and the promises the chef makes', () => {
     const { s, t } = service();
     cookSignature(s, t.id, 'careful');
     finishOrder(s, t);
-    expect(s.said.some((line) => line.text === 'Nobody else was waiting while I rested the lamb.')).toBe(
+    expect(s.said.some((line) => line.text === 'Nobody else was waiting while I let the lamb rest.')).toBe(
       true,
     );
   });
@@ -409,7 +409,7 @@ describe('returning parties and the promises the chef makes', () => {
     expect(s.till - till).toBeGreaterThan(t.price);
     expect(b.waited).toBe(waiting.table);
     expect(
-      s.said.some((line) => line.text === `Table ${waiting.table} waited longest while I rested the lamb.`),
+      s.said.some((line) => line.text === `Table ${waiting.table} waited longest while I let the lamb rest.`),
     ).toBe(true);
   });
   it('holds a promised signature behind the chef current portion', () => {
@@ -517,7 +517,7 @@ describe('returning parties and the promises the chef makes', () => {
     expect(b.outcome).toBe('kept');
     expect(b.waited).toBe(full.table);
     expect(
-      s.said.some((line) => line.text === `Table ${full.table} waited longest while I rested the lamb.`),
+      s.said.some((line) => line.text === `Table ${full.table} waited longest while I let the lamb rest.`),
     ).toBe(true);
   });
   it('replays and restores queued signatures, active signatures and resolved parties exactly in week two', () => {

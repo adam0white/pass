@@ -82,7 +82,7 @@ function returnState(header: ReturnChapter): GameState {
     at: state.minute,
     who: 'zeynep',
     kind: 'journal',
-    text: 'I came back to tell you about the cold-supper placement. I haven’t agreed to another kitchen job.',
+    text: 'I came back to tell you about the job making cold suppers. I haven’t agreed to take another kitchen job.',
   });
   return state;
 }

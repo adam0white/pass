@@ -23,9 +23,9 @@ export function clockPlayback(s: GameState, speed: number) {
     label = 'Slow';
     reason =
       s.passDecision?.state === 'asking' && !s.help
-        ? 'Choose which table the cooks put first.'
+        ? 'Choose which table the cooks serve first.'
         : staffing
-          ? `${nameOf(s, staffing.who)} needs a cover decision.`
+          ? `${nameOf(s, staffing.who)} needs someone to take over.`
           : s.request?.state === 'asking'
             ? `${nameOf(s, s.request.who)} needs an answer.`
             : 'A station needs a cook.';
@@ -34,7 +34,7 @@ export function clockPlayback(s: GameState, speed: number) {
       rate = 0.1;
       label = 'Slow';
     }
-    reason = 'A cook is holding a portion for you: Yours, Chef?';
+    reason = 'A cook is saving a portion for you to cook. Time is slowed so you can answer.';
   } else if (
     (s.version === 'pass@7' || portionEdition(s)) &&
     !s.help?.instinct &&
@@ -47,9 +47,9 @@ export function clockPlayback(s: GameState, speed: number) {
     !s.tickets.some((t) => t.status === 'open' || (t.status === 'waiting' && t.at <= s.minute + 10))
   ) {
     rate *= 4;
-    reason = 'Rail clear.';
+    reason = 'No orders are waiting.';
   }
-  return { rate, label: `${label} · ${rate} min/s`, reason };
+  return { rate, label: `${label} · ${rate} minutes per second`, reason };
 }
 
 /** Live automatic pacing. Legacy clockPlayback remains a pure reader for older playback policies. */
@@ -62,9 +62,13 @@ export function automaticClockPlayback(
   const protectedPlayback = clockPlayback(s, 1);
   const playback = protectedPlayback.rate === 0.1 ? protectedPlayback : clockPlayback(s, speed);
   if (view.reading && playback.rate > 0.1)
-    return { rate: 0.1, label: 'Reading · 0.1 min/s', reason: 'Let them finish speaking.' };
+    return { rate: 0.1, label: 'Reading · 0.1 minutes per second', reason: 'Let them finish speaking.' };
   if (view.inspecting && playback.rate > 0.5)
-    return { rate: 0.5, label: 'Reading · 0.5 min/s', reason: 'Reading the cook’s account.' };
+    return {
+      rate: 0.5,
+      label: 'Reading · 0.5 minutes per second',
+      reason: 'Reading what the cook told you.',
+    };
   return {
     ...playback,
     label: playback.label,

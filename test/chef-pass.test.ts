@@ -173,7 +173,11 @@ describe('chef portions and pass decisions', () => {
     expect(s.staffing?.some((d) => d.who === 'rafi' && d.station === 'dish' && d.state === 'asking')).toBe(
       false,
     );
-    expect(s.said.some((x) => x.who === 'rafi' && x.text.includes('waits while I cover'))).toBe(true);
+    expect(
+      s.said.some(
+        (x) => x.who === 'rafi' && x.text.includes('Nobody will work at the dishes while I work at'),
+      ),
+    ).toBe(true);
   });
 
   it('holds the last plate for a chosen table still being cooked', () => {

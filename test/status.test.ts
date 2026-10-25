@@ -43,7 +43,7 @@ describe('serviceStatus', () => {
     s.version = 'pass@7';
     s.tickets = [ticket()];
     expect(serviceStatus(s)).toEqual({
-      text: 'Grill is uncovered under tonight’s board.',
+      text: 'The grill has nobody in tonight’s plan.',
       needsResponse: false,
     });
   });
@@ -89,7 +89,7 @@ describe('serviceStatus', () => {
     work(s, 'dilek', 'cold');
     cookOf(s, 'dilek').gone = true;
     expect(serviceStatus(s)).toEqual({
-      text: 'Cold and oven need a cook; select a cook.',
+      text: 'The cold side and the oven need a cook.',
       needsResponse: true,
     });
   });
@@ -98,18 +98,21 @@ describe('serviceStatus', () => {
     const s = setup();
     s.tickets = [ticket({ cold: 1, doneCold: 1 })];
     work(s, 'selim', 'grill');
-    expect(serviceStatus(s)).toEqual({ text: 'Waiting for cooking.', needsResponse: false });
+    expect(serviceStatus(s)).toEqual({
+      text: 'Waiting for the cooks to finish the food.',
+      needsResponse: false,
+    });
   });
 
   it('distinguishes cold, warming, and hot staffed ovens', () => {
     const s = setup();
     s.tickets = [ticket({ grill: 0, oven: 1 })];
     work(s, 'selim', 'oven');
-    expect(serviceStatus(s).text).toBe('Waiting for the cold oven to warm.');
+    expect(serviceStatus(s).text).toBe('The oven is cold. Waiting for it to heat up.');
     s.oven.heat = 0.3;
-    expect(serviceStatus(s).text).toBe('Waiting for the oven to warm.');
+    expect(serviceStatus(s).text).toBe('Waiting for the oven to heat up.');
     s.oven.heat = 0.8;
-    expect(serviceStatus(s).text).toBe('Waiting for cooking.');
+    expect(serviceStatus(s).text).toBe('Waiting for the cooks to finish the food.');
   });
 
   it('reports an active gas outage only when open work needs gas', () => {
@@ -120,14 +123,17 @@ describe('serviceStatus', () => {
     s.minute = nightStart(s.night) + night.gasOut.from;
     s.tickets = [ticket({ grill: 0, oven: 1 })];
     expect(serviceStatus(s)).toEqual({
-      text: 'Waiting for gas; the grill and oven are dark.',
+      text: 'Waiting for gas. The grill and the oven are off.',
       needsResponse: false,
     });
     s.tickets = [ticket({ cold: 1, oven: 1 })];
-    expect(serviceStatus(s)).toEqual({ text: 'Cold needs a cook; select a cook.', needsResponse: true });
+    expect(serviceStatus(s)).toEqual({
+      text: 'The cold side needs a cook.',
+      needsResponse: true,
+    });
     s.tickets = [ticket({ grill: 0, cold: 1 })];
     work(s, 'dilek', 'cold');
-    expect(serviceStatus(s).text).toBe('Waiting for cooking.');
+    expect(serviceStatus(s).text).toBe('Waiting for the cooks to finish the food.');
   });
 
   it('distinguishes staffed dish, unstaffed dish, and automatic plate return', () => {
@@ -136,7 +142,7 @@ describe('serviceStatus', () => {
     s.tickets = [ticket({ doneGrill: 1 })];
     s.plates = { clean: 0, pile: 1, dirty: [] };
     expect(serviceStatus(s)).toEqual({
-      text: 'Food needs clean plates; select a cook for dish.',
+      text: 'Food is waiting for clean plates. Choose a cook to wash the dishes.',
       needsResponse: true,
     });
     work(s, 'rafi', 'dish');
@@ -159,7 +165,7 @@ describe('serviceStatus', () => {
     s.tickets = [ticket({ doneGrill: 1 }), ticket({ id: 2 })];
     s.plates = { clean: 0, pile: 1, dirty: [] };
     expect(serviceStatus(s)).toEqual({
-      text: 'Food needs clean plates; select a cook for dish.',
+      text: 'Food is waiting for clean plates. Choose a cook to wash the dishes.',
       needsResponse: true,
     });
     work(s, 'selim', 'grill');
@@ -170,10 +176,10 @@ describe('serviceStatus', () => {
   it('distinguishes the next ticket from closing and ignores completed tickets', () => {
     const s = setup();
     s.tickets = [ticket({ status: 'served' }), ticket({ id: 2, status: 'waiting', at: s.minute + 10 })];
-    expect(serviceStatus(s)).toEqual({ text: 'Waiting for the next ticket.', needsResponse: false });
+    expect(serviceStatus(s)).toEqual({ text: 'Waiting for the next order.', needsResponse: false });
     s.tickets.pop();
     expect(serviceStatus(s)).toEqual({
-      text: 'The rail is clear; waiting for closing.',
+      text: 'No orders are waiting. Waiting for closing time.',
       needsResponse: false,
     });
   });
@@ -182,7 +188,7 @@ describe('serviceStatus', () => {
     const s = setup();
     s.tickets = [ticket()];
     const before = JSON.stringify(s);
-    expect(serviceStatus(s).text).toBe('Grill needs a cook; select a cook.');
+    expect(serviceStatus(s).text).toBe('The grill needs a cook.');
     expect(JSON.stringify(s)).toBe(before);
   });
 });
@@ -228,7 +234,7 @@ describe('display-only service cues', () => {
     };
     const before = JSON.stringify(s);
     expect(journalWords(s, line)).toBe(
-      'Selim: “I said no to the oven for the whole night. I can take a short stretch now. I left the grill for the oven, where more was waiting.”',
+      'Selim: “I said no to the oven for the whole night. But I can work there for a short time now. I left the grill for the oven, where more was waiting.”',
     );
     expect(JSON.stringify(s)).toBe(before);
     expect(line.text).toBe('Selim left the grill for the oven, where more was waiting.');

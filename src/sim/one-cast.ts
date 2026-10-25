@@ -102,7 +102,7 @@ export function releaseZeynepStint(s: GameState): boolean {
   const member = s.crew.find((c) => c.id === 'zeynep')!;
   member.left = {
     night: s.night,
-    words: 'Chef released my kitchen stint. I can take a daytime placement near my boys.',
+    words: 'Chef released me from my kitchen shifts. Now I can take a daytime job near my boys.',
   };
   const cook = s.cooks.find((c) => c.id === 'zeynep');
   if (cook) {
@@ -113,7 +113,7 @@ export function releaseZeynepStint(s: GameState): boolean {
     at: s.minute,
     who: 'chef',
     kind: 'journal',
-    text: 'Your kitchen stint is finished, Zeynep. I release the recurring shift.',
+    text: 'Your time in this kitchen is finished, Zeynep. You don’t need to come in for your shifts any more.',
   });
   return true;
 }

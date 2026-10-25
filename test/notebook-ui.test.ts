@@ -33,9 +33,9 @@ it('keeps the tally out of play and off by choice, then discloses its components
   const tally = endingTally(s, true);
   expect(tally).toContain('tally: 19');
   expect(tally).toContain('served (12)');
-  expect(tally).toContain('walked (3)');
+  expect(tally).toContain('left without eating (3)');
   expect(tally).toContain('10 × weekly bills paid (1)');
-  expect(tally).toContain('not a measure of people');
+  expect(tally).toContain('does not measure the people');
   s.lost = false;
   expect(endingTally(s, true)).toBe(tally);
   s.lost = true;
