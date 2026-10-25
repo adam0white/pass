@@ -167,13 +167,12 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     update();
     try {
       const sharePlay = feedbackSharePlay(personaChoice);
-      const noteOnly = !lab.telemetryOn && !sharePlay;
       const receipt = await lab.sendFeedback(text, {
         name: tester,
         run: feedbackRun(),
         sharePlay,
       });
-      const sentMessage = `${noteOnly ? 'Your note and answer are ready to send. No run or play history is attached' : 'Your note and answer are ready to send. Run details are attached when recording allows it. Recorded play is linked across games on this device'} · ${receipt}`;
+      const sentMessage = `Sent. Your note is stored. Reference ${receipt}.`;
       rememberName(tester);
       complete(sentMessage);
     } catch (error) {
