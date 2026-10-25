@@ -491,3 +491,14 @@ button.chosen {
   max-height: 40px;
   overflow: auto;
 }
+
+/* A steady tint marks a new log entry, without flashing or moving it. */
+.journal .new-log-line {
+  background: color-mix(in srgb, var(--rope) 12%, var(--paper));
+  transition: background-color 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal .new-log-line {
+    transition: none;
+  }
+}

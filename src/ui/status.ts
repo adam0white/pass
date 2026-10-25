@@ -12,6 +12,7 @@ import {
   stationsTonight,
 } from '../sim/kitchen.ts';
 import { VERB_WORD } from '../sim/lines.ts';
+import { actionableStaffing } from './staffing.ts';
 
 export interface ServiceStatus {
   text: string;
@@ -24,7 +25,7 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (s.passDecision?.state === 'asking' && !s.help)
     return status('Orders are piling up. Choose which table the cooks serve first.', true);
   const queued = s.inputs.slice(s.applied).filter((input) => input.at <= s.minute);
-  const staffing = s.staffing?.find((decision) => decision.state === 'asking');
+  const staffing = actionableStaffing(s)[0];
   if (staffing) {
     if (queued.some((input) => input.kind === 'staff' && input.id === staffing.id))
       return status('Waiting for your choice of who takes over.');

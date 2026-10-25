@@ -79,6 +79,7 @@ import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.t
 import { lab, mountNotice } from './lab.ts';
 import { endingTally } from './notebook.ts';
 import { unseenSpeech } from './speech.ts';
+import { actionableStaffing } from './staffing.ts';
 import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
 
@@ -123,6 +124,8 @@ let raf = 0;
 let last = 0;
 let carry = 0;
 let shownSaid: Said | undefined;
+const highlightedLines = new WeakSet<Said>();
+const LOG_HIGHLIGHT_MS = 4_000;
 const bubbles: Record<string, { text: string; until: number; minute: number }> = {};
 let wake: { release(): Promise<void> } | null = null;
 const seenHint = { tap: false, job: false };
@@ -1211,15 +1214,24 @@ function frame(t: number) {
 
 function collectSaid() {
   if (!s) return;
-  for (const x of unseenSpeech(s.said, shownSaid)) {
+  const fresh = unseenSpeech(s.said, shownSaid);
+  for (const x of fresh) {
+    highlightedLines.add(x);
     if (x.who !== 'narrator' && x.kind !== 'journal')
       bubbles[x.who] = { text: x.text, until: performance.now() + READING_MS, minute: x.at };
   }
   shownSaid = s.said.at(-1);
+  if (fresh.length)
+    window.setTimeout(() => {
+      for (const line of fresh) highlightedLines.delete(line);
+      sheetKey = '';
+      if (s?.phase === 'service') drawSheet();
+    }, LOG_HIGHLIGHT_MS);
 }
 
 function drawAll(force = false) {
   if (!force && (railHeld || performance.now() < railGraceUntil)) return;
+  collectSaid();
   drawStatus();
   drawTop();
   drawRail();
@@ -1622,25 +1634,13 @@ function drawCaption() {
   }
   const a = s.lastAnswer;
   const fresh = a && s.minute - a.at <= 10;
-  const key =
-    serviceStatus(s).text +
-    handover +
-    (fresh && a ? `${a.at}${a.who}${a.counter ?? ''}${s.inputs.length}` : '');
+  const taken = a && s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
+  const canTake = fresh && a?.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
+  const situation = serviceStatus(s).text;
+  const key = situation + handover + (canTake ? `${a.at}${a.who}${a.counter}` : '');
   if (key === captionKey) return;
   captionKey = key;
-  if (!fresh || !a) {
-    el.innerHTML =
-      handover ||
-      esc(
-        peopleRun(s) && serviceStatus(s).text === 'Waiting for the next order.'
-          ? 'No orders are waiting. The cooks do not need an answer.'
-          : serviceStatus(s).text,
-      );
-    return;
-  }
-  const taken = s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
-  const canTake = a.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
-  el.innerHTML = `${handover}<span class="hand"><b>${esc(nameOf(s, a.who))}</b> at ${clock(a.at)}: “${esc(gloss(a.text))}”</span>${canTake ? `<button data-counter="${a.counter}">${peopleRun(s) ? `Ask ${esc(nameOf(s, a.who))}` : 'Take it'}: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
+  el.innerHTML = `${handover}${esc(situation)}${canTake ? `<button data-counter="${a.counter}">Ask ${esc(nameOf(s, a.who))}: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
 }
 
 function select(id: CookId | null) {
@@ -1719,7 +1719,7 @@ function drawSheet() {
   const st = s;
   const el = document.getElementById('sheet') as HTMLElement;
   const rq = st.request;
-  const staffing = st.staffing?.find((decision) => decision.state === 'asking');
+  const staffing = actionableStaffing(st)[0];
   const priorityWaiting =
     st.passDecision?.state === 'asking' &&
     (!st.help || (!peopleRun(st) && st.version === 'pass@6')) &&
@@ -1727,10 +1727,7 @@ function drawSheet() {
     rq?.state !== 'asking';
   document
     .querySelector('.service')
-    ?.classList.toggle(
-      'responding',
-      priorityWaiting || rq?.state === 'asking' || !!st.staffing?.some((d) => d.state === 'asking'),
-    );
+    ?.classList.toggle('responding', priorityWaiting || rq?.state === 'asking' || !!staffing);
   document
     .querySelector('.service')
     ?.classList.toggle('choosing', (!!selected && !priorityWaiting) || rq?.state === 'asking');
@@ -1816,8 +1813,8 @@ function drawSheet() {
     sheetKey = key;
     const lineHTML = (x: Said) =>
       x.who === 'narrator'
-        ? `<div>${peopleRun(st) ? `<time>${clock(x.at)}</time> ` : ''}${esc(gloss(journalWords(st, x)))}</div>`
-        : `<div class="hand">${peopleRun(st) ? `<time>${clock(x.at)}</time> ` : ''}${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`;
+        ? `<div class="${highlightedLines.has(x) ? 'new-log-line' : ''}">${peopleRun(st) ? `<time>${clock(x.at)}</time> ` : ''}${esc(gloss(journalWords(st, x)))}</div>`
+        : `<div class="hand ${highlightedLines.has(x) ? 'new-log-line' : ''}">${peopleRun(st) ? `<time>${clock(x.at)}</time> ` : ''}${esc(nameOf(st, x.who))}: “${esc(gloss(x.text))}”</div>`;
     const opening = lines.filter((x) => x.at === openAt(st.night) - 5 && x.who === 'narrator');
     const legacyOpening = st.night === 1 && lines.slice(-3).every((x) => x.at === openAt(1) - 5);
     const journal = peopleRun(st)
@@ -2338,7 +2335,9 @@ function sunday() {
   };
   const partyLinks = (pg.parties ?? []).flatMap((id) => {
     const detail = partyCard(st, id);
-    return detail ? [`<a href="#party-${esc(id)}">${esc(detail.host)} (${esc(detail.night)})</a>`] : [];
+    return detail && pg.chosen[`promise:${id}`] === undefined
+      ? [`<a href="#party-${esc(id)}">${esc(detail.host)} (${esc(detail.night)})</a>`]
+      : [];
   });
   const parts: string[] = [];
   if (pg.parties?.length) {
@@ -2350,6 +2349,7 @@ function sunday() {
       const detail = partyCard(st, id);
       if (!party || !detail) continue;
       const key = `promise:${id}`;
+      if (pg.chosen[key] !== undefined) continue;
       parts.push(
         `<section class="card party-card" id="party-${esc(id)}" tabindex="-1" aria-label="${esc(detail.host)}"><p>${esc(party.booked)}</p><p class="party-time">${esc(detail.night)} · ${clock(detail.at)} · serve by ${clock(detail.servedBy)}</p><p>${esc(detail.order)}</p><p>Promise: ${esc(detail.signature)}</p>${detail.cook ? `<p class="hand"><b>${esc(nameOf(st, detail.cook.who))}</b>: “${esc(detail.cook.text)}”</p>` : ''}<div class="row">${[
           ['promise', 'Promise it'],
@@ -2453,7 +2453,7 @@ function sunday() {
     ${topBar(`Sunday · week ${pg.week}`, 'sunday')}
     <div class="page-body">
     <h2>Sunday, week ${pg.week}</h2>
-    ${partyLinks.length ? `<nav class="party-jumps" aria-label="Next week’s parties">Two parties are coming next week: ${partyLinks.join(' and ')}. Make a choice on each card.</nav>` : ''}
+    ${partyLinks.length ? `<nav class="party-jumps" aria-label="Next week’s parties">Next week’s parties: ${partyLinks.join(' and ')}. Make a choice on each card.</nav>` : ''}
     <p class="soft">${esc(weekOf(pg.week).title)}. The restaurant is closed. I sit at the staff table with the notebook.</p>
     ${parts.join('')}
     ${stamps ? `<p class="soft">This week in the notebook:</p>${stamps}` : ''}
@@ -2467,9 +2467,36 @@ function sunday() {
     b.addEventListener('click', () => {
       queueInput(st, { kind: 'choose', key: b.dataset.key as string, value: b.dataset.val as string });
       writeSave();
-      const scroll = window.scrollY;
-      sunday();
-      window.scrollTo(0, scroll);
+      if (!b.dataset.key?.startsWith('promise:')) {
+        const panelScroll = app.querySelector('.sunday-page > .page-body')?.scrollTop ?? 0;
+        sunday();
+        const panel = app.querySelector('.sunday-page > .page-body');
+        if (panel) panel.scrollTop = panelScroll;
+        return;
+      }
+      // Keep this scroll panel and its focused control in place while the answer is read.
+      const card = b.closest<HTMLElement>('.card');
+      for (const option of card?.querySelectorAll<HTMLButtonElement>('[data-key]') ?? []) {
+        option.disabled = true;
+        const chosen = option === b;
+        option.classList.toggle('chosen', chosen);
+        if (option.hasAttribute('aria-pressed')) option.setAttribute('aria-pressed', String(chosen));
+      }
+      if (b.dataset.key?.startsWith('promise:'))
+        window.setTimeout(() => {
+          if (!card?.isConnected) return;
+          card.remove();
+          const links = (pg.parties ?? []).flatMap((id) => {
+            const detail = partyCard(st, id);
+            return detail && pg.chosen[`promise:${id}`] === undefined
+              ? [`<a href="#party-${esc(id)}">${esc(detail.host)} (${esc(detail.night)})</a>`]
+              : [];
+          });
+          const nav = app.querySelector('.party-jumps');
+          if (links.length && nav)
+            nav.innerHTML = `Next week’s parties: ${links.join(' and ')}. Make a choice on each card.`;
+          else nav?.remove();
+        }, 4_000);
     });
   document.getElementById('open')?.addEventListener('click', () => {
     queueInput(st, { kind: 'open' });
