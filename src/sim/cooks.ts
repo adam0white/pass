@@ -70,8 +70,19 @@ export function acceptKitchenShift(p: Person, now: number) {
   });
 }
 
-export function makeCook(id: CookId, seed: number, now: number, edition = 'pass@9'): Person {
-  const base = { id, now, enable: { fatigueStore: true } };
+export function makeCook(
+  id: CookId,
+  seed: number,
+  now: number,
+  edition = 'pass@9',
+  plainNarration = true,
+): Person {
+  const base = {
+    id,
+    now,
+    ...(plainNarration ? { lexicon: { plainEnglish: true } } : {}),
+    enable: { fatigueStore: true },
+  };
   let p: Person;
   if (id === 'selim') {
     p = createPerson({
@@ -264,9 +275,16 @@ export const HIRES: readonly HireTemplate[] = [
 
 export const hireTemplate = (id: string): HireTemplate | undefined => HIRES.find((h) => h.id === id);
 
-export function makeHire(t: HireTemplate, seed: number, now: number, edition = 'pass@9'): Person {
+export function makeHire(
+  t: HireTemplate,
+  seed: number,
+  now: number,
+  edition = 'pass@9',
+  plainNarration = true,
+): Person {
   const base = {
     id: t.id,
+    ...(plainNarration ? { lexicon: { plainEnglish: true } } : {}),
     name: t.name,
     now,
     seed: seed ^ (0x100 + Math.max(0, HIRES.indexOf(t) - 1)),
@@ -363,9 +381,10 @@ export function makeHire(t: HireTemplate, seed: number, now: number, edition = '
 }
 
 /** The chef observes the crew. From pass@6 the kitchen also lives their food work, meals and sleep. */
-export function makeChef(seed: number, now: number): Person {
+export function makeChef(seed: number, now: number, plainNarration = true): Person {
   return createPerson({
     id: CHEF,
+    ...(plainNarration ? { lexicon: { plainEnglish: true } } : {}),
     name: 'Chef',
     sex: 'female',
     now,

@@ -7,3 +7,9 @@ Keep rules and difficulty intact. Write player text plainly at its source, inclu
 ## Setting copy, 2026-10-24
 
 Keep the Turkish setting and person/place names. Render common Turkish nouns in plain English. At most two flavour words may remain, each explained within its first sentence. Keep faith a quiet background detail and use HF research wording. Rewrite at source; saves hold seed and inputs, so no display projection is needed. Preserve rules, meaning and difficulty.
+
+## Published HF narration, 2026-10-25
+
+Current fresh kitchens and canonical actors persist `lexicon.plainEnglish: true` with HF exactly 2.21.0. The host pins this package for the lab client's transitive dependency too. Saves, exports and newly prepared canonical chapters record `plainNarration`; replay uses the saved choice. An absent choice retains historical narration. Historical edition simulations retain their original narration by default. Replaying an admitted chapter uses its pinned actors, never a new shelf read.
+
+Upgrade lesson: narration can be stored in HF intentions, episode summaries, trace narration and counteroffer wording. Compare named presentation fields, preserve the semantic `missed` intention sentinel, and retain `usedLines`, action labels, RNG and every mechanical field. `test/hf-state.ts` implements this stricter upgrade proof. Its fixtures come from HF 2.18.0 before adoption. The older legacy prose pins remain separate. The prayer-label and money mappings remain necessary host wording.

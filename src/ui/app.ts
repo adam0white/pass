@@ -99,6 +99,7 @@ let firstPartyStart = false;
 let partyHandover: PartyStart | null = null;
 
 interface Save {
+  plainNarration?: boolean;
   continuity?: ContinuitySave;
   returnChapter?: Export['returnChapter'];
   castChapter?: Export['castChapter'];
@@ -170,6 +171,7 @@ function writeSave() {
   try {
     const sv: Save = {
       game: s.version,
+      plainNarration: s.plainNarration === true,
       seed: s.seed,
       inputs: s.inputs,
       minute: s.minute,
@@ -263,7 +265,9 @@ function tillBar(st: GameState): string {
     tillStart = {
       key,
       amount:
-        st.phase === 'board' ? st.till : replay(st.seed, before, start, st.version, st.castChapter).till,
+        st.phase === 'board'
+          ? st.till
+          : replay(st.seed, before, start, st.version, st.castChapter, st.plainNarration === true).till,
     };
   const tonight = tillStart.amount;
   const per = Math.ceil(Math.max(0, target - tonight) / Math.max(1, nights) / 10) * 10;

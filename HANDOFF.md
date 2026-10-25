@@ -63,3 +63,9 @@ Kit0.5.7 replaces0.5.6; client0.4.6 and HF/engine pins remain unchanged. Pass mo
 ## 2026-10-25 plain English at source
 
 All player-visible English in `src/sim` and `src/ui` was rewritten in place into complete plain sentences (pilot for other games). Replay pins now hash state with prose blanked (`test/hash.ts`); the fixtures' hashes were regenerated from the pre-rewrite code, so the legacy tests still prove the rules are unchanged. HF `label:` values stay as recorded. Saves replay from seed and inputs, so existing saves continue; no edition bump. Old exported files fail the lab-only import check (its fingerprint includes report and quit wording) and are refused with a start-fresh message. The display lookup table shrank to money and the HF prayer label. Report: `/Users/abdul/code/.lab-scratch/plain2/pass-report.md`.
+
+## 2026-10-25 published HF plain narration adoption
+
+HF is pinned exactly to 2.21.0, including the lab client's dependency through a host override. Every current fresh kitchen, chef and canonical actor opts into persisted plain narration. Saves/exports pin the host narration choice; absence preserves historical narration. Historical edition simulations retain their old default. Loaded chapter actors retain their pinned lexicon. No new faculty is enabled.
+
+The 42-run before/after proof preserves semantic line history, RNG and mechanical state. Only identified narration fields and version/opt-in metadata are excluded; `missed` intention sentinels and action labels remain exact. Focused upgrade fixtures and replay tests live in `test/hf-plain.test.ts`. Delivery, review, CI and live evidence: `/Users/abdul/code/.lab-scratch/hfadopt/pass-report.md`. Adam still accepts readiness; no new player playtest was run.

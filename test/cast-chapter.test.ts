@@ -54,7 +54,7 @@ it('maps only actual compatible native practice, pins actors and replays without
   await validateKitchenChapter(chapter);
   const s = newGame(42, 'pass@13', chapter);
   queueInput(s, { kind: 'cast-talk', who: 'selim', choice: 'listen' });
-  const ex = exportRun(s, '2.18.0');
+  const ex = exportRun(s, '2.21.0');
   expect(replayExport(ex)).toEqual(s);
   expect(await validateReplayFile(ex)).toEqual(s);
   const altered = structuredClone(ex);
@@ -207,3 +207,13 @@ it.each([
     await expect(prepareKitchenChapter([unsupported], 42)).rejects.toThrow('duty');
   },
 );
+it('validates historical canonical chapters without changing their saved narration choice', async () => {
+  const input = await source();
+  const chapter = await prepareKitchenChapter([input], 42, false);
+  expect(chapter.actors.hulya?.lexicon?.plainEnglish).toBeUndefined();
+  const before = structuredClone(chapter);
+  await validateKitchenChapter(chapter);
+  const state = newGame(42, 'pass@13', chapter, false);
+  expect(await validateReplayFile(exportRun(state, '2.21.0'))).toEqual(state);
+  expect(chapter).toEqual(before);
+});

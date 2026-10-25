@@ -34,15 +34,19 @@ const same = (a: unknown, b: unknown) => canonicalPersona(a) === canonicalPerson
 const identity = (xs: string[]) => Object.fromEntries(xs.map((x) => [x, x]));
 export interface KitchenChapter {
   version: 'pass-cast/1';
+  /** Absent in historical chapters; validation must retain their original narration. */
+  plainNarration?: boolean;
   seed: number;
   claims?: PersonaEnvelope[];
   inputs: LifePreparation[];
   actors: Record<string, Person>;
   facts: Record<string, ReturnType<typeof lifeAdmission>>;
 }
-export function freshActor(id: string, seed: number, now = 1045) {
+export function freshActor(id: string, seed: number, now = 1045, plainNarration = true) {
   const hire = HIRES.find((h) => h.id === id);
-  return hire ? makeHire(hire, seed, now, 'pass@13') : makeCook(id, seed, now, 'pass@13');
+  return hire
+    ? makeHire(hire, seed, now, 'pass@13', plainNarration)
+    : makeCook(id, seed, now, 'pass@13', plainNarration);
 }
 export async function digest(value: unknown) {
   return [
@@ -56,11 +60,13 @@ export async function digest(value: unknown) {
 export async function prepareKitchenChapter(
   inputs: LifePreparation[],
   seed: number,
+  plainNarration = true,
 ): Promise<KitchenChapter> {
   if (inputs.length > 7 || new Set(inputs.map((x) => x.parent.castId)).size !== inputs.length)
     throw new Error('Invalid kitchen cast batch.');
   const chapter: KitchenChapter = {
     version: 'pass-cast/1',
+    ...(plainNarration ? { plainNarration: true } : {}),
     seed,
     inputs: structuredClone(inputs),
     actors: {},
@@ -191,7 +197,7 @@ export async function prepareKitchenChapter(
     }
     if (shifted.calendar.owed.length || shifted.calendar.lapse)
       throw new Error('Keep actual unresolved debt at source; this kitchen has no repayment map.');
-    const opening = freshActor(id, seed, arrival);
+    const opening = freshActor(id, seed, arrival, plainNarration);
     opening.body.health = p.health.health;
     opening.body.fitness = p.health.fitness;
     opening.body.circadianPeak = p.health.circadianPeak;
@@ -243,7 +249,7 @@ export async function validateKitchenChapter(chapter: KitchenChapter) {
   }
   if (
     chapter.version !== 'pass-cast/1' ||
-    !same(await prepareKitchenChapter(chapter.inputs, chapter.seed), content)
+    !same(await prepareKitchenChapter(chapter.inputs, chapter.seed, chapter.plainNarration === true), content)
   )
     throw new Error('Pinned kitchen chapter does not match its native sources.');
 }

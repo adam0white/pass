@@ -362,6 +362,8 @@ export interface PartyCard {
 }
 
 export interface GameState {
+  /** Persisted narration choice; absence preserves pre-adoption narration. */
+  plainNarration?: boolean;
   version: string;
   castRevisions?: Record<string, string>;
   /** Recorded by a migration input; absent in historical snapshots. */
@@ -492,16 +494,22 @@ export function rollTickets(
 
 // ---------- setup ----------
 
-export function newGame(seed: number, edition: string = GAME_VERSION, chapter?: KitchenChapter): GameState {
+export function newGame(
+  seed: number,
+  edition: string = GAME_VERSION,
+  chapter?: KitchenChapter,
+  plainNarration = edition === GAME_VERSION,
+): GameState {
   const now = 9 * 60;
-  const people = FOUNDERS.map((m) => makeCook(m.id, seed, now, edition));
-  const chef = makeChef(seed, now);
+  const people = FOUNDERS.map((m) => makeCook(m.id, seed, now, edition, plainNarration));
+  const chef = makeChef(seed, now, plainNarration);
   for (const p of people) acquaintWith(chef, p, 0.5, now);
   const regulars: Record<string, RegularState> = {};
   for (const r of REGULARS)
     regulars[r.id] = { regard: 0.6, tab: r.tab ? 'open' : 'paying', visits: 0, friendNext: false };
   const s: GameState = {
     version: edition,
+    ...(plainNarration ? { plainNarration: true } : {}),
     ...(edition === 'pass@13'
       ? { castRevisions: Object.fromEntries(CAST.map((c) => [c.castId, c.revision])) }
       : {}),
@@ -2802,7 +2810,7 @@ function choose(s: GameState, key: string, value: string) {
       );
       return;
     }
-    const p = makeHire(t, s.seed, s.minute, s.version);
+    const p = makeHire(t, s.seed, s.minute, s.version, s.plainNarration === true);
     s.people.push(p);
     s.crew.push({
       id: t.id,
@@ -2871,6 +2879,7 @@ function leaveSunday(s: GameState) {
 export interface Export {
   game: string;
   framework: string;
+  plainNarration?: boolean;
   seed: number;
   inputs: Input[];
   state: GameState;
@@ -2883,6 +2892,7 @@ export function exportRun(s: GameState, framework: string): Export {
   return {
     game: s.version,
     framework,
+    ...(s.plainNarration ? { plainNarration: true } : {}),
     seed: s.seed,
     inputs: s.inputs,
     state: cloneState(s),
@@ -2914,8 +2924,9 @@ export function replay(
   until?: number,
   edition: string = GAME_VERSION,
   chapter?: KitchenChapter,
+  plainNarration = edition === GAME_VERSION,
 ): GameState {
-  const s = newGame(seed, edition, chapter);
+  const s = newGame(seed, edition, chapter, plainNarration);
   for (const inp of inputs) {
     while (s.phase === 'service' && s.minute < inp.at) step(s);
     s.inputs.push(inp);

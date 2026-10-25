@@ -13,14 +13,21 @@ export interface ReturnChapter {
 }
 
 type ReplayFile = Pick<Export, 'game' | 'seed' | 'inputs'> &
-  Partial<Pick<Export, 'state' | 'returnChapter' | 'castChapter'>> & { minute?: number };
+  Partial<Pick<Export, 'state' | 'returnChapter' | 'castChapter' | 'plainNarration'>> & { minute?: number };
 
 const canonicalJson = (value: unknown) => canonicalPersona(JSON.parse(JSON.stringify(value)));
 
 function departure(prefix: Export): GameState {
   if (!prefix || prefix.returnChapter || prefix.state?.returnChapter || prefix.game !== 'pass@12')
     throw new Error('The original local departure notebook is required. Start a fresh kitchen instead.');
-  const source = replay(prefix.seed, prefix.inputs, prefix.state?.minute, prefix.game);
+  const source = replay(
+    prefix.seed,
+    prefix.inputs,
+    prefix.state?.minute,
+    prefix.game,
+    undefined,
+    prefix.plainNarration ?? prefix.state?.plainNarration ?? false,
+  );
   if (!zeynepDepartureStatus(source).eligible)
     throw new Error('The local notebook does not establish Zeynep’s released stint and home result.');
   if (prefix.state && canonicalJson(source) !== canonicalJson(prefix.state))
@@ -121,6 +128,7 @@ export function replayExport(ex: ReplayFile): GameState {
     ex.state?.minute ?? ex.minute,
     ex.game,
     ex.castChapter ?? ex.state?.castChapter,
+    ex.plainNarration ?? ex.state?.plainNarration ?? false,
   );
 }
 

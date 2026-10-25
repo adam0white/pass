@@ -6,7 +6,7 @@ import { unlinkedFeedbackRun } from '../src/ui/feedback-run.ts';
 it('omits only the browser consent key while the real run decoder preserves replay', async () => {
   const state = newGame(17);
   const run = {
-    ...exportRun(state, '2.18.0'),
+    ...exportRun(state, '2.21.0'),
     continuity: { recordingKey: 'pass-run-browser-only', fileUnlinked: true, envelope: null, oneCast: [] },
   };
   const copy = unlinkedFeedbackRun(run) as typeof run;

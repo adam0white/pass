@@ -1,0 +1,31 @@
+{
+  "sourceCommit": "e81996c",
+  "framework": "2.18.0",
+  "normalization": "test/hf-state.ts",
+  "rows": [
+    {
+      "seed": 7,
+      "policy": "ask",
+      "start": "fresh",
+      "before": "01e5241aef38af547c3a84df2ec6f9344d508b8f263bee6ed5031b7192c78e4d",
+      "after": "01e5241aef38af547c3a84df2ec6f9344d508b8f263bee6ed5031b7192c78e4d",
+      "equal": true
+    },
+    {
+      "seed": 42,
+      "policy": "ask",
+      "start": "fresh",
+      "before": "31d1dbc2cf47d0e192e6157422749efb08986bce3ed37e1cd192b6177f6876f6",
+      "after": "31d1dbc2cf47d0e192e6157422749efb08986bce3ed37e1cd192b6177f6876f6",
+      "equal": true
+    },
+    {
+      "seed": 1001,
+      "policy": "ask",
+      "start": "fresh",
+      "before": "44d2b123d5a7d76f5f51e0fc7cd48ef987208218350dd897d1301e6545cd3e29",
+      "after": "44d2b123d5a7d76f5f51e0fc7cd48ef987208218350dd897d1301e6545cd3e29",
+      "equal": true
+    }
+  ]
+}
