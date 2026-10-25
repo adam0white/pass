@@ -31,6 +31,8 @@ export const keyOf = (castId: string) => {
   return c.castId.split('.')[2]!;
 };
 const same = (a: unknown, b: unknown) => canonicalPersona(a) === canonicalPersona(b);
+// Portable calendar semantics are shared only by these explicitly supported releases.
+const nativeEngine = (engine: string) => engine === '2.17.0' || engine === '2.21.0';
 const identity = (xs: string[]) => Object.fromEntries(xs.map((x) => [x, x]));
 export interface KitchenChapter {
   version: 'pass-cast/1';
@@ -83,13 +85,13 @@ export async function prepareKitchenChapter(
     const native =
       parent.source.game === 'pass' &&
       parent.source.rules === 'pass-13' &&
-      parent.source.engine === '2.17.0' &&
+      nativeEngine(parent.source.engine) &&
       parent.transfer.castPassport === 'pass-kitchen/1' &&
       parent.transfer.sourceRole === id;
     const agency =
       ((parent.source.game === 'goodhands' && parent.source.rules === 'goodhands-6') ||
         (parent.source.game === 'pass' && parent.source.rules === 'pass-13')) &&
-      parent.source.engine === '2.17.0' &&
+      nativeEngine(parent.source.engine) &&
       parent.transfer.castPassport === 'goodhands-agency/1' &&
       ((id === 'hulya' && parent.transfer.sourceRole === 'hulya') ||
         (id === 'zeynep' && parent.transfer.sourceRole === 'zeynep-pass'));
@@ -97,7 +99,7 @@ export async function prepareKitchenChapter(
       (id === 'rafi' || id === 'sam') &&
       ((parent.source.game === 'neighbours' && parent.source.rules === 'neighbours-cast-1') ||
         (parent.source.game === 'pass' && parent.source.rules === 'pass-13')) &&
-      parent.source.engine === '2.17.0' &&
+      nativeEngine(parent.source.engine) &&
       parent.transfer.castPassport === 'neighbours-cast/1' &&
       parent.transfer.sourceRole === (id === 'rafi' ? 'ravi' : 'sam');
     if (!native && !agency && !town)

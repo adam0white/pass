@@ -1,5 +1,5 @@
 /** Synthetic semantic controls; these are not real browser-journey evidence. */
-import { releaseCommitment, snapshot } from '@adam0white/human-framework';
+import { ENGINE_VERSION, releaseCommitment, snapshot } from '@adam0white/human-framework';
 import { createPersona, initialPersonaLife, preparePersonaLife } from '@adam0white/lab-client';
 import { expect, it } from 'vitest';
 import {
@@ -11,7 +11,7 @@ import {
 import { replayExport, validateReplayFile } from '../src/sim/continuation.ts';
 import { exportRun, newGame, queueInput } from '../src/sim/kitchen.ts';
 
-async function source(sourceGame = 'goodhands', pendingShift = false) {
+async function source(sourceGame = 'goodhands', pendingShift = false, engine = '2.17.0') {
   const p = freshActor('hulya', 42, 510);
   if (!pendingShift)
     for (const c of p.agenda.commitments) if (c.status === 'pending') releaseCommitment(p, c.id);
@@ -36,7 +36,7 @@ async function source(sourceGame = 'goodhands', pendingShift = false) {
     source: {
       game: sourceGame,
       build: 'fixture',
-      engine: '2.17.0',
+      engine,
       rules: sourceGame === 'pass' ? 'pass-13' : 'goodhands-6',
     },
     transfer: { ...body, life: initialPersonaLife('hf.cast.hulya.pass', 'synthetic-control', 0) },
@@ -137,11 +137,13 @@ it('a fresh Zeynep chapter keeps the exact sons promise through an explicitly ac
 });
 
 it.each([
-  ['rafi', 'ravi', 'hf.cast.rafi.pass'],
-  ['sam', 'sam', 'hf.cast.sam.smallworks'],
+  ['rafi', 'ravi', 'hf.cast.rafi.pass', '2.17.0'],
+  ['sam', 'sam', 'hf.cast.sam.smallworks', '2.17.0'],
+  ['rafi', 'ravi', 'hf.cast.rafi.pass', ENGINE_VERSION],
+  ['sam', 'sam', 'hf.cast.sam.smallworks', ENGINE_VERSION],
 ])(
   'maps only quiet native %s without converting repair practice or elapsed body time',
-  async (id, sourceId, castId) => {
+  async (id, sourceId, castId, engine) => {
     const p = freshActor(id!, 42, 2535);
     p.id = sourceId!;
     p.body.health = 0.98;
@@ -156,7 +158,7 @@ it.each([
       castRevision: '1',
       branchId: 'synthetic-native-rafi',
       parentRevision: null,
-      source: { game: 'neighbours', build: 'fixture', engine: '2.17.0', rules: 'neighbours-cast-1' },
+      source: { game: 'neighbours', build: 'fixture', engine: engine!, rules: 'neighbours-cast-1' },
       transfer: {
         castPassport: 'neighbours-cast/1',
         sourceRole: sourceId!,
@@ -217,3 +219,38 @@ it('validates historical canonical chapters without changing their saved narrati
   expect(await validateReplayFile(exportRun(state, '2.21.0'))).toEqual(state);
   expect(chapter).toEqual(before);
 });
+
+it.each(['pass', 'goodhands'])(
+  'admits an actual current %s native projection and replays its pinned opening',
+  async (game) => {
+    const input = await source(game, false, ENGINE_VERSION);
+    expect(input.parent.source.engine).toBe('2.21.0');
+    const portable = (
+      game === 'pass' ? input.parent.transfer.kitchenPerson : input.parent.transfer.agencyPerson
+    ) as { person: { source: { engine: string }; rng: unknown } };
+    expect(portable.person.source.engine).toBe('2.21.0');
+    const chapter = await prepareKitchenChapter([input], 42);
+    expect(chapter.actors.hulya?.rng).toEqual(portable.person.rng);
+    expect(chapter.actors.hulya?.lexicon?.plainEnglish).toBe(true);
+    const state = newGame(42, 'pass@13', chapter);
+    expect(await validateReplayFile(exportRun(state, '2.21.0'))).toEqual(state);
+    const badSnapshot = structuredClone(input.parent);
+    const badPortable = (
+      game === 'pass' ? badSnapshot.transfer.kitchenPerson : badSnapshot.transfer.agencyPerson
+    ) as { person: { source: { engine: string } } };
+    badPortable.person.source.engine = '2.20.0';
+    const { revision: _badRevision, ...badUnsigned } = badSnapshot;
+    const badParent = await createPersona(badUnsigned);
+    await expect(prepareKitchenChapter([preparePersonaLife(badParent, 0)], 42)).rejects.toThrow(
+      'unsupported source schema/engine',
+    );
+    const { revision: _revision, ...unsigned } = input.parent;
+    const unsupported = await createPersona({
+      ...unsigned,
+      source: { ...unsigned.source, engine: '2.20.0' },
+    });
+    await expect(prepareKitchenChapter([preparePersonaLife(unsupported, 0)], 42)).rejects.toThrow(
+      'no supported native kitchen map',
+    );
+  },
+);
