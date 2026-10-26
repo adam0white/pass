@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { FRAMEWORK_VERSION } from '@adam0white/human-framework';
 import { describe, expect, it } from 'vitest';
 import { CAST, freshActor } from '../src/sim/cast-chapter.ts';
 import { replayExport } from '../src/sim/continuation.ts';
@@ -53,7 +54,7 @@ describe('published HF plain narration', () => {
       queueInput(s, { kind: 'board', rows: boardDefaults(s) });
       queueInput(s, { kind: 'open' });
       for (let i = 0; i < 20; i++) step(s);
-      const ex = exportRun(s, '2.21.0');
+      const ex = exportRun(s, FRAMEWORK_VERSION);
       expect(cloneState(replayExport(ex))).toEqual(cloneState(s));
       expect(replayExport(ex).people[0]?.lexicon?.plainEnglish).toBe(choice || undefined);
     }

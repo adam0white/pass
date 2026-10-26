@@ -8,7 +8,6 @@ import {
   MINUTES_PER_YEAR,
   type Person,
   projectCalendarPersona,
-  restore,
   snapshot,
   tick,
   validateCalendarPersona,
@@ -22,13 +21,14 @@ import {
   preparePersonaLife,
   validatePersona,
 } from '@adam0white/lab-client';
-import { FOUNDERS, HIRES, makeCook, makeHire } from './cooks.ts';
+import { required } from '../required.ts';
+import { HIRES, makeCook, makeHire } from './cooks.ts';
 
 export const CAST = castForGame('pass');
 export const keyOf = (castId: string) => {
   const c = CAST.find((c) => c.castId === castId);
   if (!c) throw new Error('Person is outside this kitchen cast.');
-  return c.castId.split('.')[2]!;
+  return required(c.castId.split('.')[2]);
 };
 const same = (a: unknown, b: unknown) => canonicalPersona(a) === canonicalPersona(b);
 // Portable calendar semantics are shared only by these explicitly supported releases.
@@ -77,7 +77,7 @@ export async function prepareKitchenChapter(
   for (const input of inputs) {
     const parent = await validatePersona(input.parent),
       id = keyOf(parent.castId),
-      cast = CAST.find((c) => c.castId === parent.castId)!;
+      cast = required(CAST.find((c) => c.castId === parent.castId));
     if (parent.terminal || parent.castRevision !== cast.revision)
       throw new Error('Closed or older cast edition. Export it or choose an explicit fresh local story.');
     if (!same(preparePersonaLife(parent, input.clockMs).life, input.life))
@@ -91,7 +91,7 @@ export async function prepareKitchenChapter(
     const agency =
       ((parent.source.game === 'goodhands' && parent.source.rules === 'goodhands-6') ||
         (parent.source.game === 'pass' && parent.source.rules === 'pass-13')) &&
-      nativeEngine(parent.source.engine) &&
+      (nativeEngine(parent.source.engine) || (id === 'zeynep' && parent.source.engine === '2.23.0')) &&
       parent.transfer.castPassport === 'goodhands-agency/1' &&
       ((id === 'hulya' && parent.transfer.sourceRole === 'hulya') ||
         (id === 'zeynep' && parent.transfer.sourceRole === 'zeynep-pass'));
@@ -99,7 +99,7 @@ export async function prepareKitchenChapter(
       (id === 'rafi' || id === 'sam') &&
       ((parent.source.game === 'neighbours' && parent.source.rules === 'neighbours-cast-1') ||
         (parent.source.game === 'pass' && parent.source.rules === 'pass-13')) &&
-      nativeEngine(parent.source.engine) &&
+      (nativeEngine(parent.source.engine) || parent.source.engine === '2.23.0') &&
       parent.transfer.castPassport === 'neighbours-cast/1' &&
       parent.transfer.sourceRole === (id === 'rafi' ? 'ravi' : 'sam');
     if (!native && !agency && !town)
@@ -173,7 +173,7 @@ export async function prepareKitchenChapter(
         c.importance === 0.7 &&
         c.recurEvery === 1440 &&
         c.actions.length === 1 &&
-        ['home', 'leave-for-home'].includes(c.actions[0]!);
+        ['home', 'leave-for-home'].includes(required(c.actions[0]));
       if (
         !family &&
         !(
@@ -312,4 +312,3 @@ export async function kitchenTransfer(person: Person) {
     ],
   };
 }
-export const founder = (id: string) => FOUNDERS.some((m) => m.id === id);

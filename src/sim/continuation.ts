@@ -41,7 +41,7 @@ function sourceEnvelope(prefix: Export): PersonaEnvelope {
     departureEnvelope?: PersonaEnvelope;
   };
   const pinned = meta.departureEnvelope ?? meta.continuity?.envelope;
-  if (!pinned || pinned.source.game !== 'pass' || pinned.castId !== 'hf.cast.zeynep.pass')
+  if (pinned?.source.game !== 'pass' || pinned.castId !== 'hf.cast.zeynep.pass')
     throw new Error('The local departure has no pinned person envelope. Start a fresh kitchen instead.');
   return pinned;
 }

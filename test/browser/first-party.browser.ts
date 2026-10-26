@@ -35,5 +35,6 @@ test('first party start shows both Sunday choices and hands over the service bef
   await page.reload();
   await page.locator('#cont').click();
   await expect(page.locator('#caption .hand').first()).toHaveText(handover ?? '');
-  await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-213/shots/first-party-phone.png' });
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-213/shots/first-party-phone.png' });
 });

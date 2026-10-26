@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, type Page, test } from '@playwright/test';
 import { boardDefaults, newGame, queueInput, step } from '../../src/sim/kitchen.ts';
 
@@ -47,7 +48,8 @@ for (const [width, height] of [
       expect(size.fullH).toBeLessThanOrEqual(size.h + 1);
       expect(size.fullW).toBeLessThanOrEqual(size.w + 1);
     }
-    await page.screenshot({ path: test.info().outputPath(`board-${width}.png`) });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: test.info().outputPath(`board-${width}.png`) });
     await expect(page.locator('#open-service')).toBeInViewport({ ratio: 1 });
   });
 
@@ -57,9 +59,45 @@ for (const [width, height] of [
     await page.getByRole('button', { name: 'Sit with Rafi on the back step' }).click();
     const response = page.getByRole('status').filter({ hasText: 'I sat with Rafi on the back step.' });
     await expect(response).toContainText('When the jar tempts me, I’ll go and scrub the trays. Okay, Chef.');
-    await expect(response).toBeInViewport({ ratio: 1 });
+    try {
+      await expect(response).toBeInViewport({ ratio: 1 });
+    } finally {
+      const geometry = await response.evaluate((el) => {
+        const rect = (node: Element) => {
+          const r = node.getBoundingClientRect();
+          const style = getComputedStyle(node);
+          return {
+            tag: node.tagName,
+            id: node.id,
+            className: node.className,
+            x: r.x,
+            y: r.y,
+            width: r.width,
+            height: r.height,
+            scrollTop: node.scrollTop,
+            scrollHeight: node.scrollHeight,
+            clientHeight: node.clientHeight,
+            overflow: style.overflow,
+            padding: style.padding,
+            scrollMargin: style.scrollMargin,
+          };
+        };
+        const ancestors = [];
+        for (let node = el.parentElement; node; node = node.parentElement) ancestors.push(rect(node));
+        return {
+          text: el.textContent,
+          response: rect(el),
+          ancestors,
+          viewport: { width: innerWidth, height: innerHeight },
+          fonts: document.fonts.status,
+        };
+      });
+      await mkdir(test.info().outputDir, { recursive: true });
+      await writeFile(test.info().outputPath('jar-geometry.json'), JSON.stringify(geometry, null, 2));
+    }
     await expect(page.locator('#open')).toBeEnabled();
-    await page.screenshot({ path: test.info().outputPath(`rafi-${width}.png`) });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: test.info().outputPath(`rafi-${width}.png`) });
     await page.reload();
     await page.locator('#cont').click();
     await expect(response).toContainText('When the jar tempts me, I’ll go and scrub the trays. Okay, Chef.');

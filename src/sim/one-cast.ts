@@ -14,6 +14,7 @@ import {
   validatePersonaProjection,
 } from '@adam0white/human-framework';
 import { canonicalPersona, type PersonaEnvelope } from '@adam0white/lab-client';
+import { required } from '../required.ts';
 import type { GameState } from './kitchen.ts';
 
 export const ZEYNEP_CAST = 'hf.cast.zeynep.pass';
@@ -97,9 +98,9 @@ export function zeynepDepartureStatus(s: GameState): {
 /** Called only by the replayed zeynep-release input, after ordinary service/home outcomes. */
 export function releaseZeynepStint(s: GameState): boolean {
   if (!zeynepDepartureStatus(s).canRelease) return false;
-  const p = personOf(s)!;
+  const p = required(personOf(s));
   for (const c of p.agenda.commitments) if (shift(c) && c.status === 'pending') releaseCommitment(p, c.id);
-  const member = s.crew.find((c) => c.id === 'zeynep')!;
+  const member = required(s.crew.find((c) => c.id === 'zeynep'));
   member.left = {
     night: s.night,
     words: 'Chef released me from my kitchen shifts. Now I can take a daytime job near my boys.',
@@ -130,7 +131,7 @@ function projection(p: Person, targetOpening: number): PersonaProjectionSnapshot
     episodes: {},
     commitments: {},
   };
-  mapping.episodes![work.id] = {
+  required(mapping.episodes)[work.id] = {
     id: `pass-zeynep-${work.id}`,
     action: 'cold',
     actorId: 'zeynep-pass',
@@ -141,7 +142,7 @@ function projection(p: Person, targetOpening: number): PersonaProjectionSnapshot
   };
   for (const c of p.agenda.commitments) {
     if (c.status !== 'pending' || !family(c)) continue;
-    mapping.commitments![c.id] = {
+    required(mapping.commitments)[c.id] = {
       id: 'pass-family-home',
       actions: ['leave-for-home'],
       toId: 'sons',
@@ -156,14 +157,14 @@ function projection(p: Person, targetOpening: number): PersonaProjectionSnapshot
 export async function projectZeynep(s: GameState, targetOpening?: number): Promise<ZeynepTransfer> {
   const status = zeynepDepartureStatus(s);
   if (!status.eligible) throw new Error(status.reasons.join(' '));
-  const p = personOf(s)!;
+  const p = required(personOf(s));
   const initial = snapshot(p);
   const opening = targetOpening ?? 1440 + (p.now % 1440);
   const person = projection(p, opening);
-  const work = completed(p, 'cold')!;
-  const previous = [...p.agenda.commitments]
-    .reverse()
-    .find((c) => family(c) && ['kept', 'broken'].includes(c.status))!;
+  const work = required(completed(p, 'cold'));
+  const previous = required(
+    [...p.agenda.commitments].reverse().find((c) => family(c) && ['kept', 'broken'].includes(c.status)),
+  );
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonicalPersona(initial)));
   return {
     person,

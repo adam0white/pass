@@ -1,0 +1,21 @@
+{
+  "source": "40ca6b87b310d63e44e3d720b1f8c3838723234d",
+  "sourceRoot": "/Users/abdul/code/.lab-scratch/wt/concordia/v3-pass-neighbours-capture/neighbours",
+  "role": "sam",
+  "castId": "hf.cast.sam.smallworks",
+  "package": "3.0.0",
+  "engine": "2.23.0",
+  "checkpoint": {
+    "schema": "human/person@1",
+    "sourceMinute": 645,
+    "rng": {
+      "a": 1254313033,
+      "b": 1061033341,
+      "c": 215739932,
+      "d": 3765034368
+    },
+    "sha256": "10cfab6d1ef7318f26f45e9d72278317f007af669b84755ffbcee33ec4725cde"
+  },
+  "sourceReplayExact": true,
+  "transport": "local shelf transport double; no browser journey or server receipt"
+}

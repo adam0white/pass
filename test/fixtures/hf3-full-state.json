@@ -1,0 +1,50 @@
+{
+  "source": "7b5d8c81219b518e8adf8f3da14f2bbea6e0dbf5",
+  "framework": "2.21.0",
+  "rows": [
+    {
+      "file": "1001-ask.json",
+      "allowedPaths": [
+        "/people/0/engine",
+        "/people/1/engine",
+        "/people/2/engine",
+        "/people/3/engine",
+        "/people/4/engine",
+        "/chef/engine"
+      ],
+      "beforeRawSHA256": "45206600780c08467f3738abeb471858b32d7c41ec859f7d33714c33f1c85360",
+      "afterRawSHA256": "66ea6a7a3aecc8d6aeebe6d2cb86ba4ec56f06695281ed089583bb985016d3f3",
+      "engineIndependentSHA256": "66ea6a7a3aecc8d6aeebe6d2cb86ba4ec56f06695281ed089583bb985016d3f3",
+      "allRemainingFieldsExact": true
+    },
+    {
+      "file": "42-ask.json",
+      "allowedPaths": [
+        "/people/0/engine",
+        "/people/1/engine",
+        "/people/2/engine",
+        "/people/3/engine",
+        "/chef/engine"
+      ],
+      "beforeRawSHA256": "e78f22b8543548e446c16a044be64d1664df7c065d3f8cc3ef7354df15f4b8a1",
+      "afterRawSHA256": "67e5656ff646b1d45a2fa9b9ab45ee50eccea67a5d9583cb35b2ecd16932431d",
+      "engineIndependentSHA256": "67e5656ff646b1d45a2fa9b9ab45ee50eccea67a5d9583cb35b2ecd16932431d",
+      "allRemainingFieldsExact": true
+    },
+    {
+      "file": "7-ask.json",
+      "allowedPaths": [
+        "/people/0/engine",
+        "/people/1/engine",
+        "/people/2/engine",
+        "/people/3/engine",
+        "/people/4/engine",
+        "/chef/engine"
+      ],
+      "beforeRawSHA256": "daff5f363bb2d44bbcdfc2b56cf2960b17ca73f9245bdf5fe7be5ed130b54673",
+      "afterRawSHA256": "491162bba3aba09afb37801387791c10ce677063999a3e0ea141013122df34c6",
+      "engineIndependentSHA256": "491162bba3aba09afb37801387791c10ce677063999a3e0ea141013122df34c6",
+      "allRemainingFieldsExact": true
+    }
+  ]
+}

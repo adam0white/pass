@@ -14,6 +14,7 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 **Pick: A, The Pass.** Both consults chose it independently. It is fast (the rush paces it, so it is not another slow expedition sim), its choices are sharp (push a tired cook or fall behind), and every HF faculty that matters shows each night: refusals and counter-offers, trust and insisting, bodily forecasts ("I can do the rush, but I'll be spent for close"), a prompting at the tip jar that a cook can learn to let pass, and the evening review (muhasaba) whose resolve changes tomorrow.
 
 ## Rules taken from the consults
+
 1. A night is about 2½ real minutes at normal speed; the clock slows for an unanswered request or a station needing a cook; inspecting a cook eases the clock, and spoken answers get reading time (owner speed sweep, 2026-10-21). Every simulation step stays one minute.
 2. Verbs: tap a cook, then a job. Tap asks; press and hold insists. No menus during service, no meters for a person.
 3. Each job button carries the cook's likely answer in their hand (HF `predict`, pure). A refusal names its reason in their words.
@@ -23,17 +24,20 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 7. The evening is the confession: each cook's review in their own words, one line about you, then tomorrow.
 
 ## The world (host side, all in `src/sim`)
+
 - Tickets are pre-rolled from the seed per night (`rng.ts`, keyed by night and ticket index), so no input moves a later table: the fix for The Night Watch's "looks more like randomness".
 - Stations: grill, cold, dish. A cook working a station turns minutes into portions at a rate set by skill, HF body capacity, and protest. The pass plates a ticket when its portions are ready and a clean plate is free. A table that waits too long walks out.
 - Money is world truth and may be shown as a number. A person's inner state is never shown as a number: posture, hand-written lines and the journal show it.
 
 ## The people (HF pinned exactly: 2.8.0 through pass@9, 2.13.0 from pass@10)
+
 - **Selim**, grill, 56. Worked for Nevin twenty years. Honest, proud, prays maghrib (a quiet offer at sunset; a journal line, no station effect).
 - **Dilek**, cold, 34. Smokes; her own rule is no smoke in the rush (an HF abstention); a habit pulls the other way. Reviews by ruminating.
 - **Rafi**, dish, 19. Broke. A habit toward the tip jar against his held norm on theft: an HF prompting. If the chef talks to him he gets a practised response (redirect) that grows with use; moving the jar removes the offer instead.
 - Everyone holds "I don't walk out on a service" (an abstention to the chef); breaking it forms a resolve in the evening review.
 
 ## Concepts not chosen
+
 - **B. Half Time**, coaching an under-14 team through a season. Rejected: slow sim between matches, spatial football on a phone.
 - **C. Last Ferry**, the last crossings before a storm. Rejected: a one-night puzzle; too close to The Night Watch.
 
@@ -41,13 +45,12 @@ Three concepts were written (kept below) and sent, with the owner's taste signal
 
 The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, one notebook.
 
-| Week | Title | Services | New, brought by a person | Bill |
-|---|---|---|---|---|
-| 1 | The arrears | Mon to Sat | Rafi and the plates, the tip jar, the match crowd, the critic and Dilek's call, the bank | ₺5,200 to the bank |
-| 2 | The street | Wed to Sat | the pide oven (heat you keep up), regulars with names and tabs | ₺3,000 |
-| 3 | The ledger | Wed to Sat | the ledger on the pass, hiring and quitting on Sunday | ₺4,200 plus wages |
-| 4 | Nevin's name | Wed to Sat | the anniversary (Nevin's apron), the night the gas fails, a wedding order with a due time | ₺6,200 plus wages |
-
+| Week | Title        | Services   | New, brought by a person                                                                  | Bill               |
+| ---- | ------------ | ---------- | ----------------------------------------------------------------------------------------- | ------------------ |
+| 1    | The arrears  | Mon to Sat | Rafi and the plates, the tip jar, the match crowd, the critic and Dilek's call, the bank  | ₺5,200 to the bank |
+| 2    | The street   | Wed to Sat | the pide oven (heat you keep up), regulars with names and tabs                            | ₺3,000             |
+| 3    | The ledger   | Wed to Sat | the ledger on the pass, hiring and quitting on Sunday                                     | ₺4,200 plus wages  |
+| 4    | Nevin's name | Wed to Sat | the anniversary (Nevin's apron), the night the gas fails, a wedding order with a due time | ₺6,200 plus wages  |
 - **Bills and strikes.** Each Saturday the week's bill is paid from the till. A shortfall is carried at 1.1× and gives a strike; two strikes, or any shortfall in week 4, loses the lokanta.
 - **Sunday page.** Between weeks: who changed (HF `diffChronicle`, unprompted habits in kitchen words), who quits (an HF `decide` between staying and leaving, moved by trust and how often they were pushed), two candidates to hire (new HF people with their own temperament; their hints are the chef's guesses through `predictAs`, pencilled until known), and a decision card or two: Dilek's day off, the regulars' tabs, the pide price, letting a cook go, the offer to buy the name.
 - **Saves on the same fiction.** The notebook is the save: seed plus inputs, replayed. The title page offers "Turn back to Sunday, week N", which replays the inputs up to that Sunday.
@@ -75,6 +78,7 @@ The owner played week 1 and asked for more. pass@2 is four weeks, 18 services, o
 - **Resolved in pass@4, 2026-10-20 — F-227 first-service problem frequency:** the new edition brings three seeded tickets forward and adds chef food work. The original pass@3 schedule and autonomous returns remain unchanged for its notebooks. This replaces the 2026-11-03 deferral for new runs; taste still needs a source-unread retest.
 
 ## Earlier deferred work (target: after the owner plays pass@3)
+
 - Waiters and front-of-house as HF people.
 - Workers AI voice for the evening (not needed; HF lines carry it).
 - A cook quitting mid-service, not only on Sunday.
@@ -189,18 +193,22 @@ Adaeze **F-277**: “There is no chopping or serving action to perform while it 
 8. **Begin at week two (opt-in).** On the title page, "Begin at the second week": a steady hand runs week 1 (a fixed host policy, recorded as ordinary inputs, so the notebook replays exactly) and the chef takes over on Sunday of week 1, with the first two parties on the page. For a player who has already played week 1, and for playtests.
 
 ### HF made visible by it
+
 A party in the rush collides with agreed meal breaks, so a cook's break, refusal or counter-offer now has a named cost. The bodily forecast says whether a cook can hold the station through the party. Insisting can save a promise and comes back as protest, trust lost and Sunday quits. The station cook's Sunday line reads their trust in the chef in words.
 
 ### Depends on, and fallback
+
 The promise rests on pass@8's chef cooking, whose feel is not yet accepted (deferred, target 2026-11-03; two testers quit on it, F-283, F-284). If the owner vetoes chef cooking, the promise becomes a pass priority plus the served-by time: the same choice, without the signature portion. Not built.
 
 ### Acceptance (builder checks; the lead accepts taste)
+
 - pass@3..8 notebooks replay and continue exactly; pass@8 gets a full-state fixture captured from the live 5a2a449 asset before any simulation edit. HF stays exactly 2.8.0.
 - Week 1 under pass@9 equals pass@8 (full-state hashes with the version normalized) for every measure policy through Saturday close.
 - `scripts/measure.ts`, seeds 1000-1009, adds `flex-chef` (flex plus careful chef cooking) in two arms, promising every party and promising none. Targets: flex on pass@9 banks less or walks more on party nights than flex on pass@8 (the default rises for a winner); `flex-chef` promising everything takes a strike on at least 2 of 10 seeds and walks at least one more table on party nights than promising none; promising ends with a higher mean till than not promising, but not on every seed; ask and care win more seeds under Nevin's pace than without it.
 - Fresh testers start with Begin at the second week, and should be able to say which promise they made and why, and name the table that waited while they cooked it.
 
 ### Revert
+
 Set `GAME_VERSION` in `src/sim/kitchen.ts` back to `'pass@8'`; keep pass@9 in `canReplay` for existing notebooks.
 
 ### As built (pass@9, 2026-10-20)
@@ -211,14 +219,14 @@ Engine by a Codex worker (`327eb11` live pass@8 fixture, captured before any sim
 
 **Measure** (`scripts/measure.ts`, seeds 1000-1009, bots act every five game minutes with no reading delay; builder evidence, not enjoyment):
 
-| Policy | pass@8 | pass@9 |
-|---|---|---|
-| flex (never cooks) | 10/10 won, mean till left ₺2,522 | 10/10 won, ₺1,303 left |
-| flex-chef, promise none | - | 10/10 won, ₺1,698 left |
-| flex-chef, promise the first party each Sunday | - | 8/10 won; 23 of 30 promises kept; a strike on 5 seeds; ₺2,531 left |
-| flex-chef, promise every party | - | 3/10 won; 39 of 58 kept; ₺3,028 left |
-| ask / care (never cook, ask for stations) | 1/10, 1/10 won | 0/10, 0/10 won |
-| ask / care under Nevin's pace | - | 2/10, 2/10 won |
+| Policy                                         | pass@8                           | pass@9                                                             |
+| ---------------------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| flex (never cooks)                             | 10/10 won, mean till left ₺2,522 | 10/10 won, ₺1,303 left                                             |
+| flex-chef, promise none                        | -                                | 10/10 won, ₺1,698 left                                             |
+| flex-chef, promise the first party each Sunday | -                                | 8/10 won; 23 of 30 promises kept; a strike on 5 seeds; ₺2,531 left |
+| flex-chef, promise every party                 | -                                | 3/10 won; 39 of 58 kept; ₺3,028 left                               |
+| ask / care (never cook, ask for stations)      | 1/10, 1/10 won                   | 0/10, 0/10 won                                                     |
+| ask / care under Nevin's pace                  | -                                | 2/10, 2/10 won                                                     |
 
 Reading it: a strong kitchen still wins without promises, with half the cushion. Promising one party a week is a bet a careful chef wins most weeks and that pays; promising everything usually loses the lokanta. Weak play loses more than before, and Nevin's pace gives it back some. Week 1 is exactly pass@8 (full-state hashes through Saturday close, 28 seed-policy cases). A source-unread tester has not yet played it; the owner has not.
 

@@ -15,6 +15,7 @@ async function start(page: Page) {
   await page.goto('/');
   await page.evaluate(() => document.fonts.ready);
   await page.locator('#cont').click();
+  await page.evaluate(() => document.fonts.ready);
 }
 
 async function open(page: Page) {
@@ -65,7 +66,7 @@ test('board chips use 24-hour slots and answers precede the actions', async ({ p
   );
   await expect(page.locator('#open-service')).toBeDisabled();
   await expect(page.locator('#ask-board')).toHaveText('Ask them about the changes');
-  await expect(selim.locator('.board-answer')).toContainText('Changes not answered');
+  await expect(selim.locator('.board-answer')).toContainText('Waiting for a new answer');
   await selim.getByRole('button', { name: '18:10 before the rush', exact: true }).click();
   await expect(page.locator('#open-service')).toBeEnabled();
   await expect(page.locator('#ask-board')).toHaveCount(0);
@@ -103,7 +104,7 @@ test('station chips ask for a fresh answer and retain a refusal before opening',
   await expect(page.locator('#open-service')).toBeDisabled();
   await expect(page.locator('#board-form > .actions .primary')).toHaveCount(2);
   await page.locator('#ask-board').click();
-  await expect(selim.locator('.board-answer')).toContainText('Counter / no');
+  await expect(selim.locator('.board-answer')).toContainText('Refused or asked for a change');
   await expect(selim.locator('.board-answer')).toContainText('not agreed');
   await expect(page.locator('#open-service')).toBeEnabled();
 });
@@ -116,8 +117,14 @@ for (const width of [360, 1280]) {
     await start(page);
     const shots = process.env.PASS_SHOTS ?? testInfo.outputPath('renders');
     await mkdir(shots, { recursive: true });
-    await page.screenshot({ path: `${shots}/final-agreements-${width}-c.png`, fullPage: true });
-    await page.screenshot({ path: `${shots}/final-board-viewport-${width}-c.png` });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: `${shots}/final-agreements-${width}-c.png`, fullPage: true });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: `${shots}/final-board-viewport-${width}-c.png` });
+    if (width === 360) {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await expect(page.locator('.board-row').last()).toBeInViewport({ ratio: 1 });
+    }
     const defaultActions = await page.locator('#board-form > .actions').boundingBox();
     const defaultCards = await page.locator('.board-rows').boundingBox();
     if (width === 360) {
@@ -126,13 +133,19 @@ for (const width of [360, 1280]) {
       );
       await expect(page.locator('#open-service')).toBeInViewport({ ratio: 1 });
     }
-    const boxes = [];
     if (width === 360) await page.locator('[data-board-cook="selim"] .board-change').click();
-    for (const chip of await page.locator('.board-chips button:visible').all()) {
-      const box = await chip.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
-      expect(box?.width).toBeGreaterThanOrEqual(44);
-      if (box) boxes.push(box);
+    await page.evaluate(() => document.fonts.ready);
+    const boxes = await page.locator('.board-chips button:visible').evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const r = button.getBoundingClientRect();
+        return { label: button.textContent, x: r.x, y: r.y, width: r.width, height: r.height };
+      }),
+    );
+    await writeFile(testInfo.outputPath('chip-geometry.json'), JSON.stringify({ width, boxes }, null, 2));
+    expect(boxes.length).toBeGreaterThan(0);
+    for (const box of boxes) {
+      expect(box.height, box.label ?? '').toBeGreaterThanOrEqual(44);
+      expect(box.width, box.label ?? '').toBeGreaterThanOrEqual(44);
     }
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
@@ -145,6 +158,7 @@ for (const width of [360, 1280]) {
             b.x < a.x + a.width &&
             a.y < b.y + b.height &&
             b.y < a.y + a.height,
+          JSON.stringify({ a, b }),
         ).toBe(false);
       }
     }
@@ -162,7 +176,8 @@ for (const width of [360, 1280]) {
       ),
     );
     await page.locator('#open-service').scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `${shots}/final-actions-${width}-c.png` });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: `${shots}/final-actions-${width}-c.png` });
     await page.locator('#open-service').click();
     await page.evaluate(async () => {
       const path = '/src/ui/app.ts';
@@ -178,20 +193,35 @@ for (const width of [360, 1280]) {
     await expect(selim.getByRole('button', { name: /Rafi/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(selim.locator('.board-answer')).toContainText('Rafi:');
     await expect(selim.locator('.board-gap')).toContainText('Rafi has not agreed to take over');
-    await page.screenshot({ path: `${shots}/final-tuesday-board-${width}-c.png`, fullPage: true });
-    await selim.getByRole('button', { name: 'Nobody', exact: true }).click();
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: `${shots}/final-tuesday-board-${width}-c.png`, fullPage: true });
+    const board = await page.locator('.board-page').boundingBox();
+    const notice = await page.locator('#recording-footer').boundingBox();
+    expect(notice?.y).toBeGreaterThanOrEqual((board?.y ?? 0) + (board?.height ?? 0));
+    const nobody = selim.getByRole('button', { name: 'Nobody', exact: true });
+    await nobody.scrollIntoViewIfNeeded();
+    expect(
+      await nobody.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+      }),
+    ).toBe(true);
+    await nobody.click();
     await expect(selim.getByRole('button', { name: 'Nobody', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     await expect(page.locator('#ask-board')).toBeVisible();
-    await page.screenshot({ path: `${shots}/final-changes-${width}-c.png`, fullPage: true });
-    await page.screenshot({ path: `${shots}/final-changes-viewport-${width}-c.png` });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: `${shots}/final-changes-${width}-c.png`, fullPage: true });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ path: `${shots}/final-changes-viewport-${width}-c.png` });
     if (width === 360) {
       await page.evaluate(() => document.documentElement.style.setProperty('--safe-b', '20px'));
       await expect(page.locator('#same-board')).toBeInViewport({ ratio: 1 });
       await expect(page.locator('#ask-board')).toBeInViewport({ ratio: 1 });
-      await page.screenshot({ path: `${shots}/final-safe-actions-${width}-c.png` });
+      if (process.env.PASS_SCREENSHOTS === '1')
+        await page.screenshot({ path: `${shots}/final-safe-actions-${width}-c.png` });
       await page.setViewportSize({ width: 320, height: 690 });
       await page.addStyleTag({ content: 'html, body { font-size: 34px; }' });
       await expect(page.locator('#same-board')).toBeInViewport({ ratio: 1 });
@@ -298,7 +328,7 @@ test('the job dot matches the current station rather than the cook’s preferenc
     }, id);
     const buttons = page.locator('.verbs button');
     for (const button of await buttons.all()) {
-      const marked = (await button.innerText()).includes(' ·');
+      const marked = (await button.textContent())?.includes(' ·') ?? false;
       expect(marked).toBe((await button.getAttribute('data-v')) === station);
     }
     await page.locator('#close').click();
@@ -317,7 +347,7 @@ test('phone board keeps default and edited actions reachable without covering th
   await start(page);
   await expect(page.locator('.board-fields:visible')).toHaveCount(0);
   await expect(page.locator('[data-board-cook="selim"] .board-summary')).toHaveText(
-    'Grill · break 18:10 before the rush · grill waits',
+    'Grill · Break at 18:10 before the rush · Nobody will work at the grill during the break.',
   );
   const actions = page.locator('#board-form > .actions');
   const bounds = async () => {

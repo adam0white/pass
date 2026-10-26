@@ -6,27 +6,27 @@ Done means the shared cast contract is delivered with independent review, exact 
 
 ## Exhaustive foreground census
 
-| Former source | Current disposition | Source anchors |
-| --- | --- | --- |
-| Selim56 | Canonical founding grill cook; divorced, grown son remains background | cooks.ts makeCook; cast-scenes.ts |
-| Dilek34 | Canonical founding cold cook; mother/brother remain background | cooks.ts makeCook; cast-scenes.ts |
-| Rafi19 | Canonical founding dish worker; Can remains a background cousin, separate jar/deposit obligations | cooks.ts makeCook; cast-scenes.ts |
-| Murat27 | Canonical grill hire, earlier employment chapter; no invented supervisory qualification | cooks.ts HIRES/makeHire |
-| Zeynep45 | Canonical revision2 cold hire; sons’21:30–22:10 promise preserved; employment release requires played input | cooks.ts makeHire; kitchen.ts cast-release |
-| Can17 | Retired as current hire/maintained personal arc. Remains only Rafi’s background cousin; historical replay constructor retained | cooks.ts historical can; kitchen.ts candidates |
-| Hülya38 | Canonical oven hire, former Antalya cook, separated, adult stepdaughter remains private background | cooks.ts makeHire; cast-scenes.ts |
-| Sam18 | New allocated paid work-exchange visitor, novice dish skills, mother/sister background | cooks.ts HIRES/makeHire |
-| Chef31 | Unnamed player role/body and HF observer; no new canonical person | cooks.ts makeChef |
-| Nevin | Remembered deceased aunt/owner, never a live Person | campaign.ts WEEKS |
-| Ahmet | Incidental unnamed butcher/bill collector in current presentation, no separate continuing Person | campaign.ts WEEKS; cast-scenes.ts episodeText |
-| Hasan Bey | Incidental window-table account for this kitchen episode | campaign.ts REGULARS; episodeText |
-| Mrs Arslan/Gül Arslan | One incidental customer/child table account; not two identities | campaign.ts REGULARS; episodeText |
-| Aksoy sisters | Incidental reading-group account | campaign.ts REGULARS; episodeText |
-| Kemal | Incidental taxi customer | campaign.ts REGULARS; episodeText |
-| Ilyas | Incidental night-shift customer | campaign.ts REGULARS; episodeText |
-| Demir family | Incidental birthday-party booking | campaign.ts PARTIES; episodeText |
-| Yıldız family | Incidental wedding booking | campaign.ts PARTIES; episodeText |
-| Food writer | Unnamed incidental party host, no continuing Person | campaign.ts PARTIES |
+| Former source         | Current disposition                                                                                                            | Source anchors                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Selim56               | Canonical founding grill cook; divorced, grown son remains background                                                          | cooks.ts makeCook; cast-scenes.ts              |
+| Dilek34               | Canonical founding cold cook; mother/brother remain background                                                                 | cooks.ts makeCook; cast-scenes.ts              |
+| Rafi19                | Canonical founding dish worker; Can remains a background cousin, separate jar/deposit obligations                              | cooks.ts makeCook; cast-scenes.ts              |
+| Murat27               | Canonical grill hire, earlier employment chapter; no invented supervisory qualification                                        | cooks.ts HIRES/makeHire                        |
+| Zeynep45              | Canonical revision2 cold hire; sons’21:30–22:10 promise preserved; employment release requires played input                    | cooks.ts makeHire; kitchen.ts cast-release     |
+| Can17                 | Retired as current hire/maintained personal arc. Remains only Rafi’s background cousin; historical replay constructor retained | cooks.ts historical can; kitchen.ts candidates |
+| Hülya38               | Canonical oven hire, former Antalya cook, separated, adult stepdaughter remains private background                             | cooks.ts makeHire; cast-scenes.ts              |
+| Sam18                 | New allocated paid work-exchange visitor, novice dish skills, mother/sister background                                         | cooks.ts HIRES/makeHire                        |
+| Chef31                | Unnamed player role/body and HF observer; no new canonical person                                                              | cooks.ts makeChef                              |
+| Nevin                 | Remembered deceased aunt/owner, never a live Person                                                                            | campaign.ts WEEKS                              |
+| Ahmet                 | Incidental unnamed butcher/bill collector in current presentation, no separate continuing Person                               | campaign.ts WEEKS; cast-scenes.ts episodeText  |
+| Hasan Bey             | Incidental window-table account for this kitchen episode                                                                       | campaign.ts REGULARS; episodeText              |
+| Mrs Arslan/Gül Arslan | One incidental customer/child table account; not two identities                                                                | campaign.ts REGULARS; episodeText              |
+| Aksoy sisters         | Incidental reading-group account                                                                                               | campaign.ts REGULARS; episodeText              |
+| Kemal                 | Incidental taxi customer                                                                                                       | campaign.ts REGULARS; episodeText              |
+| Ilyas                 | Incidental night-shift customer                                                                                                | campaign.ts REGULARS; episodeText              |
+| Demir family          | Incidental birthday-party booking                                                                                              | campaign.ts PARTIES; episodeText               |
+| Yıldız family         | Incidental wedding booking                                                                                                     | campaign.ts PARTIES; episodeText               |
+| Food writer           | Unnamed incidental party host, no continuing Person                                                                            | campaign.ts PARTIES                            |
 
 No generated customers become canonical by name. Ticket generation, unnamed sons/other relatives, customers’ relatives, reading-group members, taxi/depot colleagues, bank and chain representatives remain background. No donor personality lottery exists in Pass. Current hiring excludes the historical Can slot; historical pools/seed indices remain pinned for older exports.
 
@@ -34,15 +34,15 @@ No generated customers become canonical by name. Ticket generation, unnamed sons
 
 The People panel presents a person’s own specific invitation only while that employed person is present and idle. Listen records a deterministic `cast-talk` input and their private disclosure. Leave records no disclosure. Importing life/biography never reveals these facts.
 
-| Person | Actually discoverable by choice | Larger outcomes deferred |
-| --- | --- | --- |
-| Selim | Read Nevin’s uninitialled station notes with his permission | Complete teaching, evening off, son’s call |
-| Dilek | Hear why she wants to record a kitchen rattle, with voice consent limits | Sound postcard and shared-meal routine |
-| Rafi | Voluntary deposit/travel account, distinct from jar theft | Deposit refund and separate jar restitution |
-| Zeynep | Invitation to cost her unsigned daytime menu application | Paid preparation/submission and former assistant’s letter |
-| Hülya | Sunny ledge, seed envelopes, stepdaughter’s portable-garden phrase | Joint growing and roadside visit |
-| Murat | Honest reference names his earlier boast and limits | Depot allocation correction |
-| Sam | Testing notebook admission and need for paid hours | Corrected old report and observed negative-result practice |
+| Person | Actually discoverable by choice                                          | Larger outcomes deferred                                   |
+| ------ | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Selim  | Read Nevin’s uninitialled station notes with his permission              | Complete teaching, evening off, son’s call                 |
+| Dilek  | Hear why she wants to record a kitchen rattle, with voice consent limits | Sound postcard and shared-meal routine                     |
+| Rafi   | Voluntary deposit/travel account, distinct from jar theft                | Deposit refund and separate jar restitution                |
+| Zeynep | Invitation to cost her unsigned daytime menu application                 | Paid preparation/submission and former assistant’s letter  |
+| Hülya  | Sunny ledge, seed envelopes, stepdaughter’s portable-garden phrase       | Joint growing and roadside visit                           |
+| Murat  | Honest reference names his earlier boast and limits                      | Depot allocation correction                                |
+| Sam    | Testing notebook admission and need for paid hours                       | Corrected old report and observed negative-result practice |
 
 Deferred outcomes are not granted by this edition’s disclosures. Review after owner play,2026-11-03.
 

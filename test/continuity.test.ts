@@ -5,6 +5,7 @@ import {
   preparePersonaLife,
 } from '@adam0white/lab-client';
 import { beforeEach, expect, it, vi } from 'vitest';
+import { required } from '../src/required.ts';
 import { freshActor, kitchenTransfer } from '../src/sim/cast-chapter.ts';
 import { newGame } from '../src/sim/kitchen.ts';
 
@@ -92,7 +93,7 @@ it('preflights all seven expected heads once before accepting a fresh batch', as
   expect(s.castChapter?.inputs[0]?.parent.revision).toBe(e.revision);
   const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'putBatch');
   expect(puts).toHaveLength(1);
-  expect(Object.keys(puts[0]![0].expectedHeads)).toHaveLength(7);
+  expect(Object.keys(required(puts[0])[0].expectedHeads)).toHaveLength(7);
   expect(mocks.lab.telemetryOn).toBe(false);
   expect(mocks.lab.allowPersonaRecording.mock.calls.every(([allow]) => !allow)).toBe(true);
 });
@@ -114,8 +115,8 @@ it('checkpoint CAS never retries against a newer head and imported files never p
   const s = newGame(42);
   s.phase = 'evening';
   s.releasedCast = ['selim'];
-  s.people.find((p) => p.id === 'selim')!.activity = null;
-  s.people.find((p) => p.id === 'selim')!.agenda.commitments = [];
+  required(s.people.find((p) => p.id === 'selim')).activity = null;
+  required(s.people.find((p) => p.id === 'selim')).agenda.commitments = [];
   mocks.shelf.request.mockRejectedValue(new Error('stale'));
   const c = continuity(() => s, vi.fn(), vi.fn());
   await c.restore(undefined, true, true);
@@ -161,7 +162,7 @@ it('explicit fresh local play remains local even when browser continuity is enab
   const s = newGame(42);
   s.phase = 'evening';
   s.releasedCast = ['selim'];
-  s.people[0]!.activity = null;
+  required(s.people[0]).activity = null;
   const c = continuity(() => s, vi.fn(), vi.fn());
   await c.local();
   await c.checkpoint();
@@ -232,4 +233,33 @@ it('failed fresh admission preserves the running notebook receipts and recording
   expect(c.data()).toEqual(before);
   expect(stop).not.toHaveBeenCalled();
   expect(mocks.lab.telemetryOn).toBe(false);
+});
+
+it('re-enters the actual Pass-stamped claim of a current Neighbours source', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { castForGame } = await import('@adam0white/lab-client');
+  let head: PersonaEnvelope = JSON.parse(
+    readFileSync(new URL('./fixtures/hf3-neighbours/ravi/persona.json', import.meta.url), 'utf8'),
+  );
+  mocks.shelf.request.mockImplementation(async (r) => {
+    if (r.action === 'prepareBatch')
+      return {
+        expectedHeads: Object.fromEntries(
+          castForGame('pass').map((c) => [c.castId, c.castId === head.castId ? head.revision : null]),
+        ),
+        inputs: [preparePersonaLife(head, 0)],
+        blocked: [],
+      };
+    if (r.action === 'putBatch') {
+      head = r.envelopes[0];
+      return null;
+    }
+    return null;
+  });
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  await c.fresh(42);
+  expect(head.source.game).toBe('pass');
+  expect(head.source.engine).toBe('2.23.0');
+  expect(head.transfer.castPassport).toBe('neighbours-cast/1');
+  await expect(c.fresh(42)).resolves.toMatchObject({ version: 'pass@13' });
 });

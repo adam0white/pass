@@ -1,0 +1,323 @@
+[
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "sam"
+  },
+  {
+    "op": "apply",
+    "actorId": "sam",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "ada"
+  },
+  {
+    "op": "apply",
+    "actorId": "ada",
+    "actionId": "inspect"
+  },
+  {
+    "op": "choose",
+    "actorId": "ravi"
+  },
+  {
+    "op": "apply",
+    "actorId": "ravi",
+    "actionId": "learn"
+  },
+  {
+    "op": "choose",
+    "actorId": "noor"
+  },
+  {
+    "op": "apply",
+    "actorId": "noor",
+    "actionId": "talk"
+  },
+  {
+    "op": "choose",
+    "actorId": "elin"
+  },
+  {
+    "op": "apply",
+    "actorId": "elin",
+    "actionId": "sleep"
+  },
+  {
+    "op": "choose",
+    "actorId": "jo"
+  },
+  {
+    "op": "apply",
+    "actorId": "jo",
+    "actionId": "supply"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "jo"
+  },
+  {
+    "op": "apply",
+    "actorId": "jo",
+    "actionId": "supply"
+  },
+  {
+    "op": "choose",
+    "actorId": "ravi"
+  },
+  {
+    "op": "apply",
+    "actorId": "ravi",
+    "actionId": "learn"
+  },
+  {
+    "op": "choose",
+    "actorId": "ada"
+  },
+  {
+    "op": "apply",
+    "actorId": "ada",
+    "actionId": "keep-closed"
+  },
+  {
+    "op": "choose",
+    "actorId": "sam"
+  },
+  {
+    "op": "apply",
+    "actorId": "sam",
+    "actionId": "work"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "noor"
+  },
+  {
+    "op": "apply",
+    "actorId": "noor",
+    "actionId": "talk"
+  },
+  {
+    "op": "choose",
+    "actorId": "ada"
+  },
+  {
+    "op": "apply",
+    "actorId": "ada",
+    "actionId": "repair"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "sam"
+  },
+  {
+    "op": "apply",
+    "actorId": "sam",
+    "actionId": "supply"
+  },
+  {
+    "op": "choose",
+    "actorId": "jo"
+  },
+  {
+    "op": "apply",
+    "actorId": "jo",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "ravi"
+  },
+  {
+    "op": "apply",
+    "actorId": "ravi",
+    "actionId": "learn"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "ada"
+  },
+  {
+    "op": "apply",
+    "actorId": "ada",
+    "actionId": "repair"
+  },
+  {
+    "op": "choose",
+    "actorId": "noor"
+  },
+  {
+    "op": "apply",
+    "actorId": "noor",
+    "actionId": "work"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "jo"
+  },
+  {
+    "op": "apply",
+    "actorId": "jo",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "sam"
+  },
+  {
+    "op": "apply",
+    "actorId": "sam",
+    "actionId": "supply"
+  },
+  {
+    "op": "choose",
+    "actorId": "ravi"
+  },
+  {
+    "op": "apply",
+    "actorId": "ravi",
+    "actionId": "work"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "noor"
+  },
+  {
+    "op": "apply",
+    "actorId": "noor",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "ada"
+  },
+  {
+    "op": "apply",
+    "actorId": "ada",
+    "actionId": "repair"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "ravi"
+  },
+  {
+    "op": "apply",
+    "actorId": "ravi",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "sam"
+  },
+  {
+    "op": "apply",
+    "actorId": "sam",
+    "actionId": "supply"
+  },
+  {
+    "op": "choose",
+    "actorId": "jo"
+  },
+  {
+    "op": "apply",
+    "actorId": "jo",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "elin"
+  },
+  {
+    "op": "apply",
+    "actorId": "elin",
+    "actionId": "care"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "ada"
+  },
+  {
+    "op": "apply",
+    "actorId": "ada",
+    "actionId": "keep-closed"
+  },
+  {
+    "op": "choose",
+    "actorId": "noor"
+  },
+  {
+    "op": "apply",
+    "actorId": "noor",
+    "actionId": "work"
+  },
+  {
+    "op": "prepare"
+  },
+  {
+    "op": "choose",
+    "actorId": "ravi"
+  },
+  {
+    "op": "apply",
+    "actorId": "ravi",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "sam"
+  },
+  {
+    "op": "apply",
+    "actorId": "sam",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "ada"
+  },
+  {
+    "op": "apply",
+    "actorId": "ada",
+    "actionId": "work"
+  },
+  {
+    "op": "choose",
+    "actorId": "jo"
+  },
+  {
+    "op": "apply",
+    "actorId": "jo",
+    "actionId": "work"
+  }
+]

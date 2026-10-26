@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { required } from '../../src/required.ts';
 
 test.use({ serviceWorkers: 'block' });
 
@@ -54,13 +55,13 @@ for (const [width, height] of [
   [1280, 800],
 ]) {
   test(`readable board and service at ${width}x${height}`, async ({ page }) => {
-    await page.setViewportSize({ width: width!, height: height! });
+    await page.setViewportSize({ width: required(width), height: required(height) });
     await quietNetwork(page);
     await page.goto('/');
     await page.locator('#new').click();
     await expect(page.locator('.people-board')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    if (width! >= 768) {
+    if (required(width) >= 768) {
       expect(
         await page
           .locator('.board-summary')
@@ -92,6 +93,8 @@ test('recording notice stays in the footer and appears once per local origin', a
   await page.evaluate(() => document.fonts.ready);
   const metrics = await notice.evaluate((el) => {
     const style = getComputedStyle(el);
+    const wrapper = el.parentElement;
+    if (!wrapper) throw new Error('Expected notice wrapper');
     const range = document.createRange();
     range.selectNodeContents(el);
     return {
@@ -100,7 +103,7 @@ test('recording notice stays in the footer and appears once per local origin', a
       rects: [...range.getClientRects()].map((r) => ({ x: r.x, y: r.y, w: r.width, h: r.height })),
       lines: range.getClientRects().length,
       height: el.getBoundingClientRect().height,
-      wrapper: el.parentElement!.getBoundingClientRect().height,
+      wrapper: wrapper.getBoundingClientRect().height,
     };
   });
   console.log('Footer metrics', metrics);

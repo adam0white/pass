@@ -17,15 +17,15 @@ The opening week hooks me. Monday and Wednesday felt good: a full house, a clear
 
 Totals are from the close screens. "Served" means tables fed out of tables seated.
 
-| Night | Served | Till at close | What it felt like |
-|---|---|---|---|
-| Mon wk1 | 15 of 15 | ₺600 | Too easy at the start. No tickets from 17:34 to 20:18, almost three game hours of dead air. Then a good flow. |
-| Tue wk1 | 19 of 20 | ₺760 | Right. The dish pit arrived and the grill got busy. |
-| Wed wk1 | 23 of 23 | ₺920 | Best night. Full house, nobody lost. |
-| Thu wk1 | 22 of 31 | ₺880 | Too hard in the 19:00 to 21:00 window. Nine tables lost. |
-| Fri wk1 | 19 of 27 | ₺760 | Hard. A cook left for a family emergency with the cold side open. Eight tables lost. |
-| Sat wk1 | 24 of 33 | ₺960 | Too hard. Nine tables lost. The bank took ₺4,880 against ₺5,200 due. Short by ₺320. |
-| Wed wk2 | partial | ₺580 at 21:59 | Stopped mid-service. Week 2 opened on Wednesday, not Monday. |
+| Night   | Served   | Till at close | What it felt like                                                                                             |
+| ------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| Mon wk1 | 15 of 15 | ₺600          | Too easy at the start. No tickets from 17:34 to 20:18, almost three game hours of dead air. Then a good flow. |
+| Tue wk1 | 19 of 20 | ₺760          | Right. The dish pit arrived and the grill got busy.                                                           |
+| Wed wk1 | 23 of 23 | ₺920          | Best night. Full house, nobody lost.                                                                          |
+| Thu wk1 | 22 of 31 | ₺880          | Too hard in the 19:00 to 21:00 window. Nine tables lost.                                                      |
+| Fri wk1 | 19 of 27 | ₺760          | Hard. A cook left for a family emergency with the cold side open. Eight tables lost.                          |
+| Sat wk1 | 24 of 33 | ₺960          | Too hard. Nine tables lost. The bank took ₺4,880 against ₺5,200 due. Short by ₺320.                           |
+| Wed wk2 | partial  | ₺580 at 21:59 | Stopped mid-service. Week 2 opened on Wednesday, not Monday.                                                  |
 
 Two points about the difficulty curve. First, the early nights are easy and then the difficulty jumps, with no step between. Second, every hard night had the same cause: the grill. Nothing else gave me that much trouble.
 
@@ -66,11 +66,11 @@ I did not read any source file. Every observation above comes from the harness o
 
 ## What the replay showed, and what changed
 
-| Report | Finding | Change |
-|---|---|---|
-| Cooks move station without a word | **Confirmed.** When a stint ends, the cook decides again (HF `decide`), and often the cook picks the station with more work. This is the design; the gap was that the move was silent. The replay has 12 such moves in 6 nights. | The journal names every self-chosen move and what a watcher would see as the reason: "Selim left the grill for the cold side; the grill was clear." Cooks still move on their own. That is the twist, and the reason is now on screen. |
-| Monday has three hours of dead air | **Confirmed.** Arrivals are pre-rolled, and Monday's 15 tables can leave long gaps. | While nothing is on the rail and nobody is due for ten minutes, the clock runs four times faster (page only; the sim is unchanged). |
-| Selim is gone from 18:40 to 19:20 | **Not confirmed.** Maghrib takes him 8 minutes, once a night (18:37 to 18:59 start across the six nights). Between 18:35 and 19:15 his sheet can say "after I pray maghrib" before he goes. The other "no"s in that window were eating and breaks. | None. Prayer stays a quiet part of his evening, not a scheduled obstacle on the rail (AGENTS.md, "Games keep faith gentle"). |
-| Dilek's card while she was already gone | The card waited until it was answered. | Requests now resolve themselves: Dilek waits six minutes, then goes, and says so. |
-| Oven, rail glyphs and the jar unexplained | Mostly the harness: the page has a tip line for each. The oven also had no on-screen cue. | "pide waiting" over the oven. The week 2 intro says someone has to keep it hot. The jar choice is now accepted only on its Wednesday. |
-| Easy early nights, then a jump on Thursday | Thursday is the match night (31 tables, arriving late), and it is meant as the first jump. | Kept. Both language-model testers missed week 1's bill (by ₺200 and ₺320). The HF-character bots paid it (see [the HF personas](polish-2026-10-19-hf-personas.md)). |
+| Report                                     | Finding                                                                                                                                                                                                                                            | Change                                                                                                                                                                                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cooks move station without a word          | **Confirmed.** When a stint ends, the cook decides again (HF `decide`), and often the cook picks the station with more work. This is the design; the gap was that the move was silent. The replay has 12 such moves in 6 nights.                   | The journal names every self-chosen move and what a watcher would see as the reason: "Selim left the grill for the cold side; the grill was clear." Cooks still move on their own. That is the twist, and the reason is now on screen. |
+| Monday has three hours of dead air         | **Confirmed.** Arrivals are pre-rolled, and Monday's 15 tables can leave long gaps.                                                                                                                                                                | While nothing is on the rail and nobody is due for ten minutes, the clock runs four times faster (page only; the sim is unchanged).                                                                                                    |
+| Selim is gone from 18:40 to 19:20          | **Not confirmed.** Maghrib takes him 8 minutes, once a night (18:37 to 18:59 start across the six nights). Between 18:35 and 19:15 his sheet can say "after I pray maghrib" before he goes. The other "no"s in that window were eating and breaks. | None. Prayer stays a quiet part of his evening, not a scheduled obstacle on the rail (AGENTS.md, "Games keep faith gentle").                                                                                                           |
+| Dilek's card while she was already gone    | The card waited until it was answered.                                                                                                                                                                                                             | Requests now resolve themselves: Dilek waits six minutes, then goes, and says so.                                                                                                                                                      |
+| Oven, rail glyphs and the jar unexplained  | Mostly the harness: the page has a tip line for each. The oven also had no on-screen cue.                                                                                                                                                          | "pide waiting" over the oven. The week 2 intro says someone has to keep it hot. The jar choice is now accepted only on its Wednesday.                                                                                                  |
+| Easy early nights, then a jump on Thursday | Thursday is the match night (31 tables, arriving late), and it is meant as the first jump.                                                                                                                                                         | Kept. Both language-model testers missed week 1's bill (by ₺200 and ₺320). The HF-character bots paid it (see [the HF personas](polish-2026-10-19-hf-personas.md)).                                                                    |

@@ -4,16 +4,16 @@
 - **Adapter:** the harness ships an adapter for the six-night game. I ported it to the campaign in `scratch/hf/adapter.ts` (not committed; it reads the sim and shows only what the page shows).
 - **Build:** pass@2 with the first of this round's fixes (HF 2.8.0), then rerun on pass@3 (commit 3f9b231 plus the early-hiring change). Seeds 1001 and 1002.
 
-| Persona | Seed | How the session ended | Nights (fed/seated) | Engagement |
-|---|---|---|---|---|
-| commuter | 1 | had to stop (its agenda), 13 min, Fri w1 18:05 | 15/15 20/20 23/23 31/31 | 0.73 |
-| commuter | 2 | had to stop, 14 min, Fri w1 19:17 | 15/15 20/20 23/23 31/31 | 0.73 |
-| unwinder | 1 | put it down, tired, 21 min, Wed w2 19:49 | 15/15 20/20 23/23 31/31 27/27 33/33 | 0.78 |
-| unwinder | 2 | put it down, tired, 21 min, Wed w2 20:20 | 15/15 20/20 23/23 31/31 27/27 30/33 | 0.80 |
-| completionist | 1 | put it down, tired, 21 min, Wed w2 20:38 | 15/15 20/20 23/23 31/31 27/27 27/33 | 0.81 |
-| completionist | 2 | put it down, tired, 21 min, Wed w2 20:20 | 15/15 20/20 23/23 31/31 27/27 31/33 | 0.80 |
-| restless | 1 | put it down, tired, 17 min, Sat w1 18:32 | 15/15 20/20 22/23 31/31 27/27 | 0.64 |
-| restless | 2 | put it down, tired, 14 min, Fri w1 19:26 | 15/15 20/20 23/23 31/31 | 0.63 |
+| Persona       | Seed | How the session ended                          | Nights (fed/seated)                 | Engagement |
+| ------------- | ---- | ---------------------------------------------- | ----------------------------------- | ---------- |
+| commuter      | 1    | had to stop (its agenda), 13 min, Fri w1 18:05 | 15/15 20/20 23/23 31/31             | 0.73       |
+| commuter      | 2    | had to stop, 14 min, Fri w1 19:17              | 15/15 20/20 23/23 31/31             | 0.73       |
+| unwinder      | 1    | put it down, tired, 21 min, Wed w2 19:49       | 15/15 20/20 23/23 31/31 27/27 33/33 | 0.78       |
+| unwinder      | 2    | put it down, tired, 21 min, Wed w2 20:20       | 15/15 20/20 23/23 31/31 27/27 30/33 | 0.80       |
+| completionist | 1    | put it down, tired, 21 min, Wed w2 20:38       | 15/15 20/20 23/23 31/31 27/27 27/33 | 0.81       |
+| completionist | 2    | put it down, tired, 21 min, Wed w2 20:20       | 15/15 20/20 23/23 31/31 27/27 31/33 | 0.80       |
+| restless      | 1    | put it down, tired, 17 min, Sat w1 18:32       | 15/15 20/20 22/23 31/31 27/27       | 0.64       |
+| restless      | 2    | put it down, tired, 14 min, Fri w1 19:26       | 15/15 20/20 23/23 31/31             | 0.63       |
 
 On pass@3 the shape is the same. The commuters stopped at Friday of week 1 (13 to 15 minutes). The unwinders and completionists put it down at Wednesday of week 2 (20 to 21 minutes), feeding 145 to 148 of week 1's 149 tables. The restless persona stopped at Friday or Saturday of week 1. Engagement was 0.62 to 0.81, as before.
 

@@ -256,7 +256,7 @@ export function continuity(
     await ready;
     const s = getState(),
       epoch = generation;
-    if (!s || s.version !== 'pass@13' || !shelf.enabled || fileOrigin || localOnly) return;
+    if (s?.version !== 'pass@13' || !shelf.enabled || fileOrigin || localOnly) return;
     const minute = s.minute;
     for (const cast of CAST) {
       const id = keyOf(cast.castId),

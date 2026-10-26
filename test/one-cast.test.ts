@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { type Affordance, begin, decide, finish, promise, snapshot, tick } from '@adam0white/human-framework';
 import { canonicalPersona, createPersona } from '@adam0white/lab-client';
 import { describe, expect, it } from 'vitest';
+import { required } from '../src/required.ts';
 import { prepareReturn, replayExport } from '../src/sim/continuation.ts';
 import { HIRES, makeHire } from '../src/sim/cooks.ts';
 import {
@@ -18,7 +19,7 @@ import { projectZeynep, returnedZeynep, ZEYNEP_CAST, zeynepDepartureStatus } fro
 /** Synthetic API fixture for host mapping tests, never evidence of a played kitchen journey. */
 function source() {
   const s = newGame(7, 'pass@12');
-  const p = makeHire(HIRES.find((h) => h.id === 'zeynep')!, 7, 1050, 'pass@12');
+  const p = makeHire(required(HIRES.find((h) => h.id === 'zeynep')), 7, 1050, 'pass@12');
   const act = (action: string, at: number, duration: number) => {
     tick(p, at);
     const a: Affordance = {
@@ -52,7 +53,7 @@ describe('Zeynep chapter adapter (synthetic technical fixtures)', () => {
     await expect(projectZeynep(s)).rejects.toThrow('release');
     queueInput(s, { kind: 'zeynep-release' });
     expect(zeynepDepartureStatus(s)).toMatchObject({ eligible: true, canRelease: false });
-    const before = snapshot(s.people.find((p) => p.id === 'zeynep')!);
+    const before = snapshot(required(s.people.find((p) => p.id === 'zeynep')));
     const transfer = await projectZeynep(s);
     expect(Object.keys(transfer.person.skills)).toEqual(['cold']);
     expect(transfer.person.skills.cold).toEqual(before.skills.cold);
@@ -74,7 +75,7 @@ describe('Zeynep chapter adapter (synthetic technical fixtures)', () => {
     expect(transfer.checkpoint.checkpointDigest).toBe(
       createHash('sha256').update(canonicalPersona(before)).digest('hex'),
     );
-    expect(snapshot(s.people.find((p) => p.id === 'zeynep')!)).toEqual(before);
+    expect(snapshot(required(s.people.find((p) => p.id === 'zeynep')))).toEqual(before);
     expect(transfer.person.limitations).toEqual(
       expect.arrayContaining(['skill:grill', 'skill:dish', 'skill:oven']),
     );
@@ -82,8 +83,8 @@ describe('Zeynep chapter adapter (synthetic technical fixtures)', () => {
 
   it('blocks absent home, active work, unsupported obligations and changed family clock', async () => {
     const s = source();
-    const p = s.people.find((p) => p.id === 'zeynep')!;
-    const home = p.memory.episodes.find((e) => e.action === 'home')!;
+    const p = required(s.people.find((p) => p.id === 'zeynep'));
+    const home = required(p.memory.episodes.find((e) => e.action === 'home'));
     p.memory.episodes = p.memory.episodes.filter((e) => e !== home);
     expect(zeynepDepartureStatus(s).canRelease).toBe(false);
     p.memory.episodes.push(home);
@@ -108,8 +109,8 @@ describe('Zeynep chapter adapter (synthetic technical fixtures)', () => {
     const projection = structuredClone(transfer.person);
     projection.mappingVersion = 'goodhands-zeynep/1';
     projection.source.id = 'zeynep-pass';
-    projection.episodes[0]!.id = 'goodhands-encounter';
-    projection.commitments[0]!.actions = ['home'];
+    required(projection.episodes[0]).id = 'goodhands-encounter';
+    required(projection.commitments[0]).actions = ['home'];
     const envelope = await createPersona({
       format: 'hf-persona/1',
       castId: ZEYNEP_CAST,
@@ -123,8 +124,8 @@ describe('Zeynep chapter adapter (synthetic technical fixtures)', () => {
         history: [
           {
             id: 'goodhands-encounter',
-            summary: projection.episodes[0]!.summary,
-            at: projection.episodes[0]!.at,
+            summary: required(projection.episodes[0]).summary,
+            at: required(projection.episodes[0]).at,
             sourceGame: 'goodhands',
             sourceEpisodeId: 'e1',
           },
@@ -132,7 +133,7 @@ describe('Zeynep chapter adapter (synthetic technical fixtures)', () => {
       },
       limitations: projection.limitations,
     });
-    const opening = s.people.find((p) => p.id === 'zeynep')!;
+    const opening = required(s.people.find((p) => p.id === 'zeynep'));
     const before = snapshot(opening);
     const returned = returnedZeynep(envelope, opening);
     expect(returned).not.toBe(opening);
@@ -204,16 +205,17 @@ it('pins a new return chapter and rejects changed initial state (synthetic recei
   p.source.id = 'zeynep-pass';
   p.mappingVersion = 'goodhands-zeynep/1';
   for (const skill of Object.values(p.skills)) skill.lastPracticed += offset;
-  p.skills.cold!.level = Math.min(1, p.skills.cold!.level + 0.02);
+  required(p.skills.cold).level = Math.min(1, required(p.skills.cold).level + 0.02);
   p.health.fitness = Math.min(1, p.health.fitness + 0.01);
   for (const episode of p.episodes) {
     episode.at += offset;
     if (episode.recalledAt !== undefined) episode.recalledAt += offset;
   }
-  p.episodes[0]!.id = 'goodhands-encounter';
-  p.episodes[0]!.summary = 'Synthetic receiving fixture: the household reported the actual trial answer.';
-  p.commitments[0]!.actions = ['home'];
-  const e = p.episodes[0]!;
+  required(p.episodes[0]).id = 'goodhands-encounter';
+  required(p.episodes[0]).summary =
+    'Synthetic receiving fixture: the household reported the actual trial answer.';
+  required(p.commitments[0]).actions = ['home'];
+  const e = required(p.episodes[0]);
   const envelope = await createPersona({
     format: 'hf-persona/1',
     castId: ZEYNEP_CAST,
@@ -236,7 +238,9 @@ it('pins a new return chapter and rejects changed initial state (synthetic recei
   expect(returned.phase).toBe('return');
   await expect(prepareReturn({ ...envelope, branchId: 'another-branch' }, prefix)).rejects.toThrow();
   expect(
-    returned.people.find((p) => p.id === 'zeynep')!.agenda.commitments.every((c) => c.toId === 'sons'),
+    required(returned.people.find((p) => p.id === 'zeynep')).agenda.commitments.every(
+      (c) => c.toId === 'sons',
+    ),
   ).toBe(true);
   const full = JSON.parse(JSON.stringify(exportRun(returned, '2.14.1')));
   expect(cloneState(replayExport(full))).toEqual(cloneState(returned));
@@ -249,6 +253,6 @@ it('pins a new return chapter and rejects changed initial state (synthetic recei
   };
   expect(cloneState(replayExport(compact))).toEqual(cloneState(returned));
   const bad = structuredClone(compact);
-  bad.returnChapter!.initial.skills.cold!.level = 0;
+  required(required(bad.returnChapter).initial.skills.cold).level = 0;
   expect(() => replayExport(bad)).toThrow('pinned return Person');
 });

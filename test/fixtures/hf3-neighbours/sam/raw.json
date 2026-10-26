@@ -1,0 +1,1252 @@
+{
+  "schema": "human/person@1",
+  "engine": "2.23.0",
+  "id": "sam",
+  "name": "Sam",
+  "now": 645,
+  "rng": {
+    "a": 1254313033,
+    "b": 1061033341,
+    "c": 215739932,
+    "d": 3765034368
+  },
+  "life": {
+    "bornAt": -9460800,
+    "sex": "male"
+  },
+  "body": {
+    "satiety": 0.6408859597953028,
+    "hydration": 0.6861202254087548,
+    "sleepPressure": 0.34501539753761457,
+    "exertion": 0.1362227248547119,
+    "circadianPeak": 960,
+    "pain": 0,
+    "health": 1,
+    "fitness": 0.499779477555199,
+    "sleepDebt": 0,
+    "alive": true,
+    "asleep": false,
+    "since": 480,
+    "injuries": [],
+    "illnesses": [],
+    "nextId": 0,
+    "fullness": true
+  },
+  "needs": {
+    "safety": 0.8,
+    "belonging": 0.6603940602187603,
+    "esteem": 0.5961066611901867,
+    "autonomy": 0.7,
+    "competence": 1,
+    "leisure": 0.5045378491522287,
+    "meaning": 0.5905445234244134
+  },
+  "traits": {
+    "honesty": 0.65,
+    "emotionality": 0.55,
+    "extraversion": 0.6,
+    "agreeableness": 0.65,
+    "conscientiousness": 0.5,
+    "openness": 0.8
+  },
+  "values": {
+    "benevolence": 0.5,
+    "universalism": 0.5,
+    "tradition": 0.5,
+    "conformity": 0.5,
+    "security": 0.5,
+    "achievement": 0.8,
+    "power": 0.5,
+    "hedonism": 0.5,
+    "stimulation": 0.7,
+    "selfDirection": 0.5
+  },
+  "conscience": {
+    "norms": [
+      {
+        "normId": "salah",
+        "standing": "obligatory",
+        "conviction": 0.475
+      },
+      {
+        "normId": "sawm-ramadan",
+        "standing": "obligatory",
+        "conviction": 0.475
+      },
+      {
+        "normId": "zakat",
+        "standing": "obligatory",
+        "conviction": 0.475
+      },
+      {
+        "normId": "charity",
+        "standing": "recommended",
+        "conviction": 0.475
+      },
+      {
+        "normId": "lying",
+        "standing": "forbidden",
+        "conviction": 0.75
+      },
+      {
+        "normId": "theft",
+        "standing": "forbidden",
+        "conviction": 0.75
+      },
+      {
+        "normId": "keep-promise",
+        "standing": "obligatory",
+        "conviction": 0.75
+      },
+      {
+        "normId": "kindness-to-parents",
+        "standing": "obligatory",
+        "conviction": 0.6000000000000001
+      },
+      {
+        "normId": "backbiting",
+        "standing": "forbidden",
+        "conviction": 0.6000000000000001
+      },
+      {
+        "normId": "help-neighbor",
+        "standing": "recommended",
+        "conviction": 0.6000000000000001
+      },
+      {
+        "normId": "gratitude",
+        "standing": "recommended",
+        "conviction": 0.6000000000000001
+      },
+      {
+        "normId": "harm-others",
+        "standing": "forbidden",
+        "conviction": 0.75
+      },
+      {
+        "normId": "intoxicants",
+        "standing": "forbidden",
+        "conviction": 0.475
+      },
+      {
+        "normId": "forbidden-food",
+        "standing": "forbidden",
+        "conviction": 0.475
+      },
+      {
+        "normId": "fairness",
+        "standing": "obligatory",
+        "conviction": 0.6000000000000001
+      },
+      {
+        "normId": "care-dependents",
+        "standing": "obligatory",
+        "conviction": 0.6000000000000001
+      },
+      {
+        "normId": "punctuality",
+        "standing": "recommended",
+        "conviction": 0.6000000000000001
+      },
+      {
+        "normId": "eid-prayer",
+        "standing": "recommended",
+        "conviction": 0.475
+      }
+    ],
+    "breaches": [],
+    "intentions": [
+      {
+        "at": 555,
+        "action": "work",
+        "intention": "I want to earn money."
+      },
+      {
+        "at": 645,
+        "action": "supply",
+        "intention": "I want to keep my promise to jo."
+      }
+    ],
+    "nextBreach": 0
+  },
+  "affect": {
+    "mood": {
+      "valence": 0.07104486163309659,
+      "arousal": 0.31521071788541283
+    },
+    "emotions": [
+      {
+        "id": "joy",
+        "intensity": 0.11840572159924041,
+        "cause": "outcome:work",
+        "since": 555,
+        "halfLife": 90
+      }
+    ],
+    "regulation": 0.3,
+    "lastUpdated": 645
+  },
+  "skills": {
+    "repair": {
+      "level": 0.1,
+      "practice": 174,
+      "lastPracticed": 480
+    }
+  },
+  "habits": [
+    {
+      "cue": {
+        "hour": 9,
+        "placeId": "market"
+      },
+      "action": "work",
+      "strength": 0.0385860673686474,
+      "repetitions": 1,
+      "lastAt": 555
+    },
+    {
+      "cue": {
+        "hour": 10,
+        "placeId": "quay",
+        "after": "work"
+      },
+      "action": "supply",
+      "strength": 0.0386,
+      "repetitions": 1,
+      "lastAt": 645
+    }
+  ],
+  "memory": {
+    "episodes": [
+      {
+        "at": 495,
+        "kind": "witnessed",
+        "action": "local-situation",
+        "valence": 0,
+        "summary": "Sam is at Market kitchen. 80 meals are available.",
+        "tags": ["local-situation", "saw"],
+        "placeId": "market",
+        "id": "e0",
+        "salience": 0.29286591146599183
+      },
+      {
+        "at": 555,
+        "kind": "outcome",
+        "action": "work",
+        "actorId": "sam",
+        "valence": 0.1938744232396301,
+        "summary": "Finished Help the kitchen within your training",
+        "tags": ["work", "completed"],
+        "placeId": "market",
+        "id": "e1",
+        "salience": 0.4141401506316871
+      },
+      {
+        "at": 555,
+        "kind": "witnessed",
+        "action": "local-situation",
+        "valence": 0,
+        "summary": "Sam is at Market kitchen. 85 meals are available.",
+        "tags": ["local-situation", "saw"],
+        "placeId": "market",
+        "id": "e2",
+        "salience": 0.2956989595920562
+      },
+      {
+        "at": 615,
+        "kind": "witnessed",
+        "action": "neighbour-completed",
+        "valence": 0,
+        "summary": "Bilal finished moving the supplies agreed for this visit.",
+        "tags": ["neighbour-completed", "saw"],
+        "actorId": "jo",
+        "placeId": "quay",
+        "id": "e3",
+        "salience": 0.2985594133033061
+      },
+      {
+        "at": 645,
+        "kind": "outcome",
+        "action": "supply",
+        "actorId": "sam",
+        "valence": 0.07524341763888494,
+        "summary": "Finished Carry food from the quay",
+        "tags": ["work", "completed"],
+        "placeId": "quay",
+        "id": "e4",
+        "salience": 0.3451460505833309
+      },
+      {
+        "at": 645,
+        "kind": "witnessed",
+        "action": "local-situation",
+        "valence": 0,
+        "summary": "Sam is at Quay. Neighbours are going about their day.",
+        "tags": ["local-situation", "saw"],
+        "placeId": "quay",
+        "id": "e5",
+        "salience": 0.3
+      }
+    ],
+    "beliefs": [],
+    "expectations": [
+      {
+        "key": "work",
+        "needs": {
+          "competence": 0.3
+        },
+        "successRate": 1,
+        "samples": 1,
+        "valence": 0.1938744232396301
+      },
+      {
+        "key": "supply",
+        "needs": {
+          "competence": 0.25
+        },
+        "successRate": 1,
+        "samples": 1,
+        "valence": 0.07524341763888494
+      }
+    ],
+    "sourceTrust": {},
+    "nextEpisode": 6
+  },
+  "social": {
+    "relationships": [
+      {
+        "otherId": "jo",
+        "affection": 0,
+        "trust": 0.5,
+        "respect": 0,
+        "familiarity": 0.048,
+        "roles": [],
+        "ledger": 0,
+        "lastInteraction": 645
+      }
+    ]
+  },
+  "agenda": {
+    "commitments": [
+      {
+        "kind": "promise",
+        "toId": "jo",
+        "actions": ["supply"],
+        "from": 480,
+        "until": 1080,
+        "importance": 0.6,
+        "label": "Help prepare the shared meal with an experienced kitchen worker",
+        "id": "c1",
+        "status": "kept"
+      }
+    ],
+    "goals": [],
+    "nextId": 2,
+    "lastProposalDay": -1
+  },
+  "will": {
+    "voices": [],
+    "precommitments": [],
+    "switchMargin": 0.15,
+    "temperature": 0
+  },
+  "activity": null,
+  "trace": [
+    {
+      "id": "d1",
+      "at": 525,
+      "chosenAffordanceId": "work",
+      "chosenAction": "work",
+      "considered": [
+        {
+          "affordanceId": "work",
+          "action": "work",
+          "label": "Help the kitchen within your training",
+          "utility": 0.2429,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0139
+            },
+            {
+              "source": "effort",
+              "value": -0.0328
+            },
+            {
+              "source": "material",
+              "value": 0.2618
+            }
+          ],
+          "advertised": {
+            "competence": 0.3
+          },
+          "believed": {
+            "competence": 0.3
+          }
+        },
+        {
+          "affordanceId": "supply",
+          "action": "supply",
+          "label": "Carry food from the quay",
+          "utility": 0.2008,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0116
+            },
+            {
+              "source": "commitment:c1",
+              "value": 0.222
+            },
+            {
+              "source": "effort",
+              "value": -0.0328
+            }
+          ],
+          "advertised": {
+            "competence": 0.25
+          },
+          "believed": {
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "rest",
+          "action": "rest",
+          "label": "Rest at home",
+          "utility": 0.0153,
+          "terms": [
+            {
+              "source": "need:leisure",
+              "value": 0.0153
+            }
+          ],
+          "advertised": {
+            "leisure": 0.3
+          },
+          "believed": {
+            "leisure": 0.3
+          }
+        },
+        {
+          "affordanceId": "inspect",
+          "action": "inspect",
+          "label": "Go and inspect the hall timber",
+          "utility": 0.002,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0208
+            },
+            {
+              "source": "need:meaning",
+              "value": 0.014
+            },
+            {
+              "source": "effort",
+              "value": -0.0328
+            }
+          ],
+          "advertised": {
+            "competence": 0.45,
+            "meaning": 0.3
+          },
+          "believed": {
+            "competence": 0.45,
+            "meaning": 0.3
+          }
+        },
+        {
+          "affordanceId": "drink",
+          "action": "drink",
+          "label": "Drink water here",
+          "utility": 0.0007,
+          "terms": [
+            {
+              "source": "need:water",
+              "value": 0.0075
+            },
+            {
+              "source": "full:water",
+              "value": -0.0068
+            }
+          ],
+          "advertised": {
+            "water": 0.7
+          },
+          "believed": {
+            "water": 0.7
+          }
+        },
+        {
+          "affordanceId": "repair",
+          "action": "repair",
+          "label": "Repair the flood-damaged hall",
+          "utility": -0.0026,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.007
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0232
+            },
+            {
+              "source": "effort",
+              "value": -0.0328
+            }
+          ],
+          "advertised": {
+            "competence": 0.5,
+            "belonging": 0.25
+          },
+          "believed": {
+            "belonging": 0.25,
+            "competence": 0.5
+          }
+        },
+        {
+          "affordanceId": "care",
+          "action": "care",
+          "label": "Help neighbours at the clinic",
+          "utility": -0.0128,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0084
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0116
+            },
+            {
+              "source": "effort",
+              "value": -0.0328
+            }
+          ],
+          "advertised": {
+            "belonging": 0.3,
+            "competence": 0.25
+          },
+          "believed": {
+            "belonging": 0.3,
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "learn",
+          "action": "learn",
+          "label": "Attend a practical class at school",
+          "utility": -0.0133,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0056
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0139
+            },
+            {
+              "source": "effort",
+              "value": -0.0328
+            }
+          ],
+          "advertised": {
+            "competence": 0.3,
+            "belonging": 0.2
+          },
+          "believed": {
+            "belonging": 0.2,
+            "competence": 0.3
+          }
+        }
+      ],
+      "intention": "I want to earn money.",
+      "narration": "I can earn money from it.",
+      "review": true
+    },
+    {
+      "id": "d2",
+      "at": 555,
+      "chosenAffordanceId": "supply",
+      "chosenAction": "supply",
+      "considered": [
+        {
+          "affordanceId": "supply",
+          "action": "supply",
+          "label": "Carry food from the quay",
+          "utility": 0.2098,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0007
+            },
+            {
+              "source": "commitment:c1",
+              "value": 0.2439
+            },
+            {
+              "source": "effort",
+              "value": -0.0348
+            }
+          ],
+          "advertised": {
+            "competence": 0.25
+          },
+          "believed": {
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "work",
+          "action": "work",
+          "label": "Help the kitchen within your training",
+          "utility": 0.1969,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0009
+            },
+            {
+              "source": "effort",
+              "value": -0.0345
+            },
+            {
+              "source": "material",
+              "value": 0.2305
+            }
+          ],
+          "advertised": {
+            "competence": 0.3
+          },
+          "believed": {
+            "competence": 0.3
+          }
+        },
+        {
+          "affordanceId": "rest",
+          "action": "rest",
+          "label": "Rest at home",
+          "utility": 0.0167,
+          "terms": [
+            {
+              "source": "need:leisure",
+              "value": 0.0167
+            }
+          ],
+          "advertised": {
+            "leisure": 0.3
+          },
+          "believed": {
+            "leisure": 0.3
+          }
+        },
+        {
+          "affordanceId": "drink",
+          "action": "drink",
+          "label": "Drink water here",
+          "utility": 0.0048,
+          "terms": [
+            {
+              "source": "need:water",
+              "value": 0.0101
+            },
+            {
+              "source": "full:water",
+              "value": -0.0053
+            }
+          ],
+          "advertised": {
+            "water": 0.7
+          },
+          "believed": {
+            "water": 0.7
+          }
+        },
+        {
+          "affordanceId": "inspect",
+          "action": "inspect",
+          "label": "Go and inspect the hall timber",
+          "utility": -0.0194,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0013
+            },
+            {
+              "source": "need:meaning",
+              "value": 0.0141
+            },
+            {
+              "source": "effort",
+              "value": -0.0348
+            }
+          ],
+          "advertised": {
+            "competence": 0.45,
+            "meaning": 0.3
+          },
+          "believed": {
+            "competence": 0.45,
+            "meaning": 0.3
+          }
+        },
+        {
+          "affordanceId": "talk",
+          "action": "talk",
+          "label": "Visit neighbours at the hall",
+          "utility": -0.0217,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0131
+            },
+            {
+              "source": "effort",
+              "value": -0.0348
+            }
+          ],
+          "advertised": {
+            "belonging": 0.45
+          },
+          "believed": {
+            "belonging": 0.45
+          }
+        },
+        {
+          "affordanceId": "care",
+          "action": "care",
+          "label": "Help neighbours at the clinic",
+          "utility": -0.0253,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0088
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0007
+            },
+            {
+              "source": "effort",
+              "value": -0.0348
+            }
+          ],
+          "advertised": {
+            "belonging": 0.3,
+            "competence": 0.25
+          },
+          "believed": {
+            "belonging": 0.3,
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "repair",
+          "action": "repair",
+          "label": "Repair the flood-damaged hall",
+          "utility": -0.026,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0073
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0015
+            },
+            {
+              "source": "effort",
+              "value": -0.0348
+            }
+          ],
+          "advertised": {
+            "competence": 0.5,
+            "belonging": 0.25
+          },
+          "believed": {
+            "belonging": 0.25,
+            "competence": 0.5
+          }
+        }
+      ],
+      "intention": "I want to keep my promise to jo.",
+      "narration": "I have to keep my commitment. I almost chose something else."
+    },
+    {
+      "id": "d3",
+      "at": 585,
+      "chosenAffordanceId": "supply",
+      "chosenAction": "supply",
+      "considered": [
+        {
+          "affordanceId": "supply",
+          "action": "supply",
+          "label": "Carry food from the quay",
+          "utility": 0.2307,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0008
+            },
+            {
+              "source": "commitment:c1",
+              "value": 0.2659
+            },
+            {
+              "source": "effort",
+              "value": -0.036
+            }
+          ],
+          "advertised": {
+            "competence": 0.25
+          },
+          "believed": {
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "work",
+          "action": "work",
+          "label": "Help the kitchen within your training",
+          "utility": 0.199,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.001
+            },
+            {
+              "source": "habit",
+              "value": 0.0032
+            },
+            {
+              "source": "effort",
+              "value": -0.0357
+            },
+            {
+              "source": "material",
+              "value": 0.2305
+            }
+          ],
+          "advertised": {
+            "competence": 0.3
+          },
+          "believed": {
+            "competence": 0.3
+          }
+        },
+        {
+          "affordanceId": "rest",
+          "action": "rest",
+          "label": "Rest at home",
+          "utility": 0.0182,
+          "terms": [
+            {
+              "source": "need:leisure",
+              "value": 0.0182
+            }
+          ],
+          "advertised": {
+            "leisure": 0.3
+          },
+          "believed": {
+            "leisure": 0.3
+          }
+        },
+        {
+          "affordanceId": "drink",
+          "action": "drink",
+          "label": "Drink water here",
+          "utility": 0.009,
+          "terms": [
+            {
+              "source": "need:water",
+              "value": 0.013
+            },
+            {
+              "source": "full:water",
+              "value": -0.004
+            }
+          ],
+          "advertised": {
+            "water": 0.7
+          },
+          "believed": {
+            "water": 0.7
+          }
+        },
+        {
+          "affordanceId": "inspect",
+          "action": "inspect",
+          "label": "Go and inspect the hall timber",
+          "utility": -0.0204,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0014
+            },
+            {
+              "source": "need:meaning",
+              "value": 0.0142
+            },
+            {
+              "source": "effort",
+              "value": -0.036
+            }
+          ],
+          "advertised": {
+            "competence": 0.45,
+            "meaning": 0.3
+          },
+          "believed": {
+            "competence": 0.45,
+            "meaning": 0.3
+          }
+        },
+        {
+          "affordanceId": "talk",
+          "action": "talk",
+          "label": "Visit neighbours at the hall",
+          "utility": -0.0223,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0137
+            },
+            {
+              "source": "effort",
+              "value": -0.036
+            }
+          ],
+          "advertised": {
+            "belonging": 0.45
+          },
+          "believed": {
+            "belonging": 0.45
+          }
+        },
+        {
+          "affordanceId": "care",
+          "action": "care",
+          "label": "Help neighbours at the clinic",
+          "utility": -0.026,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0092
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0008
+            },
+            {
+              "source": "effort",
+              "value": -0.036
+            }
+          ],
+          "advertised": {
+            "belonging": 0.3,
+            "competence": 0.25
+          },
+          "believed": {
+            "belonging": 0.3,
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "repair",
+          "action": "repair",
+          "label": "Repair the flood-damaged hall",
+          "utility": -0.0268,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0076
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0016
+            },
+            {
+              "source": "effort",
+              "value": -0.036
+            }
+          ],
+          "advertised": {
+            "competence": 0.5,
+            "belonging": 0.25
+          },
+          "believed": {
+            "belonging": 0.25,
+            "competence": 0.5
+          }
+        }
+      ],
+      "intention": "I want to keep my promise to jo.",
+      "narration": "I said I would do it, so I will.",
+      "review": true
+    },
+    {
+      "id": "d4",
+      "at": 615,
+      "chosenAffordanceId": "supply",
+      "chosenAction": "supply",
+      "considered": [
+        {
+          "affordanceId": "supply",
+          "action": "supply",
+          "label": "Carry food from the quay",
+          "utility": 0.252,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0008
+            },
+            {
+              "source": "commitment:c1",
+              "value": 0.2878
+            },
+            {
+              "source": "effort",
+              "value": -0.0366
+            }
+          ],
+          "advertised": {
+            "competence": 0.25
+          },
+          "believed": {
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "work",
+          "action": "work",
+          "label": "Help the kitchen within your training",
+          "utility": 0.1999,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.001
+            },
+            {
+              "source": "habit",
+              "value": 0.0048
+            },
+            {
+              "source": "effort",
+              "value": -0.0364
+            },
+            {
+              "source": "material",
+              "value": 0.2305
+            }
+          ],
+          "advertised": {
+            "competence": 0.3
+          },
+          "believed": {
+            "competence": 0.3
+          }
+        },
+        {
+          "affordanceId": "rest",
+          "action": "rest",
+          "label": "Rest at home",
+          "utility": 0.0197,
+          "terms": [
+            {
+              "source": "need:leisure",
+              "value": 0.0197
+            }
+          ],
+          "advertised": {
+            "leisure": 0.3
+          },
+          "believed": {
+            "leisure": 0.3
+          }
+        },
+        {
+          "affordanceId": "drink",
+          "action": "drink",
+          "label": "Drink water here",
+          "utility": 0.0133,
+          "terms": [
+            {
+              "source": "need:water",
+              "value": 0.0162
+            },
+            {
+              "source": "full:water",
+              "value": -0.0029
+            }
+          ],
+          "advertised": {
+            "water": 0.7
+          },
+          "believed": {
+            "water": 0.7
+          }
+        },
+        {
+          "affordanceId": "inspect",
+          "action": "inspect",
+          "label": "Go and inspect the hall timber",
+          "utility": -0.0207,
+          "terms": [
+            {
+              "source": "need:competence",
+              "value": 0.0015
+            },
+            {
+              "source": "need:meaning",
+              "value": 0.0144
+            },
+            {
+              "source": "effort",
+              "value": -0.0366
+            }
+          ],
+          "advertised": {
+            "competence": 0.45,
+            "meaning": 0.3
+          },
+          "believed": {
+            "competence": 0.45,
+            "meaning": 0.3
+          }
+        },
+        {
+          "affordanceId": "talk",
+          "action": "talk",
+          "label": "Visit neighbours at the hall",
+          "utility": -0.0223,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0143
+            },
+            {
+              "source": "effort",
+              "value": -0.0366
+            }
+          ],
+          "advertised": {
+            "belonging": 0.45
+          },
+          "believed": {
+            "belonging": 0.45
+          }
+        },
+        {
+          "affordanceId": "care",
+          "action": "care",
+          "label": "Help neighbours at the clinic",
+          "utility": -0.0262,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.0096
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0008
+            },
+            {
+              "source": "effort",
+              "value": -0.0366
+            }
+          ],
+          "advertised": {
+            "belonging": 0.3,
+            "competence": 0.25
+          },
+          "believed": {
+            "belonging": 0.3,
+            "competence": 0.25
+          }
+        },
+        {
+          "affordanceId": "repair",
+          "action": "repair",
+          "label": "Repair the flood-damaged hall",
+          "utility": -0.0269,
+          "terms": [
+            {
+              "source": "need:belonging",
+              "value": 0.008
+            },
+            {
+              "source": "need:competence",
+              "value": 0.0017
+            },
+            {
+              "source": "effort",
+              "value": -0.0366
+            }
+          ],
+          "advertised": {
+            "competence": 0.5,
+            "belonging": 0.25
+          },
+          "believed": {
+            "belonging": 0.25,
+            "competence": 0.5
+          }
+        }
+      ],
+      "intention": "I want to keep my promise to jo.",
+      "narration": "I have to keep my commitment.",
+      "review": true
+    }
+  ],
+  "nextDecision": 5,
+  "lexicon": {
+    "plainEnglish": true
+  },
+  "retention": {
+    "trace": 4,
+    "chronicleDays": 31
+  },
+  "chronicleDay": {
+    "day": 0,
+    "baseline": {
+      "habits": {},
+      "trust": {},
+      "illnesses": {},
+      "openBreaches": []
+    },
+    "kept": [
+      {
+        "id": "c1",
+        "kind": "promise",
+        "label": "Help prepare the shared meal with an experienced kitchen worker",
+        "action": "supply",
+        "toId": "jo"
+      }
+    ],
+    "broken": [],
+    "released": [],
+    "actions": [
+      {
+        "action": "work",
+        "done": 1,
+        "prompted": 0,
+        "by": {}
+      },
+      {
+        "action": "supply",
+        "done": 1,
+        "prompted": 0,
+        "by": {}
+      }
+    ],
+    "verdicts": [],
+    "material": 2,
+    "moodSum": 0.0744644298384736,
+    "moodSamples": 2,
+    "decisions": 2
+  }
+}

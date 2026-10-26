@@ -298,6 +298,9 @@ button.chosen {
   margin: 0;
   flex: none;
 }
+.people-service .card button {
+  font-size: 14px;
+}
 .people-service .verbs button {
   min-height: 56px;
   height: 56px;
@@ -329,9 +332,6 @@ button.chosen {
 }
 .people-service .card .row {
   flex-wrap: wrap;
-}
-.people-service .card button {
-  font-size: 14px;
 }
 .people-service summary {
   min-height: 44px;
@@ -479,6 +479,8 @@ button.chosen {
 }
 .people-service.inspecting .verbs {
   padding-top: 0;
+  padding-bottom: 4px;
+  scroll-padding-block: 4px;
 }
 
 .people-service .journal-heading,

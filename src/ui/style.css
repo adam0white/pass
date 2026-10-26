@@ -1049,6 +1049,23 @@ button.slip:disabled {
   min-height: 0;
   padding: 0;
 }
+/* Keep legacy counteroffers and instructions visible while long job lists scroll. */
+.service:not(.people-service):not(.hands-on).inspecting .sheet {
+  height: calc(var(--sheet-height) + var(--safe-b));
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+.service:not(.people-service):not(.hands-on).inspecting .sheet > :not(.verbs) {
+  flex: none;
+}
+.service:not(.people-service):not(.hands-on).inspecting .verbs {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 4px;
+  scroll-padding-block: 4px;
+}
+
 .service.hands-on.responding:has(.chef-work):has(.active-portion) .sheet {
   min-height: 250px;
   flex-basis: 300px;
@@ -1180,4 +1197,26 @@ button.info-button {
 }
 .ending-reckoning {
   margin: 16px 0;
+}
+
+/* Full English booking labels reserve one fixed rail height in legacy service. */
+.service.hands-on.party-night .rail {
+  height: 180px;
+  min-height: 180px;
+}
+button.party-slip {
+  min-height: 168px;
+}
+.slip.wedding {
+  width: 160px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) and (max-height: 740px) {
+  /* Full party labels keep their rail space; the food workspace can scroll. */
+  .service.hands-on.party-night:has(.active-portion):not(.responding):not(.inspecting) .chef-work {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow: auto;
+  }
 }

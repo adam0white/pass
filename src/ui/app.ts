@@ -1,3 +1,4 @@
+import { required } from '../required.ts';
 import { episodeText, INVITATIONS } from '../sim/cast-scenes.ts';
 /**
  * The Pass UI: plain DOM and inline SVG over the pure sim. The UI reads state and queues inputs; it never
@@ -30,6 +31,7 @@ import {
   canReplay,
   chefLine,
   closeAt,
+  contactAvailable,
   cookingChoice,
   cookingStep,
   cookOf,
@@ -43,6 +45,7 @@ import {
   helpOptions,
   hints,
   type Input,
+  inKitchen,
   memberOf,
   nameOf,
   newGame,
@@ -250,7 +253,7 @@ const INFO: Record<string, [string, string]> = {
   ],
 };
 function topBar(label: string, phase: string): string {
-  const [heading, text] = INFO[phase] ?? INFO.title!;
+  const [heading, text] = INFO[phase] ?? required(INFO.title);
   return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}${s?.version === 'pass@13' && phase !== 'title' ? '<button id="people">People</button>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header><div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${esc(text)}</p></div>`;
 }
 let tillStart = { key: '', amount: 0 };
@@ -278,7 +281,7 @@ function tillBar(st: GameState): string {
 function openGameMenu() {
   if (menuOpen) return;
   const saved = writeSave();
-  menuOrigin = document.activeElement as HTMLElement;
+  menuOrigin = document.getElementById('game-menu') ?? (document.activeElement as HTMLElement);
   menuOpen = true;
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
@@ -381,7 +384,7 @@ function openPeople() {
         if (s.crew.some((m) => m.id === id) || s.inputs.some((i) => i.kind === 'cast-invite' && i.who === id))
           continue;
         const invite = document.createElement('button');
-        invite.textContent = `Offer ${s.castChapter!.actors[id]!.name} paid work in the kitchen. They keep their own hours for leaving.${s.castChapter!.facts[id]?.startsAtHome ? ' First, offer to share a meal with them.' : ''}`;
+        invite.textContent = `Offer ${required(required(s.castChapter).actors[id]).name} paid work in the kitchen. They keep their own hours for leaving.${required(s.castChapter).facts[id]?.startsAtHome ? ' First, offer to share a meal with them.' : ''}`;
         invite.onclick = () => {
           if (!s) return;
           queueInput(s, { kind: 'cast-invite', who: id });
@@ -586,7 +589,7 @@ function title() {
         firstPartyStart = firstParty;
         s = returning ?? (secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed));
         cast.track();
-        if (!secondWeek && !returning && nevin) queueInput(s, { kind: 'pace', value: 'nevin' });
+        if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
         enterWithStatus(cast.message);
       })().catch((error: unknown) => {
@@ -1641,10 +1644,15 @@ function drawCaption() {
   const taken = a && s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
   const canTake = fresh && a?.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
   const situation = serviceStatus(s).text;
-  const key = situation + handover + (canTake ? `${a.at}${a.who}${a.counter}` : '');
+  const caption = peopleRun(s)
+    ? esc(situation)
+    : fresh && a
+      ? `<span class="hand">${esc(a.text)}</span>`
+      : '';
+  const key = caption + handover + (canTake ? `${a.at}${a.who}${a.counter}` : '');
   if (key === captionKey) return;
   captionKey = key;
-  el.innerHTML = `${handover}${esc(situation)}${canTake ? `<button data-counter="${a.counter}">Ask ${esc(nameOf(s, a.who))}: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
+  el.innerHTML = `${handover}${caption}${canTake ? `<button data-counter="${a.counter}">Ask ${esc(nameOf(s, a.who))}: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
 }
 
 function select(id: CookId | null) {
@@ -1862,6 +1870,7 @@ function drawSheet() {
           `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
+    ${st.version === 'pass@13' && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5) ? '<button data-contact="follow-up">About what you said</button>' : ''}</div>` : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div><div class="hint">${
       absent
         ? 'This cook has left the kitchen.'
@@ -1876,6 +1885,18 @@ function drawSheet() {
   );
   bindCrew(el);
   for (const b of el.querySelectorAll<HTMLButtonElement>('.verbs button')) bindHold(b);
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-contact]')) {
+    const choice = b.dataset.contact as 'check-in' | 'follow-up';
+    b.disabled = !selected || !contactAvailable(st, selected, choice);
+    b.onclick = () => {
+      if (!selected) return;
+      queueInput(st, { kind: 'cast-talk', who: selected, choice });
+      readingUntil = performance.now() + READING_MS;
+      selected = null;
+      writeSave();
+      drawAll(true);
+    };
+  }
 }
 
 /** One-time tips, said when the thing they explain first appears. */
@@ -2284,7 +2305,12 @@ function evening() {
       queueInput(st, { kind: 'jar', choice: b.dataset.jar as 'move' | 'talk' | 'leave' });
       writeSave();
       evening();
-      app.querySelector('.jar-reply')?.scrollIntoView({ block: 'nearest' });
+      const reply = app.querySelector('.jar-reply');
+      reply?.scrollIntoView({ block: 'nearest' });
+      if (document.fonts.status !== 'loaded')
+        void document.fonts.ready.then(() => {
+          if (reply?.isConnected) reply.scrollIntoView({ block: 'nearest' });
+        });
     });
   document.getElementById('open')?.addEventListener('click', () => {
     queueInput(st, { kind: 'open' });

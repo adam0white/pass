@@ -27,6 +27,7 @@ for (const checked of [false, true]) {
         chooseRecording: (allow: boolean) => target.choices.push(allow),
       });
     });
+    await page.evaluate(() => document.fonts.ready);
     const sheet = page.locator('.pass-feedback');
     await expect(sheet.locator('textarea')).not.toHaveAccessibleName(/Share this run/);
     const checkbox = sheet.getByRole('checkbox', {

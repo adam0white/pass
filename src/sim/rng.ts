@@ -20,14 +20,3 @@ export function mixSeed(...xs: number[]): number {
 export function hashUnit(...xs: number[]): number {
   return (mixSeed(...xs) >>> 0) / 4294967296;
 }
-
-/** What a world draw is for. Each kind is its own stream. */
-export const DRAW = {
-  storm: 1,
-  wind: 2,
-  slip: 3,
-  slipSeverity: 4,
-  slipPart: 5,
-  party: 6,
-  rock: 7,
-} as const;

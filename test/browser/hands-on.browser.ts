@@ -88,18 +88,36 @@ async function visibleTargets(page: import('@playwright/test').Page, selector: s
   const buttonBoxes: { x: number; y: number; width: number; height: number }[] = [];
   expect(await page.locator(selector).count()).toBeGreaterThan(0);
   for (const target of await page.locator(selector).all()) {
+    const inMenu = await target.evaluate((el) => !!el.closest('.game-menu-dialog'));
+    if (inMenu) await target.scrollIntoViewIfNeeded();
     const box = await target.boundingBox();
     expect(box).not.toBeNull();
     if (!box) continue;
     if (await target.evaluate((el) => el.tagName === 'BUTTON')) {
       expect(box.height).toBeGreaterThanOrEqual(44);
-      buttonBoxes.push(box);
+      buttonBoxes.push(
+        await target.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const menu = el.closest('.game-menu-dialog');
+          return { x: r.x, y: r.y + (menu?.scrollTop ?? 0), width: r.width, height: r.height };
+        }),
+      );
     }
     expect(box.y).toBeGreaterThanOrEqual(0);
     expect(box.y + box.height).toBeLessThanOrEqual(690);
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(360);
     expect(await target.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    if (inMenu) {
+      await expect(target).toBeInViewport({ ratio: 1 });
+      expect(
+        await target.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const menu = el.closest('.game-menu-dialog')?.getBoundingClientRect();
+          return !!menu && r.top >= menu.top && r.bottom <= menu.bottom;
+        }),
+      ).toBe(true);
+    }
   }
   for (let i = 0; i < buttonBoxes.length; i++)
     for (let j = i + 1; j < buttonBoxes.length; j++) {
@@ -163,7 +181,7 @@ test('phone service choices and Selim jobs remain within the screen', async ({ p
   await fixture(page, 'staffing');
   await visibleTargets(page, '.staffing-options button');
   await page.getByRole('button', { name: 'Game menu', exact: true }).tap();
-  await visibleTargets(page, '.game-menu-dialog button');
+  await visibleTargets(page, '.game-menu-dialog button:visible');
 });
 
 test('new arrivals keep each existing ticket target in its place', async ({ page }) => {
@@ -213,11 +231,11 @@ test('a plated ticket stays put when new food work expands station copy', async 
   expect(await target.boundingBox()).toEqual(before);
 });
 
-const shots = '/Users/abdul/code/.lab-scratch/patterns/pass-shots';
 async function capture(page: import('@playwright/test').Page, name: string) {
+  const shots = test.info().outputPath('renders');
   mkdirSync(shots, { recursive: true });
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: `${shots}/after-${name}.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/after-${name}.png` });
   const audit = await page.locator('button:visible').evaluateAll((elements) =>
     elements.map((element) => {
       const box = element.getBoundingClientRect();
@@ -365,7 +383,7 @@ test('after close and final notebook render on the phone', async ({ page }) => {
   });
   await capture(page, 'ending-phone');
   await page.getByRole('button', { name: 'Game menu', exact: true }).tap();
-  await visibleTargets(page, '.game-menu-dialog button');
+  await visibleTargets(page, '.game-menu-dialog button:visible');
 });
 
 test('a pointer released outside the rail and a window blur both recover rendering', async ({ page }) => {

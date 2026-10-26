@@ -59,12 +59,13 @@ test('round two food surface renders at phone and desktop sizes', async ({ page 
   mkdirSync(shots, { recursive: true });
   await start(page);
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: `${shots}/portion-phone-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/portion-phone-b.png` });
   await page.locator('[data-pick="selim"]').tap();
-  await page.screenshot({ path: `${shots}/portion-selim-phone-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({ path: `${shots}/portion-selim-phone-b.png` });
   await page.locator('#close').tap();
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.screenshot({ path: `${shots}/portion-desktop-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/portion-desktop-b.png` });
 });
 
 async function readyChoice(page: Page) {
@@ -104,7 +105,8 @@ test('a busy chef can reserve next and delegate the current portion without chan
   await page.locator('[data-pick="selim"]').tap();
   await page.locator('[data-finish-portion]').tap();
   await expect(page.locator('[data-cook-step], [data-cook-choice]')).toHaveCount(0);
-  await expect(page.locator('#clock-rate')).toContainText('Steady · 1.5 minutes per second');
+  await expect(page.getByRole('button', { name: 'steady', exact: true })).toHaveClass(/on/);
+  await expect(page.locator('#clock-rate')).toContainText('Reading · 0.5 minutes per second');
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('pass-save-v3') ?? '{}'));
   expect(save.inputs.at(-1).kind).toBe('finish-portion');
 });
@@ -114,14 +116,15 @@ test('round two choice and inspection renders', async ({ page }) => {
   await start(page);
   await readyChoice(page);
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: `${shots}/choice-phone-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/choice-phone-b.png` });
   const crew = await page.locator('.crew').boundingBox();
   expect((crew?.y ?? 0) + (crew?.height ?? 0)).toBeLessThanOrEqual(690);
   await page.locator('[data-pick="selim"]').tap();
-  await page.screenshot({ path: `${shots}/choice-selim-phone-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({ path: `${shots}/choice-selim-phone-b.png` });
   await page.locator('#close').tap();
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.screenshot({ path: `${shots}/choice-desktop-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/choice-desktop-b.png` });
 });
 
 test('a final plate touch removes that portion control immediately', async ({ page }) => {
@@ -201,7 +204,8 @@ test('a food choice, six service calls and the crew fit together on the phone', 
     expect(box?.height).toBeGreaterThanOrEqual(44);
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(690);
   }
-  await page.screenshot({ path: `${shots}/combined-choice-plates-phone-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({ path: `${shots}/combined-choice-plates-phone-b.png` });
 });
 
 test('a personal request stays reachable while a cooking choice waits', async ({ page }) => {
@@ -218,7 +222,8 @@ test('a personal request stays reachable while a cooking choice waits', async ({
     expect(box?.height).toBeGreaterThanOrEqual(44);
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(690);
   }
-  await page.screenshot({ path: `${shots}/combined-choice-request-phone-b.png` });
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({ path: `${shots}/combined-choice-request-phone-b.png` });
 });
 
 for (const decision of ['request', 'staffing'] as const) {

@@ -1,0 +1,21 @@
+{
+  "source": "40ca6b87b310d63e44e3d720b1f8c3838723234d",
+  "sourceRoot": "/Users/abdul/code/.lab-scratch/wt/concordia/v3-pass-neighbours-capture/neighbours",
+  "role": "ravi",
+  "castId": "hf.cast.rafi.pass",
+  "package": "3.0.0",
+  "engine": "2.23.0",
+  "checkpoint": {
+    "schema": "human/person@1",
+    "sourceMinute": 585,
+    "rng": {
+      "a": 1921223815,
+      "b": 2827132505,
+      "c": 384853288,
+      "d": 2505876061
+    },
+    "sha256": "497fd101f20e1567ed9e1951d252755a5df17047be32ffd50966214b4d9d1b5a"
+  },
+  "sourceReplayExact": true,
+  "transport": "local shelf transport double; no browser journey or server receipt"
+}

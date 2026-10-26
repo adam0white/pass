@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { boardDefaults, newGame, queueInput } from '../../src/sim/kitchen.ts';
 
-test.use({ launchOptions: { channel: 'chromium' } });
-
 test.beforeEach(async ({ page }) => {
   const s = newGame(42);
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });

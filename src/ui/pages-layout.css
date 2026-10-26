@@ -77,9 +77,6 @@
   cursor: pointer;
   font-size: 15px;
 }
-.start-approaches label + label {
-  margin-top: 6px;
-}
 .start-approaches label:has(input:checked) {
   border-color: var(--ink);
   background: var(--paper-2);
@@ -328,7 +325,6 @@ body {
   display: none;
 }
 .service,
-.board-page,
 .page.title-page,
 .page.evening-page,
 .page.sunday-page,
@@ -342,7 +338,7 @@ body {
 }
 @media (max-width: 767px) {
   .people-service.inspecting {
-    grid-template-rows: 44px 36px auto clamp(120px, 23dvh, 160px) 48px minmax(0, 1fr);
+    grid-template-rows: 44px 36px auto clamp(100px, 20dvh, 140px) 48px minmax(0, 1fr);
   }
   .people-service.inspecting .scene {
     height: 100%;
@@ -379,4 +375,30 @@ body {
 /* The legacy guest label grows with its text without reserving an empty line. */
 .service.hands-on .active-party {
   min-height: 0;
+}
+.start-approaches label + label {
+  margin-top: 6px;
+}
+
+/* Legacy plans grow with their answers so the disclosure follows the whole page. */
+#app:has(.board-page:not(.people-board)) {
+  flex: none;
+}
+.board-page:not(.people-board) {
+  height: auto;
+  min-height: calc(100dvh - var(--notice-height, 0px));
+  flex: none;
+}
+@media (max-width: 600px) {
+  .board-page:not(.people-board) #board-form > .actions {
+    bottom: var(--notice-height, 0px);
+  }
+  .board-page:not(.people-board) :is([data-field], .board-answer) {
+    scroll-margin-bottom: calc(var(--board-actions-height, 100px) + 16px);
+  }
+}
+
+/* Leave room around the complete reply when it is brought into the reading pane. */
+.evening-page .jar-reply {
+  scroll-margin-block: 8px;
 }

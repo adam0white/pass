@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { required } from '../../src/required.ts';
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://human.adamwhite.work/**', (route) => route.fulfill({ status: 204, body: '' }));
@@ -27,7 +28,7 @@ test('new log lines highlight temporarily while the situation stays visible', as
     });
     app.draw();
   });
-  await expect(page.locator('#caption')).toHaveText(status!);
+  await expect(page.locator('#caption')).toHaveText(required(status));
   await expect(page.locator('.journal .new-log-line').last()).toContainText('Yes, I will work there.');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(
@@ -47,7 +48,7 @@ for (const [width, height] of [
   test(`promise answer keeps panel scroll and disappears after reading at ${width}x${height}`, async ({
     page,
   }) => {
-    await page.setViewportSize({ width: width!, height: height! });
+    await page.setViewportSize({ width: required(width), height: required(height) });
     await page.locator('#other-ways').click();
     await page.getByRole('button', { name: 'Begin at the second week', exact: true }).click();
     const promises = page.locator('.party-card [data-val="promise"]');

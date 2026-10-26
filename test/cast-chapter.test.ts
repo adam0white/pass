@@ -2,6 +2,7 @@
 import { ENGINE_VERSION, releaseCommitment, snapshot } from '@adam0white/human-framework';
 import { createPersona, initialPersonaLife, preparePersonaLife } from '@adam0white/lab-client';
 import { expect, it } from 'vitest';
+import { required } from '../src/required.ts';
 import {
   freshActor,
   kitchenTransfer,
@@ -48,7 +49,9 @@ it('maps only actual compatible native practice, pins actors and replays without
   const input = await source();
   const chapter = await prepareKitchenChapter([input], 42);
   expect(chapter.actors.hulya?.skills.oven).toEqual(
-    input.parent.transfer.agencyPerson && (input.parent.transfer.agencyPerson as any).person.skills.oven,
+    input.parent.transfer.agencyPerson &&
+      (input.parent.transfer.agencyPerson as Awaited<ReturnType<typeof kitchenTransfer>>['kitchenPerson'])
+        .person.skills.oven,
   );
   expect(chapter.actors.hulya?.traits).toEqual(freshActor('hulya', 42).traits);
   await validateKitchenChapter(chapter);
@@ -58,7 +61,7 @@ it('maps only actual compatible native practice, pins actors and replays without
   expect(replayExport(ex)).toEqual(s);
   expect(await validateReplayFile(ex)).toEqual(s);
   const altered = structuredClone(ex);
-  altered.castChapter!.actors.hulya!.values.achievement = 0.01;
+  required(required(altered.castChapter).actors.hulya).values.achievement = 0.01;
   await expect(validateReplayFile(altered)).rejects.toThrow('Pinned kitchen');
 });
 it('refuses unsupported source duty before any target mutation', async () => {
@@ -74,15 +77,15 @@ it('pinned nonzero away-life affects real optional hiring availability while pro
   const chapter = await prepareKitchenChapter([later], 42);
   expect(chapter.facts.hulya?.line).toContain('Hülya');
   expect(chapter.facts.hulya?.life).toEqual(later.life);
-  expect(snapshot(chapter.actors.hulya!).traits).toEqual(
-    (await prepareKitchenChapter([input], 42)).actors.hulya!.traits,
+  expect(snapshot(required(chapter.actors.hulya)).traits).toEqual(
+    required((await prepareKitchenChapter([input], 42)).actors.hulya).traits,
   );
 });
 it('offers a carried visitor work only at the actual opening; source family time is never skipped to Sunday', async () => {
   const input = await source(),
     chapter = await prepareKitchenChapter([input], 42),
     s = newGame(42, 'pass@13', chapter);
-  expect(s.minute).toBe(chapter.actors.hulya!.now);
+  expect(s.minute).toBe(required(chapter.actors.hulya).now);
   expect(s.crew.some((p) => p.id === 'hulya')).toBe(false);
   queueInput(s, { kind: 'cast-invite', who: 'hulya' });
   expect(s.crew.some((p) => p.id === 'hulya')).toBe(true);
@@ -99,7 +102,7 @@ it('offers a carried visitor work only at the actual opening; source family time
   later.phase = 'sunday';
   queueInput(later, { kind: 'cast-invite', who: 'hulya' });
   expect(later.crew.some((p) => p.id === 'hulya')).toBe(false);
-  expect(later.castChapter!.actors.hulya).toEqual(chapter.actors.hulya);
+  expect(required(later.castChapter).actors.hulya).toEqual(chapter.actors.hulya);
 });
 it('a fresh Zeynep chapter keeps the exact sons promise through an explicitly accepted current shift', async () => {
   const p = freshActor('zeynep', 42, 510);
@@ -126,7 +129,7 @@ it('a fresh Zeynep chapter keeps the exact sons promise through an explicitly ac
   });
   const chapter = await prepareKitchenChapter([preparePersonaLife(parent, 0)], 42),
     s = newGame(42, 'pass@13', chapter);
-  const before = chapter.actors.zeynep!.agenda.commitments.find((c) => c.toId === 'sons')!;
+  const before = required(required(chapter.actors.zeynep).agenda.commitments.find((c) => c.toId === 'sons'));
   expect(before.from % 1440).toBe(1290);
   expect(before.until - before.from).toBe(40);
   queueInput(s, { kind: 'cast-invite', who: 'zeynep' });
@@ -144,8 +147,8 @@ it.each([
 ])(
   'maps only quiet native %s without converting repair practice or elapsed body time',
   async (id, sourceId, castId, engine) => {
-    const p = freshActor(id!, 42, 2535);
-    p.id = sourceId!;
+    const p = freshActor(required(id), 42, 2535);
+    p.id = required(sourceId);
     p.body.health = 0.98;
     p.body.circadianPeak = 900;
     p.agenda.commitments = [];
@@ -154,14 +157,14 @@ it.each([
     transfer.kitchenPerson.person.mappingVersion = 'neighbours-calendar/1';
     const parent = await createPersona({
       format: 'hf-persona/1',
-      castId: castId!,
+      castId: required(castId),
       castRevision: '1',
       branchId: 'synthetic-native-rafi',
       parentRevision: null,
-      source: { game: 'neighbours', build: 'fixture', engine: engine!, rules: 'neighbours-cast-1' },
+      source: { game: 'neighbours', build: 'fixture', engine: required(engine), rules: 'neighbours-cast-1' },
       transfer: {
         castPassport: 'neighbours-cast/1',
-        sourceRole: sourceId!,
+        sourceRole: required(sourceId),
         person: transfer.kitchenPerson,
         checkpoint: {
           schema: transfer.checkpoint.sourceSchema,
@@ -169,13 +172,13 @@ it.each([
           rng: transfer.checkpoint.sourceRng,
           sha256: transfer.checkpoint.checkpointDigest,
         },
-        life: initialPersonaLife(castId!, 'synthetic-native-rafi', 0),
+        life: initialPersonaLife(required(castId), 'synthetic-native-rafi', 0),
       },
       limitations: transfer.limitations,
     });
     const input = preparePersonaLife(parent, 0);
     const chapter = await prepareKitchenChapter([input], 42);
-    const actor = chapter.actors[id!]!;
+    const actor = required(chapter.actors[required(id)]);
     expect(actor.now).toBe(1045);
     expect(actor.now - actor.life.bornAt).toBe(p.now - p.life.bornAt);
     expect(actor.body).toEqual({ ...snapshot(p).body, since: 1045 });
@@ -184,7 +187,7 @@ it.each([
     expect(actor.rng).toEqual(snapshot(p).rng);
     expect(actor.skills.repair).toBeUndefined();
     expect(actor.skills.dish).toBeUndefined();
-    expect(chapter.inputs[0]!.parent).toEqual(parent);
+    expect(required(chapter.inputs[0]).parent).toEqual(parent);
     expect(replayExport(exportRun(newGame(42, 'pass@13', chapter), 'test'))).toEqual(
       newGame(42, 'pass@13', chapter),
     );
@@ -221,14 +224,14 @@ it('validates historical canonical chapters without changing their saved narrati
 });
 
 it.each(['pass', 'goodhands'])(
-  'admits an actual current %s native projection and replays its pinned opening',
+  'retains the historical %s envelope adapter and exact pinned opening (synthetic control)',
   async (game) => {
-    const input = await source(game, false, ENGINE_VERSION);
+    const input = await source(game, false, '2.21.0');
     expect(input.parent.source.engine).toBe('2.21.0');
     const portable = (
       game === 'pass' ? input.parent.transfer.kitchenPerson : input.parent.transfer.agencyPerson
     ) as { person: { source: { engine: string }; rng: unknown } };
-    expect(portable.person.source.engine).toBe('2.21.0');
+    expect(portable.person.source.engine).toBe(ENGINE_VERSION);
     const chapter = await prepareKitchenChapter([input], 42);
     expect(chapter.actors.hulya?.rng).toEqual(portable.person.rng);
     expect(chapter.actors.hulya?.lexicon?.plainEnglish).toBe(true);

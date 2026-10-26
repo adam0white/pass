@@ -14,16 +14,15 @@
 import {
   type Activity,
   type Affordance,
-  acquaintWith,
+  acquaintPerson,
   adoptVoiceTrust,
   begin,
-  bodyForecast,
   type DecisionRecord,
   decide,
   diffChronicle,
   enablePromptings,
   finish,
-  glimpseOf,
+  glimpsePerson,
   interrupt,
   type Outcome,
   type Person,
@@ -42,6 +41,7 @@ import {
   socialEvent,
   tick,
 } from '@adam0white/human-framework';
+import { required } from '../required.ts';
 import {
   isLastOfWeek,
   LAST_NIGHT,
@@ -66,7 +66,6 @@ import {
   CLOSE,
   type CookId,
   type CrewMember,
-  dayStart,
   FOUNDERS,
   HIRES,
   hireTemplate,
@@ -145,7 +144,7 @@ export interface StaffingDecision {
 export type Input =
   | { at: number; kind: 'cast-invite'; who: string }
   | { at: number; kind: 'cast-release'; who: string }
-  | { at: number; kind: 'cast-talk'; who: string; choice: 'listen' | 'leave' }
+  | { at: number; kind: 'cast-talk'; who: string; choice: 'listen' | 'leave' | 'check-in' | 'follow-up' }
   | { at: number; kind: 'people-run' }
   | { at: number; kind: 'zeynep-release' }
   | { at: number; kind: 'board'; rows: BoardRow[] }
@@ -373,6 +372,7 @@ export interface GameState {
   phase: 'board' | 'service' | 'evening' | 'sunday' | 'end' | 'return';
   castChapter?: KitchenChapter;
   releasedCast?: string[];
+  crewContact?: { night: number; who: CookId; topic: 'check-in' | 'follow-up' }[];
   returnChapter?: import('./continuation.ts').ReturnChapter;
   board?: { rows: BoardRow[]; agreed: boolean };
   previousBoard?: BoardRow[];
@@ -503,7 +503,7 @@ export function newGame(
   const now = 9 * 60;
   const people = FOUNDERS.map((m) => makeCook(m.id, seed, now, edition, plainNarration));
   const chef = makeChef(seed, now, plainNarration);
-  for (const p of people) acquaintWith(chef, p, 0.5, now);
+  for (const p of people) acquaintPerson(chef, p, 0.5, now);
   const regulars: Record<string, RegularState> = {};
   for (const r of REGULARS)
     regulars[r.id] = { regard: 0.6, tab: r.tab ? 'open' : 'paying', visits: 0, friendNext: false };
@@ -521,7 +521,9 @@ export function newGame(
     chef,
     crew: FOUNDERS.map((m) => ({
       ...m,
-      ...(edition === 'pass@13' ? { castId: CAST.find((c) => c.castId.split('.')[2] === m.id)!.castId } : {}),
+      ...(edition === 'pass@13'
+        ? { castId: required(CAST.find((c) => c.castId.split('.')[2] === m.id)).castId }
+        : {}),
     })),
     cooks: FOUNDERS.map((m) => blankCook(m.id)),
     tickets: [],
@@ -559,7 +561,7 @@ export function newGame(
   startNight(s, 1);
   if (chapter) {
     s.castChapter = structuredClone(chapter);
-    s.people = s.people.map((p) => (chapter.actors[p.id] ? restore(chapter.actors[p.id]!) : p));
+    s.people = s.people.map((p) => (chapter.actors[p.id] ? restore(required(chapter.actors[p.id])) : p));
     for (const p of s.people) if (chapter.actors[p.id]) acceptKitchenShift(p, s.minute);
     for (const [id, facts] of Object.entries(chapter.facts))
       s.said.push({ at: s.minute, who: id, kind: 'journal', text: facts.line });
@@ -869,6 +871,20 @@ export function inKitchen(s: GameState, id: CookId): boolean {
   return !a || (!OFF_LINE.includes(a.affordanceId) && a.affordanceId !== 'pray' && a.affordanceId !== 'skim');
 }
 
+/** Ordinary conversation is separate from asking for work and consumes no simulation time. */
+export function contactAvailable(s: GameState, who: CookId, topic: 'check-in' | 'follow-up'): boolean {
+  return (
+    s.version === 'pass@13' &&
+    s.people.some((p) => p.id === who) &&
+    s.crew.some((m) => m.id === who && !m.left) &&
+    inKitchen(s, who) &&
+    !s.crewContact?.some(
+      (contact) => contact.night === s.night && contact.who === who && contact.topic === topic,
+    ) &&
+    (topic !== 'follow-up' || s.said.some((line) => line.who === who && line.at >= openAt(s.night) - 5))
+  );
+}
+
 /** Who else is in the kitchen right now. */
 export function othersIn(s: GameState, id: CookId): CookId[] {
   return onShift(s).filter((x) => x !== id && inKitchen(s, x));
@@ -1060,16 +1076,6 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
   });
 }
 
-export function forecastLine(s: GameState, id: CookId): string | null {
-  const p = personOf(s, id);
-  const st = memberOf(s, id).home;
-  const aff = offersFor(s, id).find((a) => a.id === st);
-  if (!aff?.followedBy) return null;
-  // Said only when it is news: "I'll still have enough" on every tap is noise.
-  const line = bodyForecast(p, aff).line;
-  return /still have enough/.test(line) ? null : line;
-}
-
 /** The crew rule, as the cook would put it: who is already out back. */
 function crewShort(s: GameState, id: CookId, verb: Verb, offers: Affordance[]): string | null {
   if ((verb !== 'break' && verb !== 'eat' && verb !== 'home') || offers.some((o) => o.id === verb))
@@ -1203,7 +1209,7 @@ function apply(s: GameState, inp: Input) {
       s.people.push(p);
       s.crew.push({
         id: t.id,
-        castId: CAST.find((c) => c.castId.split('.')[2] === t.id)!.castId,
+        castId: required(CAST.find((c) => c.castId.split('.')[2] === t.id)).castId,
         name: t.name,
         home: t.home,
         founder: false,
@@ -1217,7 +1223,7 @@ function apply(s: GameState, inp: Input) {
       cook.trustAtOpen = trustOf(p);
       if (facts?.startsAtHome)
         cook.pending = { s: { voiceId: CHEF, affordanceId: 'eat', strength: 0.5 }, verb: 'eat', quiet: true };
-      glimpseOf(s.chef, p, s.minute, 1);
+      glimpsePerson(s.chef, p, s.minute, 1);
       say(
         s,
         p.id,
@@ -1246,6 +1252,29 @@ function apply(s: GameState, inp: Input) {
     }
     case 'cast-talk': {
       const p = s.people.find((p) => p.id === inp.who);
+      if (inp.choice === 'check-in' || inp.choice === 'follow-up') {
+        if (!p || !contactAvailable(s, inp.who, inp.choice)) return;
+        if (inp.choice === 'follow-up') {
+          const remark = s.said.findLast((line) => line.who === p.id && line.at >= openAt(s.night) - 5);
+          if (!remark) return;
+          say(s, 'chef', `You said, “${remark.text}” I heard you.`, 'journal');
+          say(s, p.id, 'Thank you for listening, Chef.', 'journal');
+        } else {
+          say(s, 'chef', `How are you doing, ${p.name}?`, 'journal');
+          const work = stationOf(s, p.id);
+          say(
+            s,
+            p.id,
+            work
+              ? `I am working at the ${work === 'cold' ? 'cold side' : work === 'dish' ? 'dishes' : work}. You can stay and talk for a moment, Chef.`
+              : 'It is good to have a moment together, Chef.',
+            'journal',
+          );
+        }
+        s.crewContact ??= [];
+        s.crewContact.push({ night: s.night, who: inp.who, topic: inp.choice });
+        return;
+      }
       if (
         s.version !== 'pass@13' ||
         !p ||
@@ -1730,7 +1759,7 @@ export function step(s: GameState): void {
     else s.plates.pile += 1;
     return false;
   });
-  if (m % 15 === 0) for (const id of onShift(s)) glimpseOf(s.chef, personOf(s, id), m, 0.8);
+  if (m % 15 === 0) for (const id of onShift(s)) glimpsePerson(s.chef, personOf(s, id), m, 0.8);
   s.minute += 1;
   if (s.minute >= closeAt(s.night)) closeNight(s);
 }
@@ -2185,8 +2214,6 @@ export function stationOf(s: GameState, id: CookId): Station | null {
   return (STATIONS as readonly string[]).includes(a.affordanceId) ? (a.affordanceId as Station) : null;
 }
 
-export const pileOf = (s: GameState): number => s.plates.pile;
-
 /** What the open tickets still owe each station, in portions. */
 const CLEAR: Record<string, string> = {
   grill: 'nothing was waiting at the grill',
@@ -2579,7 +2606,7 @@ function closeNight(s: GameState) {
     const m = memberOf(s, c.id);
     if (!m.founder) {
       s.wagesDue += m.wage;
-      acquaintWith(
+      acquaintPerson(
         s.chef,
         personOf(s, c.id),
         Math.min(0.85, 0.2 * c.week.nights + 0.15 * (pl.week - m.since)),
@@ -2815,7 +2842,7 @@ function choose(s: GameState, key: string, value: string) {
     s.crew.push({
       id: t.id,
       ...(s.version === 'pass@13'
-        ? { castId: CAST.find((c) => c.castId.split('.')[2] === t.id)!.castId }
+        ? { castId: required(CAST.find((c) => c.castId.split('.')[2] === t.id)).castId }
         : {}),
       name: t.name,
       home: t.home,
@@ -2826,7 +2853,7 @@ function choose(s: GameState, key: string, value: string) {
     });
     s.cooks.push(blankCook(t.id));
     // First impressions: what the chef sees and is told at the back door.
-    glimpseOf(s.chef, p, s.minute, 1);
+    glimpsePerson(s.chef, p, s.minute, 1);
   } else if (key === 'offday') {
     const p = personOf(s, 'dilek');
     if (value === 'yes') {
@@ -2977,7 +3004,7 @@ export function fingerprint(s: GameState): string {
   });
 }
 
-export { CLOSE, dayStart, OPEN, RUSH_FROM, RUSH_TO };
+export { CLOSE, OPEN, RUSH_FROM, RUSH_TO };
 
 function coverUntil(s: GameState): number {
   if (hasBoard(s)) return closeAt(s.night);

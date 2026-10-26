@@ -63,8 +63,10 @@ test('DL-3 marks an unanswered request while pacing stays automatic', async ({ p
   expect(s.request?.state).toBe('asking');
   await start(page, s);
   await expect(page.locator('#status')).toHaveClass(/needs-response/);
-  await expect(page.locator('#yes')).toHaveClass(/primary/);
-  await expect(page.locator('#no')).toHaveClass(/primary/);
+  for (const choice of ['#yes', '#no']) {
+    await expect(page.locator(choice)).toBeEnabled();
+    expect((await page.locator(choice).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  }
   await expect(page.locator('#speed button')).toHaveCount(3);
   await onScreen(page, '#status, #yes, #no, #sheet .card');
 });
@@ -154,10 +156,17 @@ test('DL-22 keeps a fresh counteroffer clickable above seven jobs with safe area
   await page.locator('[data-pick="selim"]').click();
   await expect(page.locator('.verbs button')).toHaveCount(7);
   await expect(page.locator('#caption')).toContainText("I'll work the grill instead.");
-  await onScreen(
-    page,
-    '#status, #caption, #caption button, .who, .station-duration, .verbs button, #sheet .hint',
-  );
+  await onScreen(page, '#status, #caption, #caption button, .who, .station-duration, #sheet .hint');
+  for (const job of await page.locator('.verbs button').all()) {
+    await job.scrollIntoViewIfNeeded();
+    await expect(job).toBeInViewport({ ratio: 1 });
+    const box = await job.boundingBox();
+    const grid = await page.locator('.verbs').boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.y).toBeGreaterThanOrEqual(grid?.y ?? 0);
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual((grid?.y ?? 0) + (grid?.height ?? 0));
+  }
   const caption = await page.locator('#caption').boundingBox();
   const sheet = await page.locator('#sheet').boundingBox();
   expect((caption?.y ?? 0) + (caption?.height ?? 0)).toBeLessThanOrEqual(sheet?.y ?? 0);

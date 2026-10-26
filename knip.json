@@ -1,0 +1,5 @@
+{
+  "ignoreExportsUsedInFile": true,
+  "entry": ["src/main.ts", "scripts/**/*.ts", "test/**/*.ts"],
+  "project": ["src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"]
+}

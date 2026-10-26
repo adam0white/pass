@@ -52,6 +52,7 @@ test('Game menu autosaves and offers feedback with a downloadable copy', async (
 
 test('station control reserves a portion immediately and keeps its exact label', async ({ page }) => {
   await start(page, 1060);
+  await page.locator('[data-priority]').first().tap();
   const grill = page.getByRole('button', { name: 'Work at the grill', exact: true });
   await expect(grill).toBeEnabled();
   const position = await grill.boundingBox();
@@ -70,14 +71,15 @@ test('real touch and desktop renders show station work and the Game menu', async
   mkdirSync(shots, { recursive: true });
   await start(page, 1060);
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: `${shots}/chef-phone-d.png` });
-  await page.getByRole('button', { name: 'Work at the grill', exact: true }).tap();
-  await page.screenshot({ path: `${shots}/chef-working-phone-d.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/chef-phone-d.png` });
+  await page.locator('button.slip:not([disabled])').first().tap();
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({ path: `${shots}/chef-working-phone-d.png` });
   await page.getByRole('button', { name: 'Game menu', exact: true }).tap();
-  await page.screenshot({ path: `${shots}/menu-phone-d.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/menu-phone-d.png` });
   await page.getByRole('button', { name: 'Resume', exact: true }).click();
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.screenshot({ path: `${shots}/chef-desktop-d.png` });
+  if (process.env.PASS_SCREENSHOTS === '1') await page.screenshot({ path: `${shots}/chef-desktop-d.png` });
 });
 
 test('send cancellation returns to Game menu and keeps service time still', async ({ page }) => {
@@ -117,7 +119,7 @@ test('priority decision slows playback and marks the chosen table before restori
 test('working a portion leaves a priority call waiting without slowing its completion', async ({ page }) => {
   await start(page);
   await page.getByRole('button', { name: 'fast', exact: true }).click();
-  await page.getByRole('button', { name: 'Work at the grill', exact: true }).tap();
+  await page.locator('button.slip:not([disabled])').first().tap();
   await expect(page.locator('.priority-options button')).toHaveCount(0);
   await expect(page.locator('.priority-card')).toContainText('Finish this portion');
   await expect(page.locator('#clock-rate')).toContainText('Fast · 3.5 minutes per second');
@@ -128,9 +130,10 @@ test('cook inspection keeps every job reachable on the phone after a priority ca
   await page.locator('[data-priority]').first().tap();
   await page.locator('[data-pick="selim"]').tap();
   await onScreen(page, '.who, .station-duration, .verbs button, #sheet .hint');
-  await page.screenshot({
-    path: '/Users/abdul/code/.lab-scratch/patterns/pass-shots/legacy6/cook-phone-d.png',
-  });
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({
+      path: '/Users/abdul/code/.lab-scratch/patterns/pass-shots/legacy6/cook-phone-d.png',
+    });
 });
 
 test('station limits name warming and lost gas when portions are waiting', async ({ page }) => {

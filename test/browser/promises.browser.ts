@@ -11,9 +11,11 @@ async function title(page: Page) {
   await page.evaluate(() => document.fonts.ready);
 }
 
-async function targets(page: Page, selector: string, firstScreen = true) {
+async function targets(page: Page, selector: string, firstScreen = true, scroll = false) {
   for (const target of await page.locator(selector).all()) {
+    if (scroll) await target.scrollIntoViewIfNeeded();
     await expect(target).toBeVisible();
+    if (scroll) await expect(target).toBeInViewport({ ratio: 1 });
     const box = await target.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
     expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -134,7 +136,8 @@ test('a promised ticket names its host, chef signature and served-by time', asyn
   await expect(ticket).toContainText('serve by');
   await expect(ticket).toHaveAccessibleDescription(/promised:.*Chef’s.*serve by/);
   await expect(page.locator('.service')).toHaveClass(/hands-on/);
-  await targets(page, '[data-cook-step], [data-finish-portion], .crew button');
+  await targets(page, '[data-cook-step], [data-finish-portion], .crew button', true, true);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(690);
 });
 
 test('an unpromised ticket says no promise', async ({ page }) => {
@@ -183,18 +186,29 @@ for (const width of [360, 1280]) {
     mkdirSync(shots, { recursive: true });
     await page.setViewportSize({ width, height: width === 360 ? 690 : 800 });
     await title(page);
-    await page.screenshot({ animations: 'disabled', path: `${shots}/title-${width}.png` });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ animations: 'disabled', path: `${shots}/title-${width}.png` });
     await page.locator('#other-ways').tap();
     await page.locator('#week-two').tap();
     await expect(page.locator('.party-card')).toHaveCount(2);
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
-    await page.screenshot({ animations: 'disabled', path: `${shots}/sunday-${width}.png` });
-    await page.screenshot({
-      animations: 'disabled',
-      path: `${shots}/sunday-full-${width}.png`,
-      fullPage: true,
-    });
-    if (width === 360) await targets(page, '.party-card:first-of-type button');
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({ animations: 'disabled', path: `${shots}/sunday-${width}.png` });
+    if (process.env.PASS_SCREENSHOTS === '1')
+      await page.screenshot({
+        animations: 'disabled',
+        path: `${shots}/sunday-full-${width}.png`,
+        fullPage: true,
+      });
+    if (width === 360) {
+      for (const button of await page.locator('.party-card:first-of-type button').all()) {
+        await button.scrollIntoViewIfNeeded();
+        await expect(button).toBeInViewport({ ratio: 1 });
+        const box = await button.boundingBox();
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+        expect(box?.width).toBeGreaterThanOrEqual(44);
+      }
+    }
   });
   for (const phase of ['board', 'service', 'evening'] as const) {
     test(`pass@9 party ${phase} renders at ${width}`, async ({ page }) => {
@@ -203,12 +217,14 @@ for (const width of [360, 1280]) {
       const { s, booking } = await savedParty(page, phase);
       await page.evaluate(() => document.fonts.ready);
       if (phase === 'service') await page.locator('.party-slip').scrollIntoViewIfNeeded();
-      await page.screenshot({ animations: 'disabled', path: `${shots}/${phase}-${width}.png` });
-      await page.screenshot({
-        animations: 'disabled',
-        path: `${shots}/${phase}-full-${width}.png`,
-        fullPage: true,
-      });
+      if (process.env.PASS_SCREENSHOTS === '1')
+        await page.screenshot({ animations: 'disabled', path: `${shots}/${phase}-${width}.png` });
+      if (process.env.PASS_SCREENSHOTS === '1')
+        await page.screenshot({
+          animations: 'disabled',
+          path: `${shots}/${phase}-full-${width}.png`,
+          fullPage: true,
+        });
       if (phase === 'board') {
         await expect(page.locator('.board-parties')).toContainText(
           /No breaks fall during the party|Breaks during the party: /,
@@ -275,11 +291,8 @@ test('party overlap lines follow proposed and agreed meal breaks by cook name', 
   await expect(page.locator('.board-parties')).toContainText('No breaks fall during the party.');
   const selim = page.locator('[data-board-cook="selim"]');
   await selim.getByRole('button', { name: 'Change', exact: true }).tap();
-  await page
-    .getByRole('dialog', { name: 'Selim’s plan' })
-    .getByRole('button', { name: '19:45 · rush', exact: true })
-    .tap();
-  await page.locator('#board-done').tap();
+  await selim.getByRole('button', { name: '19:45 during the rush', exact: true }).tap();
+  await selim.getByRole('button', { name: 'Done', exact: true }).tap();
   await expect(page.locator('.board-parties')).toContainText(
     'Proposed breaks during the party: Selim’s break, 19:45–20:05.',
   );
@@ -341,12 +354,15 @@ test('every party signature fits the reserved rail space without moving cooking 
         railHeight: rail?.getBoundingClientRect().height,
         slipHeight: slip?.getBoundingClientRect().height,
         workTop: work?.getBoundingClientRect().y,
+        labelFits:
+          !!slip && slip.scrollHeight <= slip.clientHeight + 1 && slip.scrollWidth <= slip.clientWidth + 1,
       };
     });
   });
   for (const position of positions) {
-    expect(position.railHeight, position.id).toBe(148);
-    expect(position.slipHeight, position.id).toBeLessThanOrEqual(136);
+    expect(position.railHeight, JSON.stringify(positions)).toBe(180);
+    expect(position.labelFits, position.id).toBe(true);
+    expect(position.slipHeight, position.id).toBeLessThanOrEqual(168);
     expect(position.workTop, position.id).toBe(positions[0]?.workTop);
   }
 });
@@ -360,7 +376,8 @@ test('the second-week board says nobody is on the oven and goes when someone tak
   const note = page.locator('.board-uncovered');
   await expect(note).toContainText('Nobody is working at the oven tonight.');
   await expect(note).toContainText('The oven stays hot only while a cook stands at it.');
-  await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-more/ui-shots/board-oven-phone.png' });
+  if (process.env.PASS_SCREENSHOTS === '1')
+    await page.screenshot({ path: '/Users/abdul/code/.lab-scratch/pass-more/ui-shots/board-oven-phone.png' });
   const rafi = page.locator('[data-board-cook="rafi"]');
   await rafi.getByRole('button', { name: 'Change', exact: true }).tap();
   await page
