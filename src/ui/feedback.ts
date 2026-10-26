@@ -1,4 +1,4 @@
-import { type Lab, PRIVACY_URL } from '@adam0white/lab-client';
+import { FEEDBACK_LABELS, type FeedbackLabel, type Lab, PRIVACY_URL } from '@adam0white/lab-client';
 import { feedbackPersonaControl, feedbackSharePlay } from '@adam0white/lab-kit';
 import './feedback.css';
 
@@ -48,6 +48,15 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
             <button type="button" data-verdict="mixed" aria-pressed="false">Not sure</button>
             <button type="button" data-verdict="quit" aria-pressed="false">I'd stop here</button>
           </fieldset>
+          <fieldset class="feedback-verdicts">
+            <legend>What happened? <span>(optional)</span></legend>
+            ${Object.entries(FEEDBACK_LABELS)
+              .map(
+                ([key, label]) =>
+                  `<button type="button" data-feedback-label="${key}" aria-pressed="false">${label}</button>`,
+              )
+              .join('')}
+          </fieldset>
           <label class="feedback-note">Tell us what happened in the kitchen, what you wanted, and what got in the way.
             <textarea name="note" rows="4"></textarea>
           </label>
@@ -84,6 +93,7 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
   if (personaChoice) form.querySelector('textarea')?.closest('label')?.after(personaChoice);
 
   let verdict = '';
+  let selectedLabel: FeedbackLabel | undefined;
   let pending = false;
   let sent = false;
   let closed = false;
@@ -123,7 +133,7 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
     status.textContent = message;
     send.textContent = 'Back to the game';
     for (const field of form.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement>(
-      'input, textarea, [data-verdict]',
+      'input, textarea, [data-verdict], [data-feedback-label]',
     ))
       field.disabled = true;
   };
@@ -132,6 +142,23 @@ export function openFeedback({ lab, getRun, download, onBack }: FeedbackOptions)
       verdict = verdict === chip.dataset.verdict ? '' : (chip.dataset.verdict ?? '');
       for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-verdict]'))
         button.setAttribute('aria-pressed', String(button.dataset.verdict === verdict));
+    });
+  }
+  for (const chip of dialog.querySelectorAll<HTMLButtonElement>('[data-feedback-label]')) {
+    chip.addEventListener('click', () => {
+      const previous = selectedLabel ? FEEDBACK_LABELS[selectedLabel] : undefined;
+      // Only remove the exact generated prefix. An edited first clause is the player's note.
+      const body =
+        previous && note.value === previous
+          ? ''
+          : previous && note.value.startsWith(`${previous}\n\n`)
+            ? note.value.slice(previous.length + 2)
+            : note.value;
+      const choice = chip.dataset.feedbackLabel as FeedbackLabel;
+      selectedLabel = selectedLabel === choice ? undefined : choice;
+      note.value = [selectedLabel ? FEEDBACK_LABELS[selectedLabel] : '', body].filter(Boolean).join('\n\n');
+      for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-feedback-label]'))
+        button.setAttribute('aria-pressed', String(button.dataset.feedbackLabel === selectedLabel));
     });
   }
   find('[data-feedback="download"]').addEventListener('click', download);

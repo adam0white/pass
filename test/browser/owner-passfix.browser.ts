@@ -50,7 +50,14 @@ for (const [width, height] of [
   }) => {
     await page.setViewportSize({ width: required(width), height: required(height) });
     await page.locator('#other-ways').click();
+    // Pin the ordinary start to writer/Hasan and measure only after the rendered fonts settle.
+    await page.clock.setFixedTime(new Date(7));
+    await page.evaluate(() => {
+      Math.random = () => 0;
+    });
     await page.getByRole('button', { name: 'Begin at the second week', exact: true }).click();
+    await expect(page.locator('.sunday-page')).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
     const promises = page.locator('.party-card [data-val="promise"]');
     const button = width === 360 ? promises.first() : promises.last();
     await button.scrollIntoViewIfNeeded();
