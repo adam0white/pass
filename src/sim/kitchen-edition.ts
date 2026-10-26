@@ -18,6 +18,9 @@ import {
 } from './kitchen.ts';
 
 export const KITCHEN_EDITION = 'pass@14';
+export const FOLLOWUP_EDITION = 'pass@15';
+export const kitchenEdition = (s: Pick<GameState, 'version'>) =>
+  s.version === KITCHEN_EDITION || s.version === FOLLOWUP_EDITION;
 export interface KitchenWorld {
   night: number;
   stock: Record<FoodStation, number>;
@@ -37,7 +40,23 @@ export interface KitchenWorld {
     verdict: string;
     outcome: 'heard' | 'explained' | 'unanswered' | 'washing' | 'left-before-reply';
   }[];
-  conversations: { who: string; at: number; verdict: string; completed?: number }[];
+  conversations: {
+    who: string;
+    at: number;
+    verdict: string;
+    completed?: number;
+    source?: { at?: number; night?: number; text: string };
+  }[];
+  followup?: {
+    attention: Record<string, { until: number; activity: string }>;
+    deliveries: {
+      ticket: number;
+      who: string;
+      at: number;
+      arrives: number;
+      outcome: 'carrying' | 'served' | 'interrupted';
+    }[];
+  };
 }
 const words = (s: GameState, who: string, text: string) =>
   s.said.push({ at: s.minute, who, kind: 'answer', text });
@@ -75,6 +94,7 @@ export function kitchenNight(s: GameState) {
     },
     guests: [],
     conversations: [],
+    ...(s.version === FOLLOWUP_EDITION ? { followup: { attention: {}, deliveries: [] } } : {}),
   };
   if (wedding)
     words(
@@ -84,7 +104,7 @@ export function kitchenNight(s: GameState) {
     );
 }
 export function takeIngredient(s: GameState, st: FoodStation): boolean {
-  if (s.version !== KITCHEN_EDITION) return true;
+  if (!kitchenEdition(s)) return true;
   if (!s.kitchen || s.kitchen.stock[st] <= 0) return false;
   s.kitchen.stock[st]--;
   s.kitchen.used[st]++;
@@ -153,18 +173,21 @@ export function kitchenStarted(s: GameState, who: string, id: string) {
     );
   }
 }
-export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversation') {
+export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversation' | 'follow-up') {
   if (
-    s.version !== KITCHEN_EDITION ||
+    !kitchenEdition(s) ||
     !s.kitchen ||
     s.phase !== 'service' ||
     !s.people.some((p) => p.id === who) ||
     !s.crew.some((m) => m.id === who && !m.left) ||
     !inKitchen(s, who) ||
-    locked(s, who)
+    locked(s, who) ||
+    !attentionAvailable(s, who)
   )
     return;
   const p = personOf(s, who);
+  const source = kind === 'follow-up' ? heardTopic(s, who) : undefined;
+  if (kind === 'follow-up' && !source) return;
   if (p.activity?.affordanceId === kind) {
     words(s, who, 'I am already doing that, Chef.');
     return;
@@ -191,25 +214,41 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
     suggestion: { voiceId: 'chef', affordanceId: aff.id, strength: 0.5 },
   });
   const verdict = rec.suggestion?.verdict ?? 'refused';
-  if (kind === 'conversation') s.kitchen.conversations.push({ who, at: s.minute, verdict });
+  if (kind !== 'room')
+    s.kitchen.conversations.push({
+      who,
+      at: s.minute,
+      verdict,
+      ...(source
+        ? {
+            source: {
+              ...(source.at === undefined ? { night: source.night } : { at: source.at }),
+              text: source.text,
+            },
+          }
+        : {}),
+    });
   words(
     s,
     'chef',
-    kind === 'conversation'
-      ? `How are you doing, ${p.name}?`
+    kind !== 'room'
+      ? source
+        ? `You said, “${source.text}” Would you like to talk about that, ${p.name}?`
+        : `How are you doing, ${p.name}?`
       : `${p.name}, will you work in the dining room for fifteen minutes? Your station will need someone else.`,
   );
   const chosen = offers.find((o) => o.id === rec.chosenAffordanceId);
   if (!chosen || !start(s, who, chosen, rec)) return;
   if (chosen.id !== aff.id) {
+    reserveAttention(s, who, verdict);
     words(s, who, `${rec.suggestion?.says ?? 'Not now, Chef.'} I am not taking that request now.`);
     return;
   }
   words(
     s,
     who,
-    kind === 'conversation'
-      ? ordinaryWords(who)
+    kind !== 'room'
+      ? (source?.reply ?? ordinaryWords(who))
       : 'I will take the dining room for fifteen minutes. I cannot cook while I am there.',
   );
 }
@@ -229,6 +268,16 @@ const ordinaryWords = (who: string) =>
 export function kitchenMinute(s: GameState) {
   const world = s.kitchen;
   if (!world) return;
+  for (const d of world.followup?.deliveries ?? []) {
+    if (
+      d.outcome === 'carrying' &&
+      (s.tickets.find((t) => t.id === d.ticket)?.status !== 'open' ||
+        personOf(s, d.who).activity?.affordanceId !== 'room')
+    ) {
+      d.outcome = 'interrupted';
+      words(s, d.who, 'I could not finish carrying that meal. The pass must handle it.');
+    }
+  }
   const supply = world.supply;
   if (supply.expected && s.minute >= supply.noticeAt && !supply.failed) {
     supply.failed = true;
@@ -335,4 +384,101 @@ export function kitchenMinute(s: GameState) {
     );
     if (accepted) start(s, c.id, requestedOffer, rec);
   }
+}
+
+/** A finite authored topic requires the exact speaker's actual retained utterance. */
+export function heardTopic(s: GameState, who: string) {
+  if (s.version !== FOLLOWUP_EDITION) return undefined;
+  // Keep the requested prayer topic available even after an ordinary check-in.
+  // Its newest played report wins deliberately; array category order is not chronology.
+  const prayerReport =
+    who === 'selim'
+      ? s.reports
+          .toSorted((a, b) => b.night - a.night)
+          .find((report) =>
+            report.reviews.some(
+              (r) => r.id === who && r.line.includes('I missed the sunset prayer tonight.'),
+            ),
+          )
+      : undefined;
+  const prayer = prayerReport?.reviews.find(
+    (r) => r.id === who && r.line.includes('I missed the sunset prayer tonight.'),
+  );
+  const ordinary = s.said
+    .filter((line) => line.who === who && line.text === ordinaryWords(who))
+    .toSorted((a, b) => b.at - a.at)[0];
+  const prior =
+    prayer && prayerReport
+      ? { at: undefined, night: prayerReport.night, text: prayer.line }
+      : ordinary
+        ? { ...ordinary, night: undefined }
+        : undefined;
+  if (!prior) return undefined;
+  return {
+    at: prior.at,
+    night: prior.night,
+    text: prior.text,
+    reply:
+      who === 'selim' && prior.text.includes('sunset prayer')
+        ? 'I missed it that evening. I would like you to hear that. I still want to make room to step away before the rush; I am not asking you to decide it for me.'
+        : ((
+            {
+              selim: 'Nevin knew these pans as well as I do. I miss working beside her.',
+              dilek:
+                'That loose handle rattles differently when the pan is hot. I listen for it while I work.',
+              rafi: 'I want to learn the cold side, but saying that does not mean I already know it.',
+              zeynep:
+                'My boys expect me home. I do not want paid work to become a promise I cannot keep to them.',
+              hulya: 'I was thinking of growing something on that ledge. I have not planted anything yet.',
+              murat: 'Telling you I am tired is easier than pretending until I get something wrong.',
+              sam: 'Writing it down helps me see what I still need to learn.',
+            } as Record<string, string>
+          )[who] ?? 'That is what I wanted you to hear.'),
+  };
+}
+/** Work selected by HF owns attention until its next review, not a number of clicks. */
+export function attentionAvailable(s: GameState, who: string): boolean {
+  const boundary = s.kitchen?.followup?.attention[who];
+  if (!boundary) return true;
+  const a = personOf(s, who).activity;
+  return !a || a.affordanceId !== boundary.activity || s.minute >= boundary.until;
+}
+export function reserveAttention(s: GameState, who: string, verdict: string) {
+  const world = s.kitchen?.followup,
+    a = personOf(s, who).activity;
+  if (!world || verdict !== 'refused' || !a || a.reviewAt <= s.minute) return;
+  world.attention[who] = { until: Math.min(a.reviewAt, a.endsAt), activity: a.affordanceId };
+  words(s, who, 'I have answered. Let me finish this part of my work before you ask again.');
+}
+/** Ordinary tables retain existing payment/plates logic; only the actual carry waits. */
+export function roomDelivery(s: GameState, ticket: number, table: number): boolean {
+  const world = s.kitchen?.followup;
+  if (!world) return true;
+  const delivery = world.deliveries.findLast((d) => d.ticket === ticket);
+  if (delivery) {
+    if (delivery.outcome !== 'carrying') return true;
+    const a = personOf(s, delivery.who).activity;
+    if (a?.affordanceId !== 'room') {
+      delivery.outcome = 'interrupted';
+      return true;
+    }
+    if (s.minute < delivery.arrives) return false;
+    delivery.outcome = 'served';
+    words(s, delivery.who, `I carried the food to table ${table}. They have their meal now.`);
+    return true;
+  }
+  const worker = s.cooks.find(
+    (c) => c.here && !c.gone && personOf(s, c.id).activity?.affordanceId === 'room',
+  );
+  if (!worker || world.deliveries.some((d) => d.who === worker.id && d.outcome === 'carrying')) return true;
+  const a = personOf(s, worker.id).activity;
+  if (!a || a.endsAt <= s.minute + 2) return true;
+  if (s.plates.clean <= 0) return false;
+  const meal = s.tickets.find((t) => t.id === ticket);
+  if (!meal) return false;
+  s.plates.clean--;
+  meal.platedAt = s.minute;
+  world.deliveries.push({ ticket, who: worker.id, at: s.minute, arrives: s.minute + 2, outcome: 'carrying' });
+  words(s, worker.id, `I am carrying the food from the pass to table ${table}.`);
+  return false;
 }
