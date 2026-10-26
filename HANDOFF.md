@@ -1,5 +1,9 @@
 # Pass handoff
 
+## Dependency installation — 2026-10-26
+
+The dependency configuration uses pnpm 12.14.0 and shared Node 26.12.0. Install with `pnpm install --frozen-lockfile`; `npm run` still runs existing scripts. `pnpm-lock.yaml` imports the npm lock without intended dependency changes. Overrides and exact native build permissions live in `pnpm-workspace.yaml`. Do not regenerate an npm lock or install a runtime per worktree. Configuration delivery requires the full lane, unchanged raw build outputs against the npm baseline, signed source and exact green CI. This conversion does not deploy the app or establish game-readiness acceptance.
+
 ## What remains — 2026-10-25
 
 Adam accepts game readiness and the cast’s effect on play. Owner review is scheduled for 2026-11-03. Technical delivery does not establish that acceptance. Games-deferred owns design, People and Information gameplay panels, and finite receiver work. Friends’ playtests and Show HN stay paused. Director-run lab-panel rounds on HF3 builds are allowed; this documentation task runs no rounds.

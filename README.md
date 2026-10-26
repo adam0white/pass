@@ -28,6 +28,8 @@ The Recording switch controls linked lab recording under the existing notice and
 
 ## Development and status
 
-Use Node 24 or later (current delivery: Node 26) and TypeScript 7 or later. Run `npm ci`, then `npm run dev`. Run `npm run check:lane` through the shared suite wrapper described in [HANDOFF.md](HANDOFF.md) before committing. [AGENTS.md](AGENTS.md) records delivery rules; [player text rules](docs/lab/plain-english.md) govern wording.
+Use the shared Node 26.12.0 runtime (`.node-version` and `.nvmrc`), pnpm 12.14.0 and TypeScript 7 or later. Run `pnpm install --frozen-lockfile`, then `npm run dev`. Run `npm run check:lane` through the shared suite wrapper described in [HANDOFF.md](HANDOFF.md) before committing. [AGENTS.md](AGENTS.md) records delivery rules; [player text rules](docs/lab/plain-english.md) govern wording.
 
 The app package is `0.1.0`; new games use `pass@13`, continuation rules `pass-13` and cast chapter `pass-cast/1`. Current pins are HF package `3.0.0`, Person engine `2.23.0`, lab-client `0.4.11` and lab-kit `0.5.12`. These version numbers describe different contracts. See HANDOFF for the signed app source, CI, deployed receipt and browser-check limits. Adam’s game-readiness acceptance remains separate. Friends’ playtests and Show HN remain paused.
+
+Dependency changes use pnpm and the committed `pnpm-lock.yaml`. The npm lock was imported with exact dependency versions preserved. Do not regenerate an npm lock or install a separate runtime per worktree. The pnpm policy uses strict engines/peers, no hoisting, hardlinks, a 24-hour third-party release delay and a scoped exemption for owned `@adam0white/*` packages.
