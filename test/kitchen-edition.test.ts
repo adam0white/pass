@@ -18,6 +18,7 @@ import {
   step,
 } from '../src/sim/kitchen.ts';
 import { KITCHEN_EDITION, kitchenMinute, kitchenNight, takeIngredient } from '../src/sim/kitchen-edition.ts';
+import hirePrefix from './fixtures/hulya-hire-prefix.json';
 
 function service() {
   const s = newGame(42, KITCHEN_EDITION);
@@ -174,17 +175,16 @@ it('binds failure to the authored wedding and conserves paid replacement stock (
 });
 
 it('hears a hire’s own words beside the actual HF answer without granting new skills', () => {
-  const s = service();
-  let guard = 0;
-  while (
-    !(s.phase === 'sunday' && s.sunday?.candidates.includes('hulya')) &&
-    s.phase !== 'end' &&
-    guard++ < 15000
-  )
-    advance(s, 'flex-chef', 'promise-none');
-  expect(s.sunday?.candidates).toContain('hulya');
-  queueInput(s, { kind: 'choose', key: 'hire', value: 'hulya' });
-  while (s.phase !== 'service' && guard++ < 15020) advance(s, 'flex-chef', 'promise-none');
+  // Mechanism control: replay a captured ordinary service prefix, then make the live request.
+  // This does not test the host policy end to end; campaign and direct replay controls remain.
+  const s = replay(
+    hirePrefix.seed,
+    hirePrefix.inputs as Parameters<typeof replay>[1],
+    hirePrefix.minute,
+    hirePrefix.edition,
+    undefined,
+    hirePrefix.plainNarration,
+  );
   const skills = structuredClone(personOf(s, 'hulya').skills);
   queueInput(s, { kind: 'ask', cook: 'hulya', verb: 'cold', insist: true });
   step(s);
@@ -192,7 +192,9 @@ it('hears a hire’s own words beside the actual HF answer without granting new 
   expect(answer?.text).toContain('Antalya kitchens');
   expect(s.lastAnswer?.verdict).toBe('complied');
   expect(personOf(s, 'hulya').skills).toEqual(skills);
-  exact(s);
+  // This no-chapter export uses the same six replay arguments as exact()'s direct call.
+  // Keep full exported-state equality; omit only that duplicate traversal in this control.
+  expect(cloneState(replayExport(exportRun(s, '3.0.0')))).toEqual(cloneState(s));
 });
 
 // Closing must not turn a thirty-minute journey into a twenty-six-minute journey.
