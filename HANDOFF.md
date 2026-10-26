@@ -1,5 +1,37 @@
 # Pass handoff
 
+## What remains — 2026-10-25
+
+Adam accepts game readiness and the cast’s effect on play. Owner review is scheduled for 2026-11-03. Technical delivery does not establish that acceptance. Games-deferred owns design, People and Information gameplay panels, and finite receiver work. Friends’ playtests and Show HN stay paused. Director-run lab-panel rounds on HF3 builds are allowed; this documentation task runs no rounds.
+
+## Current source and deployed receipt
+
+Source baseline: signed `453be90356e344bc90508ace10e066baf25519b9` (signature G, Codex trailer), exact CI `40251166453` SUCCESS. App package `0.1.0`; new games `pass@13`; continuation rules `pass-13`; cast chapter `pass-cast/1`. HF package `3.0.0` and Person engine `2.23.0` are separate versions. Immutable lab-client `0.4.10` / lab-kit `0.5.11`, TypeScript `7.0.2` (support: 7+), Node 26, Worker compatibility date `2026-10-25`. Future HF3.2 candidates and newer SDK artifact availability do not change these host pins.
+
+The prior app deployment is Cloudflare `98df70f7-77d9-42ed-9098-d0bf4d79f079`. Its release manifest reports that source, HF3.0.0 and `dirty:false`. The director’s final closure is `/Users/abdul/code/.lab-scratch/v3/pass/director-delivery-verified.json`; the phase history is `v3/pass/report.md` and `STATUS` under the same scratch root. Final closure supersedes older pending paragraphs there. It records 385 unit tests in 43 files and 119 WebKit controls passing. Eight non-HTML public files matched exactly. Cloudflare Fonts transformed the served HTML; it was not byte-equal to the build.
+
+Final checks passed at 360×690, 1280×800, 820×1180 and 1180×820: Chrome used the static manifest and literal served HTML in a mirror with network blocked; WebKit used fresh production contexts. These controls establish neither a complete human journey nor shared browser/server ownership. No owner storage, run, CAS or Submit actions were taken; screenshots: zero. Prior migration worktrees and branches were removed. This later root-documentation change requires its own signed commit and exact CI, but no app redeploy.
+
+## Play, saving and people
+
+[README.md](README.md) describes the four-week campaign, literal controls and framework boundary. The original six-service first playable remains historical in [design](docs/design.md). The dynamic HF footer already credits the framework. No About feature or gameplay panel change is needed here.
+
+The game saves the notebook locally as seed and inputs with pinned chapter data. Ordinary Feedback offers “Keep a copy of this run”, even with recording off. Diagnostic starts, imports, replay verification and continuity controls require exact `?lab=1`. Recording and linked lab play follow the single Recording switch and the existing notice/privacy policy. Fictional continuity runs automatically and has separate ownership guards. Imported files and Sunday rewinds do not acquire native ownership; replay uses pinned state, not a new shelf read.
+
+Receiving routes remain finite source contracts, not blanket engine support. Current code admits the scoped Neighbours Rafi/Sam engine2.23 route and Good Hands Zeynep engine2.23 agency route with their passport, role and duty guards. Current native Pass daytime engine2.23 return remains unproved/refused. A receiving guard is not evidence that Neighbours adopted the outgoing Pass source.
+
+The signed Rafi outgoing source was regenerated at legal first-service evening minute1390 through the production publication guard. Raw SHA-256: `f8ab39530609e3f47f8c79343a3c088b6074a17434a7a34059352f83a35d1ab8`. Full replay matched. The transport was in memory; no shared browser/server CAS receipt is claimed. Evidence: `v3/pass/outgoing/rafi.json` under the scratch root. Later ordinary Sam645 success does not erase the earlier Sam555 refusal evidence. Keep complete raw people, semantic history and RNG intact.
+
+## Delivery rules
+
+Use managed worktrees and signed commits with the Codex trailer. Fetch/rebase before each push. Run the normal shared wrapper before each commit: `PATH=/opt/homebrew/bin:$PATH node ~/code/human-framework/scripts/suite-lock.ts -- npm run check:lane`. This repo’s lane runs the full check. Exact green CI is required. Source-only root docs do not redeploy the app during an open round. App delivery, owner acceptance and wider roadmap completion remain separate. Preserve legacy replay tests and the owner policy below.
+
+## Historical handoff body — preserved verbatim, archived 2026-10-25
+
+The following body records earlier checkpoints and instructions. Its version pins, pending delivery statements and no-round instruction describe those checkpoints. The current facts and later director-run HF3 lab-panel policy above take precedence. Original wording is retained, including the six-service history in design and owner records.
+
+# Pass handoff
+
 ## What remains
 
 Adam’s play accepts the cast and whether recurrence adds attachment. Owner review is2026-11-03. The delivery artifact is the current deployed kitchen edition, exact current replay and native source-to-target browser receipts. Dynamic CI/deployment/journey status and limitations live in `/Users/abdul/code/.lab-scratch/cast/pass.md`; ledger proposals are in `pass-ledger.md`. Agent controls and telemetry do not establish human recognition or owner acceptance.
