@@ -16,11 +16,12 @@ import {
   personOf,
   plan,
 } from './kitchen.ts';
+import { NARRATION_EDITION, observeNarration } from './narration-edition.ts';
 
 export const KITCHEN_EDITION = 'pass@14';
 export const FOLLOWUP_EDITION = 'pass@15';
 export const kitchenEdition = (s: Pick<GameState, 'version'>) =>
-  s.version === KITCHEN_EDITION || s.version === FOLLOWUP_EDITION;
+  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION].includes(s.version);
 export interface KitchenWorld {
   night: number;
   stock: Record<FoodStation, number>;
@@ -94,7 +95,9 @@ export function kitchenNight(s: GameState) {
     },
     guests: [],
     conversations: [],
-    ...(s.version === FOLLOWUP_EDITION ? { followup: { attention: {}, deliveries: [] } } : {}),
+    ...([FOLLOWUP_EDITION, NARRATION_EDITION].includes(s.version)
+      ? { followup: { attention: {}, deliveries: [] } }
+      : {}),
   };
   if (wedding)
     words(
@@ -144,6 +147,7 @@ function start(s: GameState, who: string, aff: Affordance, rec: ReturnType<typeo
   if (p.activity) {
     const a = p.activity;
     interrupt(p, s.minute, 'kitchen-conversation');
+    observeNarration(s, p, 'interrupted');
     finish(p, { affordanceId: a.affordanceId, action: a.action, status: 'interrupted', at: s.minute });
   }
   if (!begin(p, aff, rec)) return false;
@@ -300,6 +304,7 @@ export function kitchenMinute(s: GameState) {
     const custom = ['room', 'conversation', 'explain-wait', 'no-replies'].includes(a.affordanceId);
     if (custom) tick(p, s.minute);
     if (custom && s.minute >= a.endsAt) {
+      observeNarration(s, p, 'completed');
       finish(p, {
         affordanceId: a.affordanceId,
         action: a.action,
@@ -388,7 +393,7 @@ export function kitchenMinute(s: GameState) {
 
 /** A finite authored topic requires the exact speaker's actual retained utterance. */
 export function heardTopic(s: GameState, who: string) {
-  if (s.version !== FOLLOWUP_EDITION) return undefined;
+  if (![FOLLOWUP_EDITION, NARRATION_EDITION].includes(s.version)) return undefined;
   // Keep the requested prayer topic available even after an ordinary check-in.
   // Its newest played report wins deliberately; array category order is not chronology.
   const prayerReport =

@@ -349,3 +349,24 @@ wedding deadline. There is no reseeding or automatic easier service.
 The old “after the owner plays pass@3” heading records history. It is not an
 engineering gate. The SDK11/kit12 quiet Feedback artifacts, recording switch,
 privacy and note-versus-run behavior remain the delivered source contract.
+
+## Opt-in narration candidate — 2026-10-26
+
+“Try the narration edition” explicitly starts pass@16, a separate local notebook
+that inherits the follow-up kitchen. Default New game remains pass@13. Saved
+13/14/15 notebooks keep their exact rules and prose; none upgrades silently.
+
+The published HF3 prompting narrator supplies plain third-person captions. The
+authored kitchen lexicon supplies verb forms to HF chronicle narration. Evening
+reports use HF's varied review lines. An ordered cause requires actual assented
+or complied work that elapsed across the matching commitment's deadline, or
+actually completed work that violated the matching abstention. A matching
+commitment activity actually ended early can support an interrupted cause.
+Pending requests, refusals and unrelated commitments do not establish a cause.
+These observations alter no raw review, resolve, norm or religious assessment.
+Missed sunset prayer stays a quiet observation. Other lapses retain ordinary
+noncausal wording when the host lacks matching evidence.
+
+GDI-568, GDI-569 and GDI-642 are candidate source only. Parent independent review,
+signed delivery, exact green CI and live release checks remain. Adam accepts
+game readiness. No player round was run.

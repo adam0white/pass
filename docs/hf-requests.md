@@ -29,3 +29,12 @@ sourced request-answer effect with outcome and repetition semantics. Existing
 request handling stays unchanged while all owns GDI-571 (target 2026-10-30).
 These are concrete gaps in the installed contract, not claims about all future
 HF releases. No local generic replacement or new trust rate was introduced.
+
+## Narration successor candidate — 2026-10-26
+
+The explicit pass@16 choice adopts items 2 and 3 through published HF3
+`promptingLine` options and `Lexicon.actions` read by `diffChronicle`. Historical
+13/14/15 narration stays exact. GDI-642 uses matching observed activity evidence
+for cause-aware evening lines, with ordinary wording when evidence is absent.
+Raw HF review and norm records remain unchanged. This candidate awaits the
+parent's independent review and delivery gates; no package change is included.

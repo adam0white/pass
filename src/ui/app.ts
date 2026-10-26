@@ -7,6 +7,7 @@ import {
   KITCHEN_EDITION,
   kitchenEdition,
 } from '../sim/kitchen-edition.ts';
+import { NARRATION_EDITION } from '../sim/narration-edition.ts';
 /**
  * The Pass UI: plain DOM and inline SVG over the pure sim. The UI reads state and queues inputs; it never
  * changes the sim directly. Real time drives sim minutes (continuous, with slowdown while a consequential
@@ -496,6 +497,7 @@ function title() {
       }
       ${LAB_TOOLS ? '<button id="fresh-authored">Begin without continuity</button><button id="other-ways" aria-haspopup="dialog">Lab tools</button>' : ''}
       <button id="kitchen-edition">Try the kitchen edition</button><p class="soft">A separate local kitchen adds dining-room work, conversations, guest requests and a wedding delivery failure. The usual New game stays the same.</p>
+      <button id="narration-edition">Try the narration edition</button><p class="soft">A separate follow-up kitchen uses plain captions and describes what actually interrupted a missed commitment. Existing notebooks keep their edition.</p>
       <button id="followup-edition">Try the follow-up edition</button><p class="soft">A separate kitchen lets you ask about words you heard, gives dining-room work actual food deliveries, and lets cooks finish part of their work before answering again.</p>
       <p id="title-status" role="status" aria-live="polite"></p>
       <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this game</button></div></div>
@@ -591,7 +593,7 @@ function title() {
     secondWeek: boolean,
     firstParty = false,
     authored = false,
-    kitchen: boolean | 'followup' = false,
+    kitchen: boolean | 'followup' | 'narration' = false,
   ) => {
     const start = () => {
       void (async () => {
@@ -602,7 +604,14 @@ function title() {
         clearSave();
         firstPartyStart = firstParty;
         s = kitchen
-          ? newGame(seed, kitchen === 'followup' ? FOLLOWUP_EDITION : KITCHEN_EDITION)
+          ? newGame(
+              seed,
+              kitchen === 'narration'
+                ? NARRATION_EDITION
+                : kitchen === 'followup'
+                  ? FOLLOWUP_EDITION
+                  : KITCHEN_EDITION,
+            )
           : (returning ?? (secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed)));
         cast.track();
         if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
@@ -621,6 +630,9 @@ function title() {
     if (save) ask('Start a new game? This replaces your saved game.', start);
     else start();
   };
+  document
+    .getElementById('narration-edition')
+    ?.addEventListener('click', () => begin(false, false, true, 'narration'));
   document
     .getElementById('followup-edition')
     ?.addEventListener('click', () => begin(false, false, true, 'followup'));
@@ -694,6 +706,7 @@ function replayNight(sv: Save): number {
     'pass@13',
     'pass@14',
     'pass@15',
+    'pass@16',
   ].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
@@ -717,6 +730,7 @@ function replayNight(sv: Save): number {
         'pass@13',
         'pass@14',
         'pass@15',
+        'pass@16',
       ].includes(sv.game);
     }
   }
@@ -1915,7 +1929,7 @@ function drawSheet() {
           `<button data-v="${v.verb}" ${waiting || absent || !attentionAvailable(st, selected as CookId) ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
-    ${['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION].includes(st.version) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${(st.version === FOLLOWUP_EDITION ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${st.version === FOLLOWUP_EDITION && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
+    ${['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION].includes(st.version) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
     ${kitchenEdition(st) && !absent ? '<div class="row"><button data-kitchen-task="room">Ask for fifteen minutes in the dining room</button><p class="soft">This cook cannot prepare food while working there.</p></div>' : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div>${!attentionAvailable(st, selected as CookId) ? '<p class="soft" role="status">Let this cook finish this part of their work before asking again. The kitchen keeps running.</p>' : ''}<div class="hint">${
       absent
