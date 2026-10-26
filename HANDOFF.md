@@ -4,9 +4,46 @@
 
 Adam accepts game readiness and the cast’s effect on play. Owner review is scheduled for 2026-11-03. Technical delivery does not establish that acceptance. Games-deferred owns design, People and Information gameplay panels, and finite receiver work. Friends’ playtests and Show HN stay paused. Director-run lab-panel rounds on HF3 builds are allowed; this documentation task runs no rounds.
 
-## Current source and deployed receipt
+## Current SDK source — 2026-10-26
 
-Source baseline: signed `453be90356e344bc90508ace10e066baf25519b9` (signature G, Codex trailer), exact CI `40251166453` SUCCESS. App package `0.1.0`; new games `pass@13`; continuation rules `pass-13`; cast chapter `pass-cast/1`. HF package `3.0.0` and Person engine `2.23.0` are separate versions. Immutable lab-client `0.4.10` / lab-kit `0.5.11`, TypeScript `7.0.2` (support: 7+), Node 26, Worker compatibility date `2026-10-25`. Future HF3.2 candidates and newer SDK artifact availability do not change these host pins.
+Signed source `6fe7908d1283b7433e83ece22318d3a4e2fcbff4` adopts immutable lab-client
+`0.4.11` / lab-kit `0.5.12`, with HF package `3.0.0` / Person engine `2.23.0` unchanged.
+Exact CI `40260671307` succeeded. The normal lane passed 385 tests in 43 files;
+the reviewed final full WebKit suite passed 121/121 controls. Guarded Cloudflare
+deployment `dc0d236f-521c-406c-8962-1c2d56c01489` completed from clean source.
+The final delivery receipt and the 02:58Z source-free handoff supersede earlier
+pending-live statements. Evidence: `~/code/.lab-scratch/v3/pass-feedback/delivery-receipt.json`
+and `report.md`; shared handoff: `~/code/.lab-scratch/hfroad/V3-COORDINATION.md`.
+
+Existing signed-in Chrome read the production release manifest at that exact source,
+HF3.0.0 and `dirty:false`. All eight non-HTML public assets matched build bytes;
+Cloudflare Fonts rewrote the served HTML, which was not byte-equal to the build.
+Fresh production WebKit and existing Chrome on a task-local CSP mirror of the literal
+live HTML and exact live JS/CSS passed at 360×690 and 1280×800: labels were visible,
+edited first clauses survived change/clear, Submit was reachable at 52px high,
+and there was no horizontal overflow. The mirror CSP blocked external fonts/connect;
+browser network interception was not independently measured. No browser Submit,
+owner-storage action or screenshot occurred. Release worktrees, task branches,
+mirror process and task tabs were cleaned up; the viewport was reset.
+
+The original 120/121 UI result and partly unexplained 354px scroll remain historical.
+The final test fixture used fixed seed 7 and waited for fonts to be ready. That fixture
+correction was not a product font fix and proves no all-seed result. Actual recording-on
+chunks, a real server receipt, network persistence, human ownership and Adam’s
+readiness acceptance remain unproved. This root-docs update requires its own signed
+commit and exact CI, with no app deployment.
+
+The host’s custom ordinary Feedback form uses the shared SDK stopping/confused labels
+to prefill the note. Selection sends nothing. Changing or clearing a choice removes only
+the exact old label or that label followed by a blank line; an edited first clause stays.
+Submit sends the current note and optional verdict. Ordinary Keep a copy of this run,
+recording/privacy/sharing and receipt/error paths remain. Mocked note-only transport is
+not a production submission receipt or proof of actual recording-on run chunks.
+The older signed Rafi artifact and its source stamps remain unchanged.
+
+## Prior app source and deployed receipt — 453be903
+
+Source baseline: signed `453be90356e344bc90508ace10e066baf25519b9` (signature G, Codex trailer), exact CI `40251166453` SUCCESS. App package `0.1.0`; new games `pass@13`; continuation rules `pass-13`; cast chapter `pass-cast/1`. HF package `3.0.0` and Person engine `2.23.0` are separate versions. Immutable lab-client `0.4.10` / lab-kit `0.5.11`, TypeScript `7.0.2` (support: 7+), Node 26, Worker compatibility date `2026-10-25`. These were the pins at this historical checkpoint; the current adopted SDK pins are recorded above. Future HF3.2 candidates do not change the current HF3.0.0/Person2.23.0 pins.
 
 The prior app deployment is Cloudflare `98df70f7-77d9-42ed-9098-d0bf4d79f079`. Its release manifest reports that source, HF3.0.0 and `dirty:false`. The director’s final closure is `/Users/abdul/code/.lab-scratch/v3/pass/director-delivery-verified.json`; the phase history is `v3/pass/report.md` and `STATUS` under the same scratch root. Final closure supersedes older pending paragraphs there. It records 385 unit tests in 43 files and 119 WebKit controls passing. Eight non-HTML public files matched exactly. Cloudflare Fonts transformed the served HTML; it was not byte-equal to the build.
 
