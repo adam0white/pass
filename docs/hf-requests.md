@@ -12,3 +12,20 @@ Filed 2026-10-19 against HF 2.7.0, and appended to `~/code/human-framework/docs/
 8. (2026-10-19, polish round) **A `review:resolve` term does not name its resolve.** A host that wants to show muhasaba weighing in a choice ("Rafi turned from the jar, as he said he would") cannot tell which resolve the term came from. Proposal: carry the resolve key on the term (for example `review:resolve:<key>`, or a `ref` field). Workaround: the game infers it from the chosen act and the person's resolve list.
 
 Status against HF 2.13.0: items 1 (suggestion reasons) and 4 (firm self-rule) are done in pass@10. Item 8 is available since HF 2.9.0 (`Term.ref` on `review:resolve`) but the game does not use it yet. The other workarounds above stay. pass@3–9 notebooks retain their original feature flags and wording.
+
+## Installed HF3 reconciliation — 2026-10-26
+
+The opt-in pass@14 candidate adopts item 8: the positive `review:resolve` term's
+actual `ref` identifies a `Resolve.key`. No label is inferred from the chosen act
+or resolve-list order when the term has no unique reference. Historical editions
+keep their original raw narration for replay.
+
+Installed HF3.0.0's public `social/groups` contract provides membership and care,
+not a crew coverage obligation that several people may satisfy. The last-cook
+world-availability convention remains for item 6; all owns GDI-009/570's generic
+contract (target 2026-10-29). For item 5, `noteVoicePromise` addresses promises made
+by a voice. `gestureVoiceTrust` is an explicitly host-chosen signed amount, not a
+sourced request-answer effect with outcome and repetition semantics. Existing
+request handling stays unchanged while all owns GDI-571 (target 2026-10-30).
+These are concrete gaps in the installed contract, not claims about all future
+HF releases. No local generic replacement or new trust rate was introduced.

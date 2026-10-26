@@ -287,3 +287,65 @@ Historical simulation rules remain only to replay existing notebooks. Loading or
 Done for this change means a verified pass@11 build, replay and continuation checks for the owner’s notebook and historical fixtures, and phone checks for the first-party start and migration. The owner accepts the feel after playing the released build; builder tests do not establish that acceptance.
 
 The service clock offers Slow, Steady and Fast. Reading, cook inspection, cooking choices and pending replies keep their existing time protection at every selected speed. Speed is a page-session preference; saves and replay inputs are unchanged.
+
+## Opt-in remaining kitchen candidate — 2026-10-26
+
+Default New game remains `pass@13`. “Try the kitchen edition” explicitly starts
+`pass@14`, a separate local notebook. It does not publish a new producer through
+the old `pass-13` passport. Root's independent review, clearance and release gates
+remain outstanding. Adam accepts readiness and player feel separately.
+
+The seven allocated canonical people remain the whole cast. An employed, present
+cook may accept fifteen minutes in the dining room through an HF decision. That
+person leaves food production; the rota gap remains real. No new waiter identity,
+generated foreground customer or simultaneous second chapter is created. Absent
+Rafi, departed employees and people on their own breaks do not join a conversation.
+The same actual HF people hear incidental tables at the kitchen door. A guest
+asks for an explanation or demands washed plates ahead of other orders. HF can
+assent, modify or refuse. Accepted explanations cost three minutes. The existing
+plates rule can refuse a guest. Orders, patience, portions and walkouts keep their
+world rules; a guest's request grants neither food nor priority by itself.
+
+After repeated actual refusals, HF can weigh putting down work and replies for
+twelve minutes or ending employment and taking thirty minutes to travel home,
+alongside the existing work and rest choices. The recorded refusals make those
+acts available; they do not select an outcome. Both acts cost service coverage.
+Resignation retains the night's earned pay and outstanding duties. It grants no
+new job, release of family promises or retroactive excuse for the shift.
+
+Ordinary “How are you doing?” offers a three-minute HF conversation. An accepted
+conversation takes the cook off production while other people and tickets keep
+advancing. A refusal leaves the request declined. The latest heard answer appears
+before the longer journal. Hires keep the actual HF verdict and reason, with
+individual words grounded in their existing work histories. No generated model
+voice or local cognition framework is involved. Reading slows service; Game menu
+pause remains separate.
+
+The authored `2026-10-26/wedding-night` supply event belongs only to pass@14's
+fourth-week Saturday. The opening notice says eight lamb portions are expected at
+six and are not yet on hand. At six the supplier reports a broken van and no
+arrival that evening. Missing stock is never added or charged. A replacement
+order costs ₺240 and arrives 45 minutes after the actual order. Portions consume
+finite ingredients. Tickets retain their original seed, arrivals, orders and
+wedding deadline. There is no reseeding or automatic easier service.
+
+### Deferred dispositions at candidate freeze
+
+| Item          | Current source disposition                                                                                                                                                                                                                 | Remaining action / date                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| GDI-003       | Actual canonical HF room workers; each assignment competes with current work.                                                                                                                                                              | Root review and release; candidate target 2026-10-26.                                                                      |
+| GDI-005       | HF-selected mid-service resignation begins a costed home journey and ends employment.                                                                                                                                                      | Root review and release; candidate target 2026-10-26.                                                                      |
+| GDI-006       | Heard guest suggestions, actual assent/refusal and physical work outcomes.                                                                                                                                                                 | Root review and release; candidate target 2026-10-26.                                                                      |
+| GDI-007       | Dated wedding failure, honest notice, finite ingredients and paid replacement travel.                                                                                                                                                      | Root review and release; candidate target 2026-10-26.                                                                      |
+| GDI-008       | HF-selected twelve-minute work/reply boundary; no click-count outcome.                                                                                                                                                                     | Root review and release; candidate target 2026-10-26.                                                                      |
+| GDI-010       | Hire-specific spoken context beside the actual HF response.                                                                                                                                                                                | Root review and release; candidate target 2026-10-26.                                                                      |
+| GDI-011       | Ordinary costed conversation, actual availability, no service pause.                                                                                                                                                                       | Root review and release; candidate target 2026-10-26.                                                                      |
+| GDI-004       | Deliberate prior product decision: “Workers AI voice for the evening (not needed; HF lines carry it).” The source is the earlier deferred list above.                                                                                      | No feature remains from that literal request. No new exclusion or inference call. Revisit only on a new product direction. |
+| GDI-009 / 570 | Installed HF3.0.0 has group membership/care, not a transferable crew coverage obligation. Existing last-cook availability convention remains. No local generic substitute.                                                                 | All owns the demonstrated public-contract gap, target 2026-10-29.                                                          |
+| GDI-571       | `noteVoicePromise` concerns promises made by a voice; `gestureVoiceTrust` explicitly leaves magnitude to the host. Neither establishes request-answer effect/evidence/repetition semantics. Existing request convention remains unchanged. | All owns the sourced contract/evidence, target 2026-10-30.                                                                 |
+| HF request 8  | pass@14 follows actual `review:resolve` `Term.ref` to `Resolve.key`. Missing/ambiguous refs produce no invented resolve line.                                                                                                              | Historical editions intentionally retain their old narration for exact raw continuation.                                   |
+| GDI-001 / 002 | Historical source-unread cooking-feel acceptance and first-service retest need actual eligible player input. Builder controls establish neither.                                                                                           | Adam / eligible player review 2026-11-03; this task runs no round. Friends and Show HN stay paused.                        |
+
+The old “after the owner plays pass@3” heading records history. It is not an
+engineering gate. The SDK11/kit12 quiet Feedback artifacts, recording switch,
+privacy and note-versus-run behavior remain the delivered source contract.

@@ -1,5 +1,6 @@
 import { required } from '../required.ts';
 import { episodeText, INVITATIONS } from '../sim/cast-scenes.ts';
+import { KITCHEN_EDITION } from '../sim/kitchen-edition.ts';
 /**
  * The Pass UI: plain DOM and inline SVG over the pure sim. The UI reads state and queues inputs; it never
  * changes the sim directly. Real time drives sim minutes (continuous, with slowdown while a consequential
@@ -205,7 +206,7 @@ function clearSave() {
 // ---------- helpers ----------
 
 const esc = (x: string) =>
-  (s?.version === 'pass@13' ? episodeText(gloss(x)) : gloss(x)).replace(
+  (s?.version === 'pass@13' || s?.version === KITCHEN_EDITION ? episodeText(gloss(x)) : gloss(x)).replace(
     /[&<>"]/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string,
   );
@@ -488,6 +489,7 @@ function title() {
           : ''
       }
       ${LAB_TOOLS ? '<button id="fresh-authored">Begin without continuity</button><button id="other-ways" aria-haspopup="dialog">Lab tools</button>' : ''}
+      <button id="kitchen-edition">Try the kitchen edition</button><p class="soft">A separate local kitchen adds dining-room work, conversations, guest requests and a wedding delivery failure. The usual New game stays the same.</p>
       <p id="title-status" role="status" aria-live="polite"></p>
       <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this game</button></div></div>
     </div>
@@ -578,7 +580,7 @@ function title() {
         })().catch(() => status('That Sunday could not be loaded.'));
       });
     });
-  const begin = (secondWeek: boolean, firstParty = false, authored = false) => {
+  const begin = (secondWeek: boolean, firstParty = false, authored = false, kitchen = false) => {
     const start = () => {
       void (async () => {
         const nevin = app.querySelector<HTMLInputElement>('input[name="pace"]:checked')?.value === 'nevin';
@@ -587,7 +589,9 @@ function title() {
         if (secondWeek || authored) await cast.local();
         clearSave();
         firstPartyStart = firstParty;
-        s = returning ?? (secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed));
+        s = kitchen
+          ? newGame(seed, KITCHEN_EDITION)
+          : (returning ?? (secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed)));
         cast.track();
         if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
@@ -606,6 +610,9 @@ function title() {
     else start();
   };
   document.getElementById('new')?.addEventListener('click', () => begin(false));
+  document
+    .getElementById('kitchen-edition')
+    ?.addEventListener('click', () => begin(false, false, true, true));
   document.getElementById('fresh-authored')?.addEventListener('click', () => begin(false, false, true));
   document.getElementById('week-two')?.addEventListener('click', () => begin(true));
   document.getElementById('first-party')?.addEventListener('click', () => begin(true, true));
@@ -670,6 +677,7 @@ function replayNight(sv: Save): number {
     'pass@11',
     'pass@12',
     'pass@13',
+    'pass@14',
   ].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
@@ -691,6 +699,7 @@ function replayNight(sv: Save): number {
         'pass@11',
         'pass@12',
         'pass@13',
+        'pass@14',
       ].includes(sv.game);
     }
   }
@@ -1100,6 +1109,7 @@ function service() {
     <div class="top" style="min-height:36px;padding-top:0"><span class="money" id="till"></span><span class="grow"></span><span class="speed" id="speed"></span></div>
     <div class="clock-rate" id="clock-rate"></div>
     <div class="service-status" id="status" role="status" aria-live="polite"></div>
+    ${s.version === KITCHEN_EDITION ? '<aside id="kitchen-stock" class="soft"></aside>' : ''}
     ${(!peopleRun(s) && s.version === 'pass@7') || portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
     ${(!peopleRun(s) && s.version === 'pass@6') || ((!peopleRun(s) && s.version === 'pass@7') || portionEdition(s)) ? '<div class="chef-work" id="chef-work" aria-live="polite"></div>' : ''}
     ${(peopleRun(s) || s.version !== 'pass@7') && !portionEdition(s) ? '<div class="rail" id="rail"></div>' : ''}
@@ -1122,8 +1132,9 @@ function service() {
     });
   }
   if (peopleRun(s))
-    app.innerHTML = `<div class="service people-service">
+    app.innerHTML = `<div class="service people-service ${s.version === KITCHEN_EDITION ? 'kitchen-service' : ''}">
     ${topBar('', 'service')}<div class="state-strip" id="till"></div>
+    ${s.version === KITCHEN_EDITION ? '<aside id="kitchen-stock" class="soft"></aside>' : ''}
     <div class="rail" id="rail"></div><div class="scene" id="scene"></div>
     <div class="caption" id="caption" role="status"></div><div class="sheet" id="sheet"></div>
   </div>`;
@@ -1240,6 +1251,7 @@ function drawAll(force = false) {
   if (!force && (railHeld || performance.now() < railGraceUntil)) return;
   collectSaid();
   drawStatus();
+  drawKitchenStock();
   drawTop();
   drawRail();
   drawChefWork();
@@ -1304,6 +1316,7 @@ function drawStatus() {
   if (el.textContent !== status.text) el.textContent = status.text;
   el.classList.toggle('needs-response', status.needsResponse);
   drawTop();
+  drawKitchenStock();
 }
 
 let railHeld = false;
@@ -1403,12 +1416,18 @@ const FIXTURES: Record<string, { x: number; y: number }> = {
   yard: { x: 318, y: 22 },
   table: { x: 46, y: 22 },
   store: { x: 180, y: 22 },
+  room: { x: 46, y: 22 },
+  conversation: { x: 180, y: 140 },
+  'explain-wait': { x: 46, y: 22 },
+  'no-replies': { x: 318, y: 22 },
 };
 
 function placeOf(id: CookId): string {
   if (!s) return 'idle';
   const a = personOf(s, id).activity;
   if (!a) return 'idle';
+  if (['room', 'conversation', 'explain-wait', 'no-replies', 'resign'].includes(a.affordanceId))
+    return a.affordanceId;
   if ((STATIONS as readonly string[]).includes(a.affordanceId)) return a.affordanceId;
   if (a.affordanceId === 'apron') return stationsTonight(s).includes('grill') ? 'grill' : 'idle';
   if (['break', 'smoke', 'phone', 'skim'].includes(a.affordanceId)) return 'yard';
@@ -1434,7 +1453,7 @@ function drawScene() {
   );
   parts.push(`<text x="318" y="62" text-anchor="middle" font-size="11" fill="${soft}">back door</text>`);
   parts.push(
-    `<path d="${wob(22, 34, 72, 34, 4)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="46" y="62" text-anchor="middle" font-size="11" fill="${soft}">staff table</text>`,
+    `<path d="${wob(22, 34, 72, 34, 4)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="46" y="62" text-anchor="middle" font-size="11" fill="${soft}">${st.version === KITCHEN_EDITION ? 'dining room' : 'staff table'}</text>`,
   );
   parts.push(
     `<path d="${wob(162, 50, 162, 6, 5, 0.6)} ${wob(198, 50, 198, 6, 6, 0.6)}" stroke="${soft}" stroke-width="1.5" fill="none"/><text x="180" y="62" text-anchor="middle" font-size="11" fill="${soft}">storeroom</text>`,
@@ -1547,7 +1566,7 @@ function drawScene() {
       y = 124;
     } else if (FIXTURES[pl]) {
       x = (FIXTURES[pl] as { x: number }).x + (SPREAD[k] ?? 0);
-      y = 22;
+      y = FIXTURES[pl]?.y ?? 22;
     } else {
       x = 60 + idx * 60;
       y = 212;
@@ -1644,11 +1663,18 @@ function drawCaption() {
   const taken = a && s.inputs.some((i) => i.kind === 'ask' && i.counter && i.at >= a.at && i.cook === a.who);
   const canTake = fresh && a?.counter && !taken && cookOf(s, a.who).here && !cookOf(s, a.who).gone;
   const situation = serviceStatus(s).text;
-  const caption = peopleRun(s)
-    ? esc(situation)
-    : fresh && a
-      ? `<span class="hand">${esc(a.text)}</span>`
-      : '';
+  const spokenAt = s.minute;
+  const spoken =
+    s.version === KITCHEN_EDITION
+      ? s.said.findLast((line) => line.kind === 'answer' && line.who !== 'chef' && spokenAt - line.at <= 10)
+      : undefined;
+  const caption = spoken
+    ? `<span class="hand">${esc(spoken.who === 'narrator' ? spoken.text : `${nameOf(s, spoken.who)}: “${spoken.text}”`)}</span>`
+    : peopleRun(s)
+      ? esc(situation)
+      : fresh && a
+        ? `<span class="hand">${esc(a.text)}</span>`
+        : '';
   const key = caption + handover + (canTake ? `${a.at}${a.who}${a.counter}` : '');
   if (key === captionKey) return;
   captionKey = key;
@@ -1818,6 +1844,10 @@ function drawSheet() {
   }
   if (!selected) {
     const lines = st.said.filter((line) => line.at >= openAt(st.night) - 5);
+    const latestKitchenReply =
+      st.version === KITCHEN_EDITION
+        ? lines.findLast((line) => line.kind === 'answer' && line.who !== 'chef')
+        : undefined;
     const key = `j${st.minute}${st.inputs.length}${st.said.length}${seenHint.tap}${onShift(st)
       .map((id) => placeOf(id))
       .join()}${st.crew.map((m) => cookOf(st, m.id).gone).join()}`;
@@ -1830,7 +1860,7 @@ function drawSheet() {
     const opening = lines.filter((x) => x.at === openAt(st.night) - 5 && x.who === 'narrator');
     const legacyOpening = st.night === 1 && lines.slice(-3).every((x) => x.at === openAt(1) - 5);
     const journal = peopleRun(st)
-      ? `<div class="journal-heading">Earlier conversations</div>${opening.length ? `<details><summary>Opening notes</summary>${opening.map(lineHTML).join('')}</details>` : ''}${lines
+      ? `${latestKitchenReply ? `<div class="latest-reply hand">${lineHTML(latestKitchenReply)}</div>` : ''}<div class="journal-heading">Earlier conversations</div>${opening.length ? `<details><summary>Opening notes</summary>${opening.map(lineHTML).join('')}</details>` : ''}${lines
           .filter((x) => x.at !== openAt(st.night) - 5 || x.who !== 'narrator')
           .map(lineHTML)
           .join('')}`
@@ -1863,14 +1893,15 @@ function drawSheet() {
   renderPanel(
     el,
     `${crewHeader()}
-    <div class="station-duration">${esc(absent ? `${m.name} has left. You can ask again at the next service.` : `${peopleRun(st) && !stationOf(st, selected) ? `Now: ${doing}, ${WHERE[placeOf(selected)] ?? 'free'}. ` : ''}${pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''}`)}</div>
+    <div class="station-duration">${esc(absent ? (m.left ? `${m.name} has ended their kitchen employment.` : `${m.name} has left. You can ask again at the next service.`) : `${peopleRun(st) && !stationOf(st, selected) ? `Now: ${doing}, ${WHERE[placeOf(selected)] ?? 'free'}. ` : ''}${pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''}`)}</div>
     <div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
           `<button data-v="${v.verb}" ${waiting || absent ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' ·' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
-    ${st.version === 'pass@13' && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5) ? '<button data-contact="follow-up">About what you said</button>' : ''}</div>` : ''}
+    ${['pass@13', KITCHEN_EDITION].includes(st.version) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5) ? '<button data-contact="follow-up">About what you said</button>' : ''}</div>` : ''}
+    ${st.version === KITCHEN_EDITION && !absent ? '<div class="row"><button data-kitchen-task="room">Ask for fifteen minutes in the dining room</button><p class="soft">This cook cannot prepare food while working there.</p></div>' : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div><div class="hint">${
       absent
         ? 'This cook has left the kitchen.'
@@ -1884,6 +1915,14 @@ function drawSheet() {
     }</div>`,
   );
   bindCrew(el);
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-kitchen-task]'))
+    b.onclick = () => {
+      if (!selected) return;
+      queueInput(st, { kind: 'kitchen-task', who: selected, task: 'room' });
+      readingUntil = performance.now() + READING_MS;
+      writeSave();
+      drawAll(true);
+    };
   for (const b of el.querySelectorAll<HTMLButtonElement>('.verbs button')) bindHold(b);
   for (const b of el.querySelectorAll<HTMLButtonElement>('[data-contact]')) {
     const choice = b.dataset.contact as 'check-in' | 'follow-up';
@@ -1927,6 +1966,11 @@ function tipLine(st: GameState): string {
 }
 
 const WHERE: Record<string, string> = {
+  room: 'in the dining room',
+  conversation: 'talking at the pass',
+  'explain-wait': 'answering a table',
+  'no-replies': 'has put work and replies aside',
+  resign: 'travelling home after leaving the job',
   grill: 'grill',
   cold: 'cold side',
   dish: 'dishes',
@@ -2681,3 +2725,21 @@ export const _debug = {
   WEEKDAYS,
   Station: null as Station | null,
 };
+
+/** World stock is public. Reading this panel does not pause service. */
+function drawKitchenStock() {
+  const el = document.getElementById('kitchen-stock');
+  if (!el || !s?.kitchen) return;
+  const w = s.kitchen;
+  const text = `Ingredients left: ${w.stock.grill} grill portions, ${w.stock.cold} cold portions and ${w.stock.oven} flatbreads.`;
+  const supply = w.supply;
+  const html = `<p>${esc(text)}</p>${supply.expected ? `<p>${supply.failed ? 'The original wedding lamb delivery has failed.' : 'Eight wedding lamb portions are expected at six; they are not here yet.'}${supply.replacement ? (supply.replacement.delivered ? ' The paid replacement has arrived.' : ` The paid replacement arrives at ${clock(supply.replacement.arrives)}.`) : ''}</p>` : ''}${supply.failed && !supply.replacement ? `<button id="buy-replacement" ${s.till < 240 ? 'disabled' : ''}>Order eight replacement lamb portions for ${lira(240)}. Allow 45 minutes.</button>` : ''}`;
+  if (el.innerHTML === html) return;
+  el.innerHTML = html;
+  document.getElementById('buy-replacement')?.addEventListener('click', () => {
+    if (!s) return;
+    queueInput(s, { kind: 'replacement' });
+    writeSave();
+    drawAll(true);
+  });
+}

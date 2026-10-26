@@ -79,6 +79,16 @@ import {
   type Station,
 } from './cooks.ts';
 import {
+  KITCHEN_EDITION,
+  type KitchenWorld,
+  kitchenMinute,
+  kitchenNight,
+  kitchenOffers,
+  kitchenStarted,
+  kitchenTask,
+  takeIngredient,
+} from './kitchen-edition.ts';
+import {
   aboutYou,
   changeLine,
   lapseLine,
@@ -94,7 +104,7 @@ import { hashUnit } from './rng.ts';
 export const GAME_VERSION = 'pass@13';
 /** New services run through the crew. Historical inputs keep their original rules until migration. */
 export const peopleRun = (s: Pick<GameState, 'version' | 'peopleRun'>) =>
-  ['pass@11', 'pass@12', 'pass@13'].includes(s.version) || s.peopleRun === true;
+  ['pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version) || s.peopleRun === true;
 const portionEdition = (s: GameState) => !peopleRun(s) && (s.version === 'pass@8' || promisesOn(s));
 const handsOn = (s: GameState) => !peopleRun(s) && (s.version === 'pass@7' || portionEdition(s));
 const chefEdition = (s: GameState) => !peopleRun(s) && (s.version === 'pass@6' || handsOn(s));
@@ -142,6 +152,8 @@ export interface StaffingDecision {
   cover?: CookId;
 }
 export type Input =
+  | { at: number; kind: 'kitchen-task'; who: string; task: 'room' | 'conversation' }
+  | { at: number; kind: 'replacement' }
   | { at: number; kind: 'cast-invite'; who: string }
   | { at: number; kind: 'cast-release'; who: string }
   | { at: number; kind: 'cast-talk'; who: string; choice: 'listen' | 'leave' | 'check-in' | 'follow-up' }
@@ -363,6 +375,7 @@ export interface PartyCard {
 export interface GameState {
   /** Persisted narration choice; absence preserves pre-adoption narration. */
   plainNarration?: boolean;
+  kitchen?: KitchenWorld;
   version: string;
   castRevisions?: Record<string, string>;
   /** Recorded by a migration input; absent in historical snapshots. */
@@ -498,7 +511,7 @@ export function newGame(
   seed: number,
   edition: string = GAME_VERSION,
   chapter?: KitchenChapter,
-  plainNarration = edition === GAME_VERSION,
+  plainNarration = edition === GAME_VERSION || edition === KITCHEN_EDITION,
 ): GameState {
   const now = 9 * 60;
   const people = FOUNDERS.map((m) => makeCook(m.id, seed, now, edition, plainNarration));
@@ -510,7 +523,7 @@ export function newGame(
   const s: GameState = {
     version: edition,
     ...(plainNarration ? { plainNarration: true } : {}),
-    ...(edition === 'pass@13'
+    ...(['pass@13', KITCHEN_EDITION].includes(edition)
       ? { castRevisions: Object.fromEntries(CAST.map((c) => [c.castId, c.revision])) }
       : {}),
     seed,
@@ -521,7 +534,7 @@ export function newGame(
     chef,
     crew: FOUNDERS.map((m) => ({
       ...m,
-      ...(edition === 'pass@13'
+      ...(['pass@13', KITCHEN_EDITION].includes(edition)
         ? { castId: required(CAST.find((c) => c.castId.split('.')[2] === m.id)).castId }
         : {}),
     })),
@@ -776,6 +789,7 @@ function startNight(s: GameState, n: number) {
     c.trustAtOpen = trustOf(p);
     tick(p, Math.max(p.now, s.minute));
   }
+  if (s.version === KITCHEN_EDITION) kitchenNight(s);
   if (pl.n === 5 || pl.call) {
     const dilek = s.crew.find((m) => m.id === 'dilek' && !m.left) ? personOf(s, 'dilek') : null;
     // Dilek's mother lives alone; tonight she will call.
@@ -868,13 +882,14 @@ export function inKitchen(s: GameState, id: CookId): boolean {
   const c = cookOf(s, id);
   if (!c.here || c.gone) return false;
   const a = personOf(s, id).activity;
+  if (s.version === KITCHEN_EDITION && ['room', 'explain-wait'].includes(a?.affordanceId ?? '')) return false;
   return !a || (!OFF_LINE.includes(a.affordanceId) && a.affordanceId !== 'pray' && a.affordanceId !== 'skim');
 }
 
-/** Ordinary conversation is separate from asking for work and consumes no simulation time. */
+/** Historical contact is free. pass@14 offers a costed HF conversation through the same control. */
 export function contactAvailable(s: GameState, who: CookId, topic: 'check-in' | 'follow-up'): boolean {
   return (
-    s.version === 'pass@13' &&
+    ['pass@13', KITCHEN_EDITION].includes(s.version) &&
     s.people.some((p) => p.id === who) &&
     s.crew.some((m) => m.id === who && !m.left) &&
     inKitchen(s, who) &&
@@ -1023,6 +1038,7 @@ export function offersFor(s: GameState, id: CookId, requested?: Verb): Affordanc
       }),
     );
   }
+  if (s.version === KITCHEN_EDITION) list.push(...kitchenOffers(s, id));
   return list;
 }
 
@@ -1055,7 +1071,7 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
         verb,
         verdict: g.resolution.verdict,
         says:
-          (['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version) &&
+          (['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version) &&
             answerWords(s, p, g.resolution, verb)?.text) ||
           g.resolution.says,
         short: crewShort(s, id, verb, offers) ?? shortOf(g.resolution, s, p, verb),
@@ -1067,7 +1083,7 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
       verb,
       verdict: r.verdict,
       says:
-        (['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version) &&
+        (['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version) &&
           answerWords(s, p, r, verb)?.text) ||
         r.says,
       short: crewShort(s, id, verb, offers) ?? shortOf(r, s, p, verb),
@@ -1102,7 +1118,7 @@ function answerWords(s: GameState, p: Person, r: SuggestionResolution, verb: Ver
 }
 
 function shortOf(r: SuggestionResolution, s: GameState, p: Person, verb: Verb): string {
-  if (['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version)) {
+  if (['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version)) {
     const words = answerWords(s, p, r, verb);
     if (words) return words.short;
   }
@@ -1138,6 +1154,8 @@ export function queueInput(s: GameState, input: NewInput): void {
     input.kind === 'people-run' ||
     input.kind === 'cast-invite' ||
     input.kind === 'cast-talk' ||
+    input.kind === 'kitchen-task' ||
+    input.kind === 'replacement' ||
     input.kind === 'cast-release' ||
     (chefEdition(s) &&
       ['help', 'pass-priority', 'cook-step', 'call-plate', 'cook-choice', 'finish-portion'].includes(
@@ -1163,9 +1181,29 @@ function apply(s: GameState, inp: Input) {
   )
     return;
   switch (inp.kind) {
+    case 'kitchen-task':
+      kitchenTask(s, inp.who, inp.task);
+      return;
+    case 'replacement':
+      if (
+        s.kitchen?.supply.failed &&
+        !s.kitchen.supply.replacement &&
+        s.phase === 'service' &&
+        s.till >= 240
+      ) {
+        s.till -= 240;
+        s.kitchen.supply.replacement = { paid: 240, arrives: s.minute + 45, delivered: false };
+        say(
+          s,
+          'narrator',
+          'The replacement lamb costs ₺240. The van needs 45 minutes. The wedding deadline stays at eight.',
+          'journal',
+        );
+      }
+      return;
     case 'cast-invite': {
       if (
-        s.version !== 'pass@13' ||
+        !['pass@13', KITCHEN_EDITION].includes(s.version) ||
         s.night !== 1 ||
         s.phase !== 'board' ||
         s.minute !== openAt(1) - 5 ||
@@ -1234,7 +1272,12 @@ function apply(s: GameState, inp: Input) {
     }
     case 'cast-release': {
       const p = s.people.find((p) => p.id === inp.who);
-      if (s.version !== 'pass@13' || !p || p.activity || !['evening', 'sunday', 'end'].includes(s.phase))
+      if (
+        !['pass@13', KITCHEN_EDITION].includes(s.version) ||
+        !p ||
+        p.activity ||
+        !['evening', 'sunday', 'end'].includes(s.phase)
+      )
         return;
       for (const c of p.agenda.commitments)
         if (c.toId === CHEF && c.label === 'my shift' && c.status === 'pending') releaseCommitment(p, c.id);
@@ -1251,6 +1294,10 @@ function apply(s: GameState, inp: Input) {
       return;
     }
     case 'cast-talk': {
+      if (s.version === KITCHEN_EDITION && inp.choice !== 'leave') {
+        kitchenTask(s, inp.who, 'conversation');
+        return;
+      }
       const p = s.people.find((p) => p.id === inp.who);
       if (inp.choice === 'check-in' || inp.choice === 'follow-up') {
         if (!p || !contactAvailable(s, inp.who, inp.choice)) return;
@@ -1276,7 +1323,7 @@ function apply(s: GameState, inp: Input) {
         return;
       }
       if (
-        s.version !== 'pass@13' ||
+        !['pass@13', KITCHEN_EDITION].includes(s.version) ||
         !p ||
         p.activity ||
         !inKitchen(s, inp.who) ||
@@ -1336,6 +1383,11 @@ function apply(s: GameState, inp: Input) {
       const c = s.cooks.find((x) => x.id === inp.cook);
       if (!c?.here || c.gone) return;
       const p = personOf(s, inp.cook);
+      if (
+        s.version === KITCHEN_EDITION &&
+        ['no-replies', 'resign', 'conversation'].includes(p.activity?.affordanceId ?? '')
+      )
+        return;
       if (
         !hasCover(s) &&
         !inp.insist &&
@@ -1708,6 +1760,7 @@ export function step(s: GameState): void {
   applyPending(s);
   const m = s.minute;
   const pl = plan(s);
+  if (s.version === KITCHEN_EDITION) kitchenMinute(s);
   for (const t of s.tickets) if (t.status === 'waiting' && t.at <= m) arrive(s, t);
   scripted(s, m, pl);
   if (s.request?.state === 'asking' && m - s.request.at >= (REQUEST_WAIT[s.request.kind] ?? 12))
@@ -1879,6 +1932,13 @@ function cookMinute(s: GameState, c: CookState) {
     p.activity.effort = waitingAt(s, st) > 0 || st === 'oven' ? p.activity.affordance.effort : 0.08;
   }
   tick(p, s.minute);
+  if (
+    s.version === KITCHEN_EDITION &&
+    p.activity &&
+    ['room', 'conversation', 'explain-wait', 'no-replies'].includes(p.activity.affordanceId) &&
+    !c.pending
+  )
+    return;
   if (hasBoard(s) && rotaMinute(s, c)) return;
   let a = p.activity;
   if (hasCover(s) && c.cover) {
@@ -1967,6 +2027,7 @@ function cookMinute(s: GameState, c: CookState) {
     );
   }
   if (aff.id === 'phone' && s.request?.kind === 'phone' && s.request.who === c.id) s.request.rang = true;
+  if (s.version === KITCHEN_EDITION) kitchenStarted(s, c.id, aff.id);
   if (aff.id === 'home') {
     c.gone = true;
     const went = s.request?.who === c.id && s.request.state === 'yes';
@@ -2020,7 +2081,7 @@ function answered(
   if (r.verdict === 'assented') c.night.assented += 1;
   const verb = voice.verb;
   const previousBreak = c.breakDeferred;
-  const reason = ['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version)
+  const reason = ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version)
     ? answerWords(s, p, r, voice.verb)
     : null;
   let text = reason?.text ?? r.says;
@@ -2061,7 +2122,7 @@ function answered(
       ...(reason ? { reason: reason.text, short: reason.short } : {}),
     };
     if (
-      ['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version) &&
+      ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version) &&
       previousBreak?.verb === verb &&
       s.minute < previousBreak.endsAt
     )
@@ -2076,7 +2137,7 @@ function answered(
     // Still the same no as on the break: say so, rather than a new reason that doesn't fit.
     const on = p.activity?.affordanceId;
     const came = on && on in VERB_WORD ? ` for ${VERB_WORD[on]}` : '';
-    text = ['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version)
+    text = ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version)
       ? (c.breakDeferred.reason ?? reason?.text ?? 'Not now, Chef.')
       : `I stopped my ${c.breakDeferred.rest}${came}. I won’t work at ${VERB_WORD[verb] ?? verb} yet.`;
   } else if (
@@ -2114,6 +2175,8 @@ function answered(
     text = `${text} ${stationPromise(s, verb)}`;
   if (hasBoard(s) && isStation(verb) && ['deferred', 'modified'].includes(r.verdict))
     text += ' I am not promising to work there. Please find someone else, or ask me again later.';
+  if (s.version === KITCHEN_EDITION && !memberOf(s, c.id).founder)
+    text = `${hireServiceWords(c.id, r.verdict)} ${text}`;
   const verdict = voice.counter && r.verdict === 'assented' ? 'countered' : r.verdict;
   c.night.events.push({ at: s.minute, verb, verdict, insisted: !!voice.s.insist, crewRule });
   if (voice.quiet) return;
@@ -2154,7 +2217,14 @@ function noteResolve(s: GameState, c: CookState, p: Person, rec: DecisionRecord)
   const chosen = rec.considered.find((x) => x.affordanceId === rec.chosenAffordanceId);
   if (!chosen?.terms.some((t) => t.source.startsWith('review:') && t.value > 0.02)) return;
   c.remembered = true;
-  // HF's term does not name its resolve; the chosen act and the person's resolves say which it was.
+  if (s.version === KITCHEN_EDITION) {
+    const term = chosen.terms.find((t) => t.source === 'review:resolve' && t.value > 0.02);
+    const resolve = term?.ref ? p.review?.resolves.find((r) => r.key === term.ref) : undefined;
+    const line = resolve ? resolveSeen(nameOf(s, c.id), resolve.label ?? resolve.key) : null;
+    if (line) say(s, 'narrator', line, 'journal');
+    return;
+  }
+  // Historical notebooks retain their original narration and raw state.
   const keys = (p.review?.resolves ?? []).map((r) => r.label ?? r.key);
   const key = chosen.affordanceId === 'pray' ? 'maghrib' : keys.find((k) => k !== 'maghrib');
   const line = key ? resolveSeen(nameOf(s, c.id), key) : null;
@@ -2296,15 +2366,19 @@ function produce(s: GameState) {
           : 0);
       return signaturePending(s, t.id)?.signature === st ? Math.max(1, held) : held;
     };
-    while (t.doneGrill < t.grill - reserved('grill') && s.work.grill >= GRILL_WORK) {
+    while (
+      t.doneGrill < t.grill - reserved('grill') &&
+      s.work.grill >= GRILL_WORK &&
+      takeIngredient(s, 'grill')
+    ) {
       s.work.grill -= GRILL_WORK;
       t.doneGrill += 1;
     }
-    while (t.doneCold < t.cold - reserved('cold') && s.work.cold >= COLD_WORK) {
+    while (t.doneCold < t.cold - reserved('cold') && s.work.cold >= COLD_WORK && takeIngredient(s, 'cold')) {
       s.work.cold -= COLD_WORK;
       t.doneCold += 1;
     }
-    while (t.doneOven < t.oven - reserved('oven') && s.work.oven >= OVEN_WORK) {
+    while (t.doneOven < t.oven - reserved('oven') && s.work.oven >= OVEN_WORK && takeIngredient(s, 'oven')) {
       s.work.oven -= OVEN_WORK;
       t.doneOven += 1;
     }
@@ -2465,7 +2539,12 @@ function pass(s: GameState) {
 
 function say(s: GameState, who: Said['who'], text: string, kind: Said['kind']) {
   if (!text) return;
-  s.said.push({ at: s.minute, who, text: s.version === 'pass@13' ? episodeText(text) : text, kind });
+  s.said.push({
+    at: s.minute,
+    who,
+    text: ['pass@13', KITCHEN_EDITION].includes(s.version) ? episodeText(text) : text,
+    kind,
+  });
   if (s.said.length > 200) s.said.splice(0, s.said.length - 200);
 }
 
@@ -2532,7 +2611,19 @@ function closeNight(s: GameState) {
     }
   for (const c of s.cooks) {
     const p = personOf(s, c.id);
-    if (c.here && p.activity) endActivity(p, 'completed', s.minute, s, c);
+    if (c.here && p.activity) {
+      if (
+        s.version === KITCHEN_EDITION &&
+        c.gone &&
+        p.activity.affordanceId === 'resign' &&
+        p.activity.endsAt > s.minute
+      ) {
+        // Closing the kitchen does not shorten the departed cook's journey.
+        const arrival = p.activity.endsAt;
+        tick(p, arrival);
+        endActivity(p, 'completed', arrival, s, c);
+      } else endActivity(p, 'completed', s.minute, s, c);
+    }
   }
   const unanswered = s.request?.state === 'asking';
   if (s.request && unanswered) s.request.state = 'no';
@@ -2801,7 +2892,7 @@ function candidates(s: GameState, week: number): string[] {
     (h) =>
       !taken.has(h.id) &&
       !s.castChapter?.actors[h.id] &&
-      (s.version === 'pass@13' ? h.id !== 'can' : h.id !== 'sam'),
+      (['pass@13', KITCHEN_EDITION].includes(s.version) ? h.id !== 'can' : h.id !== 'sam'),
   );
   const order = [...pool].sort(
     (a, b) =>
@@ -2841,7 +2932,7 @@ function choose(s: GameState, key: string, value: string) {
     s.people.push(p);
     s.crew.push({
       id: t.id,
-      ...(s.version === 'pass@13'
+      ...(['pass@13', KITCHEN_EDITION].includes(s.version)
         ? { castId: required(CAST.find((c) => c.castId.split('.')[2] === t.id)).castId }
         : {}),
       name: t.name,
@@ -2951,7 +3042,7 @@ export function replay(
   until?: number,
   edition: string = GAME_VERSION,
   chapter?: KitchenChapter,
-  plainNarration = edition === GAME_VERSION,
+  plainNarration = edition === GAME_VERSION || edition === KITCHEN_EDITION,
 ): GameState {
   const s = newGame(seed, edition, chapter, plainNarration);
   for (const inp of inputs) {
@@ -2962,6 +3053,8 @@ export function replay(
       inp.kind === 'people-run' ||
       inp.kind === 'cast-invite' ||
       inp.kind === 'cast-talk' ||
+      inp.kind === 'kitchen-task' ||
+      inp.kind === 'replacement' ||
       inp.kind === 'cast-release' ||
       (chefEdition(s) &&
         ['help', 'pass-priority', 'cook-step', 'call-plate', 'cook-choice', 'finish-portion'].includes(
@@ -2976,6 +3069,7 @@ export function replay(
 
 /** Whether an export or save can be replayed by this edition of the game. */
 export const canReplay = (game: string | undefined): boolean =>
+  game === 'pass@14' ||
   game === 'pass@13' ||
   game === 'pass@12' ||
   game === 'pass@11' ||
@@ -3266,7 +3360,7 @@ function takeStation(
   const rec = decide(p, offers, { suggestion: suggestion(station) });
   const r = rec.suggestion;
   const says = r
-    ? ((['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version)
+    ? ((['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version)
         ? suggestionWords(p, r, station)?.text
         : undefined) ?? r.says)
     : 'No, Chef.';
@@ -3349,7 +3443,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     row.coverAccepted = rec.chosenAffordanceId === row.station && rec.suggestion?.verdict === 'assented';
     const answer = rec.suggestion;
     const says = answer
-      ? ((['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version)
+      ? ((['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version)
           ? suggestionWords(p, answer, row.station)?.text
           : undefined) ?? answer.says)
       : 'No.';
@@ -3849,7 +3943,8 @@ export const PROMISE_EDITION = 'pass@9';
 /** pass@9: share of the till left after a paid bill that next week's creditor adds, having seen the queue. */
 export const SEEN_SHARE = 0.5;
 export const promisesOn = (s: Pick<GameState, 'version'>): boolean =>
-  s.version === PROMISE_EDITION || ['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(s.version);
+  s.version === PROMISE_EDITION ||
+  ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(s.version);
 
 /** The Sunday card for one offered party. */
 export function partyCard(s: GameState, party: string): PartyCard | null {
@@ -4110,4 +4205,24 @@ function migrateToPeople(s: GameState): void {
     }
   }
   say(s, 'narrator', PEOPLE_RUN_NOTE, 'journal');
+}
+
+function hireServiceWords(id: string, verdict: string): string {
+  const yes = ['assented', 'complied'].includes(verdict);
+  const words: Record<string, [string, string]> = {
+    zeynep: ['I can do that before I leave for my boys.', 'My paid shift has limits, Chef.'],
+    hulya: [
+      'I worked in Antalya kitchens. I will take this job.',
+      'I worked in Antalya kitchens. I still need you to hear my answer.',
+    ],
+    murat: [
+      'I will take that job; watch how it goes.',
+      'I said I could do a lot. That does not mean everything at once.',
+    ],
+    sam: [
+      'Show me if I get it wrong. I am still learning this kitchen.',
+      'I need paid hours. I am still learning this kitchen.',
+    ],
+  };
+  return words[id]?.[yes ? 0 : 1] ?? '';
 }

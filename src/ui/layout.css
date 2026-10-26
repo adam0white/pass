@@ -504,3 +504,31 @@ button.chosen {
     transition: none;
   }
 }
+
+/* pass@14 alone adds a public stock row. The crew panel scrolls during service. */
+.people-service.kitchen-service {
+  grid-template-rows: 44px 36px auto auto 150px 48px minmax(0, 1fr);
+  grid-template-areas: "top" "state" "stock" "rail" "scene" "caption" "sheet";
+}
+#kitchen-stock {
+  grid-area: stock;
+  max-height: 100px;
+  overflow: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+#kitchen-stock p {
+  margin: 4px 0;
+}
+@media (min-width: 900px) {
+  .people-service.kitchen-service {
+    grid-template-rows: 56px auto auto minmax(0, 1fr) 80px;
+    grid-template-areas: "top top" "stock sheet" "rail sheet" "scene sheet" "caption sheet";
+  }
+}
+
+@media (max-width: 767px) {
+  .people-service.kitchen-service.inspecting {
+    grid-template-rows: 44px 36px auto auto clamp(100px, 20dvh, 140px) 48px minmax(0, 1fr);
+  }
+}

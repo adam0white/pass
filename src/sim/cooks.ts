@@ -123,7 +123,9 @@ export function makeCook(
       kind: 'abstain',
       toId: 'self',
       label: 'my rule about the plates',
-      ...(['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(edition) ? { firm: true as const } : {}),
+      ...(['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(edition)
+        ? { firm: true as const }
+        : {}),
       actions: [],
       violatedBy: ['dish'],
       from: dayStart(now) + RUSH_FROM,
@@ -204,9 +206,9 @@ export function makeCook(
       recurEvery: 1440,
     });
   }
-  if (['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(edition)) enableSuggestionReasons(p);
+  if (['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(edition)) enableSuggestionReasons(p);
   acceptKitchenShift(p, now);
-  if (edition === 'pass@13') canonicalProfile(p);
+  if (['pass@13', 'pass@14'].includes(edition)) canonicalProfile(p);
   return p;
 }
 
@@ -374,9 +376,9 @@ export function makeHire(
       lastAt: now,
     });
   }
-  if (['pass@10', 'pass@11', 'pass@12', 'pass@13'].includes(edition)) enableSuggestionReasons(p);
+  if (['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14'].includes(edition)) enableSuggestionReasons(p);
   acceptKitchenShift(p, now);
-  if (edition === 'pass@13') canonicalProfile(p);
+  if (['pass@13', 'pass@14'].includes(edition)) canonicalProfile(p);
   return p;
 }
 

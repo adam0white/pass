@@ -1,0 +1,17 @@
+# Remaining kitchen implementation plan
+
+Goal: build one explicit opt-in kitchen edition, pass@14. Default pass@13 stays unchanged.
+Architecture: retain the existing service and canonical cast. Add finite kitchen tasks and events in a separate host module. HF decides and begins each conversation, room assignment, boundary and departure. The host records physical stock, arrivals, money and heard words. It does not model cognition.
+Spec: games-deferred/pass-next-plan.md and pass-kitchen-brief.md, read 2026-10-26.
+Execution: author works directly. No subworker, model, reviewer or player call. No commit, push or deployment. Root owns the single independent review and integration.
+
+- [x] Read handoff, design, original rule-breaker/cozy/owner words, public installed contracts and coordination. Capture raw pass@3–13 first-evening/full/compact/continued baseline before source mutation.
+- [x] Add focused failing controls for opt-in room work, conversation opportunity cost, actual boundary/departure and wedding stock failure. Keep historical positive/negative controls raw.
+- [x] Add pass@14 constructors and replay support without changing the default. Only actual employed, present canonical actors participate. Room work takes a cook off production; no additional person or duplicated chapter. Guests remain incidental table accounts and issue real HF suggestions. Hires answer in individual words tied to the actual verdict. Conversation is a three-minute HF task competing with current work. Reading slows service; menu pause stays separate.
+- [x] Add repeated-refusal choices: end replies for a bounded interval, continue work, or resign and travel home. Actual HF refusal history makes the scene available; HF chooses from costed acts. Retain already-earned wages and outstanding promises. No request count selects the outcome. Do not offer departure in place of a family trip or invent a new job.
+- [x] Bind supplier failure to the authored wedding night and notice time. Stock initially excludes the expected delivery. A failed delivery adds nothing and costs nothing. Optional paid replacement has a known travel time. Portion creation consumes finite ingredients; ticket draws, promises and deadlines remain fixed.
+- [x] Adopt actual review Term.ref in pass@14 only. Preserve old resolve narration and every legacy raw field. Inspect group-duty/voice contracts and route only demonstrated missing contracts; no local generic substitute. Workers AI remains the literal prior product decision, not a new guardrail exclusion.
+- [x] Add ordinary opt-in title entry, room/conversation controls and honest stock/pressure notices. Keep SDK artifacts/privacy and root docs untouched. Verify normal lane once under shared lock; local signed-in Chrome at both sizes with production blocked; controlled WebKit explicitly labelled.
+- [x] Freeze all-file hashes, diff and source archive. Compare raw historical baselines, full/compact replay and continuation. Preserve frozen Rafi bytes and finite guards. Record each item and remaining-first report, REVIEW_READY and timestamped STATUS. Stop own servers/tabs and retain this unmerged tree for root review per the specific handoff instruction.
+
+Review focus: last available cook; a cook already travelling or keeping family duties; declined conversation; guest assent versus refusal; stock below a wedding order; repeated asks during a boundary; raw semantic usedLines/RNG and native producer guards. Tests establish mechanics only. Adam accepts readiness and player feel.
