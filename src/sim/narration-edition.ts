@@ -3,6 +3,7 @@ import { type Lexicon, type Person, promptingLine, reviewLine } from '@adam0whit
 import type { GameState } from './kitchen.ts';
 
 export const NARRATION_EDITION = 'pass@16';
+export const PANEL_EDITION = 'pass@17';
 export interface NarrationEvidence {
   v: 1;
   causes: {
@@ -37,7 +38,7 @@ export const kitchenLexicon: Lexicon = {
 
 /** Called on the actual active interval before HF advances or ends it, never on a queued request. */
 export function observeNarration(s: GameState, p: Person, status?: 'completed' | 'interrupted') {
-  if (s.version !== NARRATION_EDITION || !s.narration) return;
+  if (![NARRATION_EDITION, PANEL_EDITION].includes(s.version) || !s.narration) return;
   const a = p.activity;
   if (!a || a.startedAt >= s.minute) return;
   const ordered =
@@ -83,7 +84,8 @@ export function observeNarration(s: GameState, p: Person, status?: 'completed' |
 export function eveningNarration(s: GameState, p: Person): string | undefined {
   const review = p.review;
   const r = review?.last;
-  if (s.version !== NARRATION_EDITION || !review || !r?.missed.length) return undefined;
+  if (![NARRATION_EDITION, PANEL_EDITION].includes(s.version) || !review || !r?.missed.length)
+    return undefined;
   const groups = new Map<'ordered' | 'interrupted' | 'ordinary', string[]>();
   const lines: string[] = [];
   for (const label of r.missed) {

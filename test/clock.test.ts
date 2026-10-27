@@ -7,6 +7,7 @@ import {
   newGame,
   queueInput,
   replay,
+  staffingOptions,
   step,
 } from '../src/sim/kitchen.ts';
 import { automaticClockPlayback, clockPlayback, inspectingCook } from '../src/ui/clock.ts';
@@ -149,4 +150,29 @@ it('a selected cook slows the clock only while they have something for you to re
   expect(inspectingCook(s, 'selim', false)).toBe(true);
   s.minute += 11;
   expect(inspectingCook(s, 'selim', false)).toBe(false);
+});
+
+it('restores selected speed when nobody can cover, then slows when cover becomes available', () => {
+  const s = newGame(42, 'pass@16');
+  s.phase = 'service';
+  const ticket = s.tickets[0];
+  if (!ticket) throw new Error('Expected a ticket');
+  s.tickets = [{ ...ticket, status: 'open' }];
+  s.staffing = [
+    { id: 0, who: 'selim', station: 'cold', until: s.minute + 20, reason: 'I need to eat.', state: 'asking' },
+  ];
+  for (const c of s.cooks) c.here = false;
+  const before = JSON.stringify(s);
+  expect(automaticClockPlayback(s, {}, 2).rate).toBe(3.5);
+  expect(automaticClockPlayback(s, {}, 1).rate).toBe(1.5);
+  expect(JSON.stringify(s)).toBe(before);
+  const gaps = s.staffing;
+  s.staffing = [];
+  expect(automaticClockPlayback(s, {}, 2).rate).toBe(3.5);
+  s.staffing = gaps;
+  for (const c of s.cooks) c.here = true;
+  const decision = s.staffing[0];
+  if (!decision) throw new Error('Expected a staffing decision');
+  expect(staffingOptions(s, decision).length).toBeGreaterThan(0);
+  expect(automaticClockPlayback(s, {}, 2).rate).toBe(0.1);
 });

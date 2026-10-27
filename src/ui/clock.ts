@@ -1,6 +1,6 @@
 import { cookingChoice, cookingStep, type GameState, nameOf } from '../sim/kitchen.ts';
 import { portionEdition } from './editions.ts';
-import { actionableStaffing } from './staffing.ts';
+import { availableStaffing } from './staffing.ts';
 import { serviceStatus } from './status.ts';
 
 const SPEEDS = [0.5, 1.5, 3.5] as const;
@@ -13,7 +13,7 @@ export function clockPlayback(s: GameState, speed: number) {
   let rate: number = chosen;
   let label: string = SPEED_NAMES[speed] ?? SPEED_NAMES[1];
   let reason = 'Your chosen speed.';
-  const staffing = actionableStaffing(s)[0];
+  const staffing = availableStaffing(s)[0];
   if (
     (s.passDecision?.state === 'asking' && !s.help) ||
     staffing ||

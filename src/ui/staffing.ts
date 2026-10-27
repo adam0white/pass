@@ -1,4 +1,4 @@
-import { cookOf, type GameState, type StaffingDecision, stationOf } from '../sim/kitchen.ts';
+import { cookOf, type GameState, type StaffingDecision, staffingOptions, stationOf } from '../sim/kitchen.ts';
 
 /** A chef-approved station change already explains the resulting board gap. */
 export function actionableStaffing(s: GameState): StaffingDecision[] {
@@ -26,4 +26,18 @@ export function actionableStaffing(s: GameState): StaffingDecision[] {
     );
     return !acceptedRelief && (!answer || !['assented', 'complied', 'countered'].includes(answer.verdict));
   });
+}
+
+/** Playback scope: keep an unfillable gap visible without holding the clock at decision speed. */
+export function availableStaffing(s: GameState): StaffingDecision[] {
+  return actionableStaffing(s).filter(
+    (decision) => !['pass@16', 'pass@17'].includes(s.version) || staffingOptions(s, decision).length > 0,
+  );
+}
+
+export function canCoverStation(s: GameState, station: StaffingDecision['station']): boolean {
+  return (
+    staffingOptions(s, { id: -1, who: '', station, until: s.minute + 20, reason: '', state: 'asking' })
+      .length > 0
+  );
 }

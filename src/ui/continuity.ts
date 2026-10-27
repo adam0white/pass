@@ -23,7 +23,8 @@ import {
   prepareKitchenChapter,
   validateKitchenChapter,
 } from '../sim/cast-chapter.ts';
-import { type Export, exportRun, GAME_VERSION, type GameState, newGame } from '../sim/kitchen.ts';
+import { type Export, exportRun, type GameState, newGame } from '../sim/kitchen.ts';
+import { kitchenEdition } from '../sim/kitchen-edition.ts';
 import { lab } from './lab.ts';
 
 export interface OneCastRow {
@@ -220,7 +221,7 @@ export function continuity(
         typeof location !== 'undefined' &&
         ['localhost', '127.0.0.1'].includes(location.hostname))
     ) {
-      const next = newGame(seed);
+      const next = newGame(seed, 'pass@17');
       reset();
       localOnly = true;
       await gate();
@@ -235,7 +236,7 @@ export function continuity(
     );
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
     if (chapter) chapter.initial.claims = structuredClone(chapter.claims);
-    const next = chapter ? newGame(seed, GAME_VERSION, chapter.initial) : newGame(seed);
+    const next = chapter ? newGame(seed, 'pass@17', chapter.initial) : newGame(seed, 'pass@17');
     reset();
     if (!chapter) {
       await gate();
@@ -256,7 +257,8 @@ export function continuity(
     await ready;
     const s = getState(),
       epoch = generation;
-    if (s?.version !== 'pass@13' || !shelf.enabled || fileOrigin || localOnly) return;
+    if (!s || (s.version !== 'pass@13' && !kitchenEdition(s)) || !shelf.enabled || fileOrigin || localOnly)
+      return;
     const minute = s.minute;
     for (const cast of CAST) {
       const id = keyOf(cast.castId),

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { newGame } from '../../src/sim/kitchen.ts';
 
 for (const [width, height] of [
   [360, 690],
@@ -10,8 +11,17 @@ for (const [width, height] of [
     await page.setViewportSize({ width, height });
     await page.route('https://human.adamwhite.work/**', (route) => route.fulfill({ status: 204, body: '' }));
     await page.clock.install();
+    const legacy = newGame(42, 'pass@13');
+    await page.addInitScript((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
+      game: legacy.version,
+      plainNarration: true,
+      seed: legacy.seed,
+      inputs: legacy.inputs,
+      minute: legacy.minute,
+      pages: [],
+    });
     await page.goto('/?lab=1');
-    await page.locator('#fresh-authored').click();
+    await page.locator('#cont').click();
     await page.locator('#open-service').click();
     await page.locator('[data-pick="selim"]').click();
     const button = page.locator('[data-contact="check-in"]');

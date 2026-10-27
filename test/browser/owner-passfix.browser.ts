@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { required } from '../../src/required.ts';
+import { newGame } from '../../src/sim/kitchen.ts';
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://human.adamwhite.work/**', (route) => route.fulfill({ status: 204, body: '' }));
@@ -8,7 +9,17 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('new log lines highlight temporarily while the situation stays visible', async ({ page }) => {
-  await page.locator('#fresh-authored').click();
+  const legacy = newGame(42, 'pass@13');
+  await page.evaluate((save) => localStorage.setItem('pass-save-v3', JSON.stringify(save)), {
+    game: legacy.version,
+    plainNarration: true,
+    seed: legacy.seed,
+    inputs: legacy.inputs,
+    minute: legacy.minute,
+    pages: [],
+  });
+  await page.reload();
+  await page.locator('#cont').click();
   await page.locator('#open-service').click();
   const status = await page.locator('#caption').textContent();
   await page.evaluate(() => {
