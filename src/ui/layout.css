@@ -546,6 +546,10 @@ button.chosen {
   padding: 4px 10px;
   font-size: 13px;
 }
+#service-account {
+  max-height: 6lh;
+  overflow-y: auto;
+}
 @media (min-width: 900px) {
   .people-service.kitchen-service.early-service {
     grid-template-rows: 56px auto auto minmax(0, 1fr) auto 80px;

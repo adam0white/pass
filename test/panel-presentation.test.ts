@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { newGame } from '../src/sim/kitchen.ts';
-import { closingChoices, offerUnavailable } from '../src/ui/people-offers.ts';
+import { closingChoices, offerUnavailable, serviceAccount } from '../src/ui/people-offers.ts';
 
 it('explains busy and already heard private offers, with an available control', () => {
   const s = newGame(42);
@@ -46,6 +46,14 @@ it('explains booked money and lost bookings without claiming a counterfactual', 
   expect(text).toContain('Table 2');
   expect(text).toContain('booked');
   expect(text).not.toContain('empty minutes cost');
+  expect(serviceAccount(s)).toContain('Table 2 left waiting for the grill and the cold side.');
+  const lost = s.tickets[1];
+  if (!lost) throw new Error('Expected the lost table fixture.');
+  lost.doneGrill = 1;
+  expect(serviceAccount(s)).toContain('Table 2 left waiting for the cold side.');
+  lost.doneCold = 1;
+  expect(serviceAccount(s)).toContain('Table 2 left before its food reached the table.');
+  expect(serviceAccount(s)).not.toContain('Table 1 left');
 });
 
 it('names the actual plan and reduced wedding payment in the closing account', () => {
