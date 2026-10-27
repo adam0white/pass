@@ -31,7 +31,8 @@ export function actionableStaffing(s: GameState): StaffingDecision[] {
 /** Playback scope: keep an unfillable gap visible without holding the clock at decision speed. */
 export function availableStaffing(s: GameState): StaffingDecision[] {
   return actionableStaffing(s).filter(
-    (decision) => !['pass@16', 'pass@17'].includes(s.version) || staffingOptions(s, decision).length > 0,
+    (decision) =>
+      !['pass@16', 'pass@17', 'pass@18'].includes(s.version) || staffingOptions(s, decision).length > 0,
   );
 }
 

@@ -1,5 +1,23 @@
 # Pass handoff
 
+## Early-service retest fix — 2026-10-27
+
+New ordinary starts use `pass@18`. Monday through Wednesday each have one early
+booking at 18:12 with twelve minutes of patience and two grill portions. The default
+grill meal break leaves it waiting; moving that break or arranging cover can save it.
+The opening board names the deadline. During service the order names its wait,
+unfinished station and payment at risk. A separate board below the kitchen retains
+served/left counts and lost meal payments. The closing account has four labelled lines.
+Historical `pass@17` and earlier rules remain replayable. Thursday onward retain their
+arrival and patience rules. People offers remain reachable before opening and after
+service; the focused controls take an offer and verify its retained answer.
+
+Technical done for this increment is focused simulation/replay tests, headless Monday
+zero-input control, independent review, signed source, exact green CI, clean managed
+deployment and live release verification. Adam accepts readiness at the 2026-11-03
+retest. Delivery evidence: `~/code/.lab-scratch/codex/pass-1956.md`.
+
+
 ## Panel fix cycle — 2026-10-27
 
 What remains: the owner deferred new playtests and panel runs. A same-tester retest and Adam’s game-readiness acceptance remain open for review on 2026-11-03. Smaller panel asks F-1960–F-1969 keep their dates in docs/design.md.

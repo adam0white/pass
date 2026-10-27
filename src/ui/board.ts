@@ -24,7 +24,7 @@ export function openingBoard(s: GameState): BoardRow[] {
   const rows = boardDefaults(s);
   const ids = onShift(s);
   // Panel edition never assigns relief without a player's choice. Previous choices survive.
-  if (s.version === 'pass@17')
+  if (['pass@17', 'pass@18'].includes(s.version))
     return rows.map((row) => ({
       ...row,
       cover: s.previousBoard?.some((old) => old.cook === row.cook) ? row.cover : null,

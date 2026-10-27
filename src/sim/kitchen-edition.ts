@@ -22,7 +22,7 @@ import { NARRATION_EDITION, observeNarration, PANEL_EDITION } from './narration-
 export const KITCHEN_EDITION = 'pass@14';
 export const FOLLOWUP_EDITION = 'pass@15';
 export const kitchenEdition = (s: Pick<GameState, 'version'>) =>
-  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION].includes(s.version);
+  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version);
 export interface KitchenWorld {
   night: number;
   stock: Record<FoodStation, number>;
@@ -96,7 +96,7 @@ export function kitchenNight(s: GameState) {
     },
     guests: [],
     conversations: [],
-    ...([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION].includes(s.version)
+    ...([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)
       ? { followup: { attention: {}, deliveries: [] } }
       : {}),
   };
@@ -249,7 +249,7 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
     words(
       s,
       who,
-      `${rec.suggestion?.says ?? 'Not now, Chef.'} ${s.version === PANEL_EDITION && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
+      `${rec.suggestion?.says ?? 'Not now, Chef.'} ${[PANEL_EDITION, 'pass@18'].includes(s.version) && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
     );
     return;
   }
@@ -432,8 +432,8 @@ export function kitchenMinute(s: GameState) {
 
 /** A finite authored topic requires the exact speaker's actual retained utterance. */
 export function heardTopic(s: GameState, who: string) {
-  if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION].includes(s.version)) return undefined;
-  if (s.version === PANEL_EDITION) {
+  if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)) return undefined;
+  if ([PANEL_EDITION, 'pass@18'].includes(s.version)) {
     const disclosure = s.said.findLast((line) => line.who === who && line.text === PRIVATE_CLUES[who]);
     if (disclosure)
       return {

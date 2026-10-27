@@ -532,3 +532,26 @@ button.chosen {
     grid-template-rows: 44px 36px auto auto clamp(100px, 20dvh, 140px) 48px minmax(0, 1fr);
   }
 }
+
+/* Keep the cause and lost payment below the kitchen picture, outside the order scroll. */
+.people-service.kitchen-service.early-service {
+  grid-template-rows: 44px 36px auto auto 120px auto 48px minmax(80px, 1fr);
+  grid-template-areas: "top" "state" "stock" "rail" "scene" "causes" "caption" "sheet";
+}
+.early-service .scene {
+  height: 120px;
+}
+.service-board {
+  grid-area: causes;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+@media (min-width: 900px) {
+  .people-service.kitchen-service.early-service {
+    grid-template-rows: 56px auto auto minmax(0, 1fr) auto 80px;
+    grid-template-areas: "top top" "stock sheet" "rail sheet" "scene sheet" "causes sheet" "caption sheet";
+  }
+  .early-service .scene {
+    height: 100%;
+  }
+}

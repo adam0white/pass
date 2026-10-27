@@ -82,7 +82,7 @@ export function makeCook(
     now,
     ...(plainNarration
       ? {
-          lexicon: [NARRATION_EDITION, PANEL_EDITION].includes(edition)
+          lexicon: [NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(edition)
             ? structuredClone(kitchenLexicon)
             : { plainEnglish: true },
         }
@@ -129,9 +129,17 @@ export function makeCook(
       kind: 'abstain',
       toId: 'self',
       label: 'my rule about the plates',
-      ...(['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(
-        edition,
-      )
+      ...([
+        'pass@10',
+        'pass@11',
+        'pass@12',
+        'pass@13',
+        'pass@14',
+        'pass@15',
+        'pass@16',
+        'pass@17',
+        'pass@18',
+      ].includes(edition)
         ? { firm: true as const }
         : {}),
       actions: [],
@@ -215,11 +223,22 @@ export function makeCook(
     });
   }
   if (
-    ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)
+    [
+      'pass@10',
+      'pass@11',
+      'pass@12',
+      'pass@13',
+      'pass@14',
+      'pass@15',
+      'pass@16',
+      'pass@17',
+      'pass@18',
+    ].includes(edition)
   )
     enableSuggestionReasons(p);
   acceptKitchenShift(p, now);
-  if (['pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)) canonicalProfile(p);
+  if (['pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17', 'pass@18'].includes(edition))
+    canonicalProfile(p);
   return p;
 }
 
@@ -299,7 +318,7 @@ export function makeHire(
     id: t.id,
     ...(plainNarration
       ? {
-          lexicon: [NARRATION_EDITION, PANEL_EDITION].includes(edition)
+          lexicon: [NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(edition)
             ? structuredClone(kitchenLexicon)
             : { plainEnglish: true },
         }
@@ -394,11 +413,22 @@ export function makeHire(
     });
   }
   if (
-    ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)
+    [
+      'pass@10',
+      'pass@11',
+      'pass@12',
+      'pass@13',
+      'pass@14',
+      'pass@15',
+      'pass@16',
+      'pass@17',
+      'pass@18',
+    ].includes(edition)
   )
     enableSuggestionReasons(p);
   acceptKitchenShift(p, now);
-  if (['pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)) canonicalProfile(p);
+  if (['pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17', 'pass@18'].includes(edition))
+    canonicalProfile(p);
   return p;
 }
 

@@ -83,7 +83,7 @@ import { openFeedback } from './feedback.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab, mountNotice } from './lab.ts';
 import { endingTally } from './notebook.ts';
-import { closingChoices, offerUnavailable } from './people-offers.ts';
+import { closingChoices, offerUnavailable, serviceAccount } from './people-offers.ts';
 import { unseenSpeech } from './speech.ts';
 import { actionableStaffing, availableStaffing } from './staffing.ts';
 import { journalWords, noCoverWords, serviceStatus, tableAboutToLeave } from './status.ts';
@@ -638,8 +638,8 @@ function title() {
         s =
           returning ??
           (secondWeek
-            ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined, 'pass@17')
-            : newGame(seed, 'pass@17'));
+            ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined, 'pass@18')
+            : newGame(seed, 'pass@18'));
         cast.track();
         if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
@@ -722,6 +722,7 @@ function replayNight(sv: Save): number {
     'pass@15',
     'pass@16',
     'pass@17',
+    'pass@18',
   ].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
@@ -747,6 +748,7 @@ function replayNight(sv: Save): number {
         'pass@15',
         'pass@16',
         'pass@17',
+        'pass@18',
       ].includes(sv.game);
     }
   }
@@ -784,18 +786,24 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     dish: 'dishes',
     oven: 'oven',
   };
-  const parties = partiesTonight(st)
-    .map((booking) => {
-      const party = partyOf(booking.party);
-      if (!party) return '';
-      const localAt = booking.at % 1440;
-      const localBy = booking.servedBy % 1440;
-      const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
-        (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
-      );
-      return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))}’s party arrives at ${clock(booking.at)}. ${overlaps.length ? `${changed ? 'Proposed breaks' : 'Breaks'} during the party: ${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break, ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')}.` : `${changed ? 'In your proposed plan, no' : 'No'} breaks fall during the party.`}</p>`;
-    })
-    .join('');
+  const earlyBooking =
+    st.version === 'pass@18' && st.night <= 3
+      ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>`
+      : '';
+  const parties =
+    earlyBooking +
+    partiesTonight(st)
+      .map((booking) => {
+        const party = partyOf(booking.party);
+        if (!party) return '';
+        const localAt = booking.at % 1440;
+        const localBy = booking.servedBy % 1440;
+        const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
+          (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
+        );
+        return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))}’s party arrives at ${clock(booking.at)}. ${overlaps.length ? `${changed ? 'Proposed breaks' : 'Breaks'} during the party: ${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break, ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')}.` : `${changed ? 'In your proposed plan, no' : 'No'} breaks fall during the party.`}</p>`;
+      })
+      .join('');
   const chips = (
     row: BoardRow,
     field: string,
@@ -984,18 +992,24 @@ function board(draft?: BoardRow[], editing: string | null = null) {
       dish: 'dishes',
       oven: 'oven',
     };
-    const parties = partiesTonight(st)
-      .map((booking) => {
-        const party = partyOf(booking.party);
-        if (!party) return '';
-        const localAt = booking.at % 1440;
-        const localBy = booking.servedBy % 1440;
-        const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
-          (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
-        );
-        return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))}’s party arrives at ${clock(booking.at)}. ${overlaps.length ? `${changed ? 'Proposed breaks' : 'Breaks'} during the party: ${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break, ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')}.` : `${changed ? 'In your proposed plan, no' : 'No'} breaks fall during the party.`}</p>`;
-      })
-      .join('');
+    const earlyBooking =
+      st.version === 'pass@18' && st.night <= 3
+        ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>`
+        : '';
+    const parties =
+      earlyBooking +
+      partiesTonight(st)
+        .map((booking) => {
+          const party = partyOf(booking.party);
+          if (!party) return '';
+          const localAt = booking.at % 1440;
+          const localBy = booking.servedBy % 1440;
+          const overlaps = (changed ? rows : agreed.filter((row) => row.accepted)).filter(
+            (row) => row.breakAt < localBy && row.breakAt + 20 > localAt,
+          );
+          return `<p>${esc(party.host.charAt(0).toUpperCase() + party.host.slice(1))}’s party arrives at ${clock(booking.at)}. ${overlaps.length ? `${changed ? 'Proposed breaks' : 'Breaks'} during the party: ${overlaps.map((row) => `${esc(nameOf(st, row.cook))}’s break, ${clock(row.breakAt)}–${clock(row.breakAt + 20)}`).join('; ')}.` : `${changed ? 'In your proposed plan, no' : 'No'} breaks fall during the party.`}</p>`;
+        })
+        .join('');
     const chips = (
       row: BoardRow,
       field: string,
@@ -1179,10 +1193,11 @@ function service() {
     });
   }
   if (peopleRun(s))
-    app.innerHTML = `<div class="service people-service ${kitchenEdition(s) ? 'kitchen-service' : ''}">
+    app.innerHTML = `<div class="service people-service ${kitchenEdition(s) ? 'kitchen-service' : ''} ${s.version === 'pass@18' ? 'early-service' : ''}">
     ${topBar('', 'service')}<div class="state-strip" id="till"></div>
     ${kitchenEdition(s) ? '<aside id="kitchen-stock" class="soft"></aside>' : ''}
     <div class="rail" id="rail"></div><div class="scene" id="scene"></div>
+    ${s.version === 'pass@18' ? '<aside class="service-board"><div id="status" role="status"></div><div id="service-account"></div></aside>' : ''}
     <div class="caption" id="caption" role="status"></div><div class="sheet" id="sheet"></div>
   </div>`;
   document.getElementById('scene')?.addEventListener('click', (e) => {
@@ -1377,6 +1392,8 @@ function drawStatus() {
   if (!s) return;
   const el = document.getElementById('status');
   if (!el) return;
+  const account = document.getElementById('service-account');
+  if (account) account.textContent = serviceAccount(s);
   const status = serviceStatus(s);
   if (el.textContent !== status.text) el.textContent = status.text;
   el.classList.toggle('needs-response', status.needsResponse);
@@ -1398,7 +1415,7 @@ function drawRail() {
   const leaving = tableAboutToLeave(st);
   const rail = document.getElementById('rail') as HTMLElement;
   if (open.length === 0) {
-    renderPanel(rail, peopleRun(st) ? '<span class="rail-clear">No orders are waiting.</span>' : '');
+    renderPanel(rail, peopleRun(st) ? '<span class="rail-clear">Waiting for the next order.</span>' : '');
     rail.classList.add('empty');
     return;
   }
@@ -1433,7 +1450,11 @@ function drawRail() {
               ? `${reg.name}’s friend`
               : reg.name
             : `table ${t.table}`;
-        const patience = t.patience;
+        const patience = t.patience + (booking?.promised ? 0 : st.apron ? 12 : 0);
+        const cause =
+          st.version === 'pass@18'
+            ? `<div class="st">Waiting ${wait} min · leaves after ${clock(t.at + patience)} · ${lira(t.price)} at risk.</div><div class="st">${esc(t.doneGrill < t.grill ? 'Waiting for the grill.' : t.doneCold < t.cold ? 'Waiting for the cold side.' : t.doneOven < t.oven ? 'Waiting for the oven.' : 'Waiting for a clean plate or delivery.')}</div>`
+            : '';
         const option =
           ((!peopleRun(st) && st.version === 'pass@6') ||
             (!peopleRun(st) && st.version === 'pass@7') ||
@@ -1446,8 +1467,8 @@ function drawRail() {
           (!peopleRun(st) && st.version === 'pass@7') ||
           portionEdition(st)
         )
-          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Cook for ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(!peopleRun(st) && st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : option ? 'Tap to cook a portion' : 'Cooking or ready'}</div>${priority}</button>`;
-        return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
+          return `<button class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" data-ticket="${t.id}" data-portion-station="${option ? option.station : t.grill > t.doneGrill ? 'grill' : t.cold > t.doneCold ? 'cold' : 'oven'}" aria-label="Cook for ${esc(who)}${party || reg ? `, table ${t.table}` : ''}" ${party ? `aria-describedby="party-label-${t.id}"` : ''} ${(!peopleRun(st) && st.version === 'pass@6' && !option) || (portionEdition(st) && t.doneGrill >= t.grill && t.doneCold >= t.cold && t.doneOven >= t.oven) ? 'disabled' : ''}><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}${cause}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : option ? 'Tap to cook a portion' : 'Cooking or ready'}</div>${priority}</button>`;
+        return `<div class="slip ${wait > patience * 0.65 ? 'late' : ''} ${reg || party ? 'regular' : ''} ${party ? 'party-slip' : ''}" style="opacity:${Math.max(0.55, 1 - wait / 80)}"><div class="t">${esc(who)}${party || reg ? `<span class="table-no"> · table ${t.table}</span>` : ''}</div>${partyLabel}${dish}${cause}<div class="st ${leaving === t.id ? 'leaving' : ''}">${leaving === t.id ? 'about to leave' : wait < 10 ? 'new' : wait < patience * 0.65 ? 'waiting' : 'restless'}</div></div>`;
       })
       .join(''),
   );
@@ -1739,16 +1760,15 @@ function drawCaption() {
       : fresh && a
         ? `<span class="hand">${esc(a.text)}</span>`
         : '';
-  const receipts =
-    s.version === 'pass@17'
-      ? s.said
-          .filter(
-            (line) =>
-              line.who === 'narrator' && line.text.endsWith('added to the till.') && spokenAt - line.at <= 5,
-          )
-          .map((line) => `<div class="served-receipt">${esc(line.text)}</div>`)
-          .join('')
-      : '';
+  const receipts = ['pass@17', 'pass@18'].includes(s.version)
+    ? s.said
+        .filter(
+          (line) =>
+            line.who === 'narrator' && line.text.endsWith('added to the till.') && spokenAt - line.at <= 5,
+        )
+        .map((line) => `<div class="served-receipt">${esc(line.text)}</div>`)
+        .join('')
+    : '';
   const key = caption + handover + receipts + (canTake ? `${a.at}${a.who}${a.counter}` : '');
   if (key === captionKey) return;
   captionKey = key;
@@ -1974,7 +1994,7 @@ function drawSheet() {
           `<button data-v="${v.verb}" ${waiting || absent || !attentionAvailable(st, selected as CookId) ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' (now)' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
-    ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
+    ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
     ${kitchenEdition(st) && !absent ? '<div class="row"><button data-kitchen-task="room">Ask for fifteen minutes in the dining room</button><p class="soft">This cook cannot prepare food while working there.</p></div>' : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div>${!attentionAvailable(st, selected as CookId) ? '<p class="soft" role="status">Let this cook finish this part of their work before asking again. The kitchen keeps running.</p>' : ''}<div class="hint">${
       absent
@@ -2397,7 +2417,10 @@ function evening() {
     ${!ended && !r.bill ? `<p class="evening-pace">${paceLine(st, r.night)}</p>` : ''}
     ${tillBar(st)}
     <p>We served ${r.served} of ${total} tables. We earned ${lira(r.takings)} tonight.</p>
-    <p class="closing-choices">${esc(closingChoices(st))}</p>
+    <p class="closing-choices">${closingChoices(st)
+      .split('\n')
+      .map((line) => esc(line))
+      .join('<br>')}</p>
     ${lightJar && r.night !== 3 && st.jarPlace === 'counter' ? '<p>The tip jar was lighter than it should have been.</p>' : ''}
     ${crit}${wedding}${parties}
     ${r.apron ? '<p>Selim wore Nevin’s apron until closing time. Nobody mentioned it.</p>' : ''}

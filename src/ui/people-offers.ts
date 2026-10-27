@@ -36,5 +36,12 @@ export function closingChoices(s: GameState): string {
         : `Wedding trays arrived late: ${lira(Math.round(wedding.price * 0.55))} paid, ${lira(wedding.price - Math.round(wedding.price * 0.55))} less than agreed.`
       : `The wedding delivery was not completed: ${lira(wedding.price)} in agreed payment was lost.`
     : '';
-  return `${plans} ${weddingWords} ${request}Takings come from the tables booked, at their agreed prices; a faster meal does not increase the price. ${served.length} tables stayed and paid or used their agreed tab. ${lost.length ? `Table${lost.length === 1 ? '' : 's'} ${lost.map((t) => t.table).join(', ')} left before eating: ${lira(loss)} in booked meals was lost.` : 'No table left before eating, so no booked meal was lost.'} Station choices and breaks change when food is ready and whether tables wait too long. Empty minutes cost money only when an order loses its customer or misses its payment deadline.`;
+  return `Plan: ${plans} ${request}\nTables: ${served.length} of ${served.length + lost.length} ate. ${weddingWords}\nLost: ${lost.length ? `Table${lost.length === 1 ? '' : 's'} ${lost.map((t) => t.table).join(', ')}: ${lira(loss)} in booked meals.` : 'No booked meal was lost.'}\nWhy: You earn money when a table eats. A faster meal earns no more. Stations and breaks decide when food is ready. Late food makes tables leave.`;
+}
+
+/** Visible during service, including after a lost order leaves the rail. */
+export function serviceAccount(s: GameState): string {
+  const lost = s.tickets.filter((t) => t.status === 'walked' && t.due === undefined);
+  const served = s.tickets.filter((t) => t.status === 'served' && t.due === undefined);
+  return `Tables: ${served.length} served; ${lost.length} left. Lost meal payments: ${lira(lost.reduce((sum, t) => sum + t.price, 0))}.`;
 }
