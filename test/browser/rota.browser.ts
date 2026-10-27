@@ -317,7 +317,9 @@ test('same as last night asks the carried board in one tap', async ({ page }) =>
   expect(carried).toEqual([null, null]);
 });
 
-test('the job dot matches the current station rather than the cook’s preference', async ({ page }) => {
+test('the “(now)” job marker matches the current station rather than the cook’s preference', async ({
+  page,
+}) => {
   await open(page);
   for (const id of ['selim', 'dilek']) {
     await page.locator(`[data-pick="${id}"]`).click();
@@ -328,7 +330,7 @@ test('the job dot matches the current station rather than the cook’s preferenc
     }, id);
     const buttons = page.locator('.verbs button');
     for (const button of await buttons.all()) {
-      const marked = (await button.textContent())?.includes(' ·') ?? false;
+      const marked = (await button.textContent())?.includes(' (now)') ?? false;
       expect(marked).toBe((await button.getAttribute('data-v')) === station);
     }
     await page.locator('#close').click();
