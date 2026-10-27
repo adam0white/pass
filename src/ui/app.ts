@@ -1197,7 +1197,7 @@ function service() {
     ${topBar('', 'service')}<div class="state-strip" id="till"></div>
     ${kitchenEdition(s) ? '<aside id="kitchen-stock" class="soft"></aside>' : ''}
     <div class="rail" id="rail"></div><div class="scene" id="scene"></div>
-    ${s.version === 'pass@18' ? '<aside class="service-board"><div id="status" role="status"></div><div id="service-account"></div></aside>' : ''}
+    ${s.version === 'pass@18' ? '<aside class="service-board"><div id="status" role="status"></div><div id="service-account" tabindex="0" aria-label="Served and lost tables"></div></aside>' : ''}
     <div class="caption" id="caption" role="status"></div><div class="sheet" id="sheet"></div>
   </div>`;
   document.getElementById('scene')?.addEventListener('click', (e) => {

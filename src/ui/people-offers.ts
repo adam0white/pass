@@ -43,5 +43,15 @@ export function closingChoices(s: GameState): string {
 export function serviceAccount(s: GameState): string {
   const lost = s.tickets.filter((t) => t.status === 'walked' && t.due === undefined);
   const served = s.tickets.filter((t) => t.status === 'served' && t.due === undefined);
-  return `Tables: ${served.length} served; ${lost.length} left. Lost meal payments: ${lira(lost.reduce((sum, t) => sum + t.price, 0))}.`;
+  const causes = lost.map((t) => {
+    const waiting = [
+      t.doneGrill < t.grill ? 'the grill' : '',
+      t.doneCold < t.cold ? 'the cold side' : '',
+      t.doneOven < t.oven ? 'the oven' : '',
+    ].filter(Boolean);
+    return waiting.length
+      ? `Table ${t.table} left waiting for ${waiting.join(' and ')}.`
+      : `Table ${t.table} left before its food reached the table.`;
+  });
+  return `Tables: ${served.length} served; ${lost.length} left. Lost meal payments: ${lira(lost.reduce((sum, t) => sum + t.price, 0))}.${causes.length ? ` ${causes.join(' ')}` : ''}`;
 }
