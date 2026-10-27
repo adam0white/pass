@@ -82,7 +82,7 @@ import {
 } from '../sim/kitchen.ts';
 import { zeynepDepartureStatus } from '../sim/one-cast.ts';
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
-import { automaticClockPlayback, SPEED_NAMES } from './clock.ts';
+import { automaticClockPlayback, inspectingCook, SPEED_NAMES } from './clock.ts';
 import { type ContinuitySave, continuity, guardedContinuity } from './continuity.ts';
 import { portionEdition } from './editions.ts';
 import { openFeedback } from './feedback.ts';
@@ -496,9 +496,13 @@ function title() {
           : ''
       }
       ${LAB_TOOLS ? '<button id="fresh-authored">Begin without continuity</button><button id="other-ways" aria-haspopup="dialog">Lab tools</button>' : ''}
-      <button id="kitchen-edition">Try the kitchen edition</button><p class="soft">A separate local kitchen adds dining-room work, conversations, guest requests and a wedding delivery failure. The usual New game stays the same.</p>
+      ${
+        LAB_TOOLS
+          ? `<button id="kitchen-edition">Try the kitchen edition</button><p class="soft">A separate local kitchen adds dining-room work, conversations, guest requests and a wedding delivery failure. The usual New game stays the same.</p>
       <button id="narration-edition">Try the narration edition</button><p class="soft">A separate follow-up kitchen uses plain captions and describes what actually interrupted a missed commitment. Existing notebooks keep their edition.</p>
-      <button id="followup-edition">Try the follow-up edition</button><p class="soft">A separate kitchen lets you ask about words you heard, gives dining-room work actual food deliveries, and lets cooks finish part of their work before answering again.</p>
+      <button id="followup-edition">Try the follow-up edition</button><p class="soft">A separate kitchen lets you ask about words you heard, gives dining-room work actual food deliveries, and lets cooks finish part of their work before answering again.</p>`
+          : ''
+      }
       <p id="title-status" role="status" aria-live="polite"></p>
       <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this game</button></div></div>
     </div>
@@ -1212,6 +1216,18 @@ function service() {
   raf = requestAnimationFrame(frame);
 }
 
+/** Seconds after tapping a cook during which the clock stays at reading pace while you choose. */
+const SELECT_GRACE_MS = 6000;
+let selectedAt = 0;
+
+function inspectingNow() {
+  if (!s || !selected) return false;
+  const now = performance.now();
+  const b = bubbles[selected];
+  const speaking = !!b && b.until > now && s.minute - b.minute <= 6;
+  return inspectingCook(s, selected, speaking || now - selectedAt < SELECT_GRACE_MS);
+}
+
 function livePlayback(st: GameState, view: { reading: boolean; inspecting: boolean }) {
   return peopleRun(st) ? automaticClockPlayback(st, view) : automaticClockPlayback(st, view, speed);
 }
@@ -1224,10 +1240,11 @@ function frame(t: number) {
   const held = menuOpen || !!document.querySelector('.hflab-veil, :popover-open');
   if (held) {
     if (readingUntil > t - elapsed) readingUntil += elapsed;
+    if (selectedAt > t - elapsed - SELECT_GRACE_MS) selectedAt += elapsed;
     for (const bubble of Object.values(bubbles)) if (bubble.until > t - elapsed) bubble.until += elapsed;
   }
   if (s.phase === 'service' && !held) {
-    const { rate } = livePlayback(s, { reading: t < readingUntil, inspecting: selected !== null });
+    const { rate } = livePlayback(s, { reading: t < readingUntil, inspecting: inspectingNow() });
     carry += dt * rate;
     let stepped = false;
     while (carry >= 1 && s.phase === 'service') {
@@ -1239,7 +1256,7 @@ function frame(t: number) {
         (line) => line.who !== 'narrator' && line.kind !== 'journal',
       );
       if (speaking) readingUntil = t + READING_MS;
-      const next = livePlayback(s, { reading: speaking, inspecting: selected !== null });
+      const next = livePlayback(s, { reading: speaking, inspecting: inspectingNow() });
       if (speaking || next.rate < rate) {
         // Carry earned through an empty stretch cannot cross the first conversation or decision.
         carry = 0;
@@ -1303,7 +1320,7 @@ function drawTop() {
       s,
       {
         reading: performance.now() < readingUntil,
-        inspecting: selected !== null,
+        inspecting: inspectingNow(),
       },
       speed,
     );
@@ -1326,14 +1343,15 @@ function drawTop() {
   till.innerHTML = tillBar(s);
   const playback = automaticClockPlayback(s, {
     reading: performance.now() < readingUntil,
-    inspecting: selected !== null,
+    inspecting: inspectingNow(),
   });
   if (playback.rate <= 0.5) {
-    const reason = selected
-      ? `You are talking to ${nameOf(s, selected)}.`
-      : performance.now() < readingUntil
-        ? `${nameOf(s, s.said.filter((x) => x.who !== 'narrator').at(-1)?.who ?? 'selim')} is answering.`
-        : playback.reason;
+    const reason =
+      selected && inspectingNow()
+        ? `You are talking to ${nameOf(s, selected)}.`
+        : performance.now() < readingUntil
+          ? `${nameOf(s, s.said.filter((x) => x.who !== 'narrator').at(-1)?.who ?? 'selim')} is answering.`
+          : playback.reason;
     const label = till.querySelector('.till-label');
     if (label) label.textContent = `Time is slowed. ${reason}`;
   }
@@ -1715,6 +1733,7 @@ function select(id: CookId | null) {
   if (!s) return;
   if (id && (!cookOf(s, id).here || cookOf(s, id).gone)) return;
   selected = selected === id ? null : id;
+  selectedAt = performance.now();
   carry = 0;
   drawTop();
   cachedHints = null;

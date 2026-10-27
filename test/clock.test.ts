@@ -9,7 +9,7 @@ import {
   replay,
   step,
 } from '../src/sim/kitchen.ts';
-import { automaticClockPlayback, clockPlayback } from '../src/ui/clock.ts';
+import { automaticClockPlayback, clockPlayback, inspectingCook } from '../src/ui/clock.ts';
 import { legacyHash } from './hash.ts';
 
 const fixture = JSON.parse(
@@ -134,4 +134,19 @@ it('automatically protects a current decision, conversation and cook account wit
   expect(JSON.stringify(s)).toBe(before);
   s.request = { kind: 'phone', who: 'dilek', state: 'asking', at: s.minute };
   expect(automaticClockPlayback(s)).toMatchObject({ rate: 0.1, reason: 'Dilek needs an answer.' });
+});
+
+it('a selected cook slows the clock only while they have something for you to read', () => {
+  const s = newGame(42, 'pass@4');
+  expect(inspectingCook(s, null, true)).toBe(false);
+  expect(inspectingCook(s, 'dilek', false)).toBe(false);
+  expect(inspectingCook(s, 'dilek', true)).toBe(true);
+  s.request = { kind: 'phone', who: 'dilek', state: 'asking', at: s.minute };
+  expect(inspectingCook(s, 'dilek', false)).toBe(true);
+  expect(inspectingCook(s, 'selim', false)).toBe(false);
+  s.request = null;
+  s.lastAnswer = { at: s.minute, who: 'selim', verb: 'grill', verdict: 'countered', text: 'I will.' };
+  expect(inspectingCook(s, 'selim', false)).toBe(true);
+  s.minute += 11;
+  expect(inspectingCook(s, 'selim', false)).toBe(false);
 });

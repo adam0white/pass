@@ -53,6 +53,18 @@ export function clockPlayback(s: GameState, speed: number) {
   return { rate, label: `${label} · ${rate} minutes per second`, reason };
 }
 
+/**
+ * Whether the selected cook gives the player something to read, so the clock slows to 0.5.
+ * Scope: playback only. A selected cook with nothing new to say no longer holds a quiet stretch at reading pace.
+ */
+export function inspectingCook(s: GameState, selected: string | null, fresh: boolean) {
+  if (!selected) return false;
+  if (fresh) return true;
+  if (s.request?.state === 'asking' && s.request.who === selected) return true;
+  const a = s.lastAnswer;
+  return !!a && a.who === selected && s.minute - a.at <= 10;
+}
+
 /** Live automatic pacing. Legacy clockPlayback remains a pure reader for older playback policies. */
 export function automaticClockPlayback(
   s: GameState,
