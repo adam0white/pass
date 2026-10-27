@@ -221,7 +221,7 @@ export function continuity(
         typeof location !== 'undefined' &&
         ['localhost', '127.0.0.1'].includes(location.hostname))
     ) {
-      const next = newGame(seed, 'pass@17');
+      const next = newGame(seed, 'pass@18');
       reset();
       localOnly = true;
       await gate();
@@ -236,7 +236,7 @@ export function continuity(
     );
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
     if (chapter) chapter.initial.claims = structuredClone(chapter.claims);
-    const next = chapter ? newGame(seed, 'pass@17', chapter.initial) : newGame(seed, 'pass@17');
+    const next = chapter ? newGame(seed, 'pass@18', chapter.initial) : newGame(seed, 'pass@18');
     reset();
     if (!chapter) {
       await gate();

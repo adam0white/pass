@@ -72,7 +72,7 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (s.plates.clean <= 0 && waitingForPlate) {
     if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
       return status('Food is waiting for clean plates.');
-    if (['pass@16', 'pass@17'].includes(s.version) && !canCoverStation(s, 'dish'))
+    if (['pass@16', 'pass@17', 'pass@18'].includes(s.version) && !canCoverStation(s, 'dish'))
       return status(`Food is waiting for clean plates. ${noCoverWords('the dishes')}`);
     return status(
       ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
@@ -91,7 +91,7 @@ export function serviceStatus(s: GameState): ServiceStatus {
         ? 'the grill, the cold side and the oven'
         : missing.map((st) => VERB_WORD[st]).join(' and ');
     if (
-      ['pass@16', 'pass@17'].includes(s.version) &&
+      ['pass@16', 'pass@17', 'pass@18'].includes(s.version) &&
       missing.every((station) => !canCoverStation(s, station))
     )
       return status(noCoverWords(names));
