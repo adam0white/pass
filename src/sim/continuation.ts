@@ -140,5 +140,8 @@ export async function validateReplayFile(ex: ReplayFile): Promise<GameState> {
   if (header) {
     await prepareReturn(header.envelope, header.prefix);
   }
-  return replayExport(ex);
+  const state = replayExport(ex);
+  if (Object.hasOwn(ex, 'state') && canonicalJson(cloneState(state)) !== canonicalJson(ex.state))
+    throw new Error('The full notebook does not match its replay.');
+  return state;
 }
