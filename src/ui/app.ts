@@ -1,12 +1,6 @@
 import { required } from '../required.ts';
 import { episodeText, INVITATIONS } from '../sim/cast-scenes.ts';
-import {
-  attentionAvailable,
-  FOLLOWUP_EDITION,
-  heardTopic,
-  KITCHEN_EDITION,
-  kitchenEdition,
-} from '../sim/kitchen-edition.ts';
+import { attentionAvailable, FOLLOWUP_EDITION, heardTopic, kitchenEdition } from '../sim/kitchen-edition.ts';
 import { NARRATION_EDITION } from '../sim/narration-edition.ts';
 /**
  * The Pass UI: plain DOM and inline SVG over the pure sim. The UI reads state and queues inputs; it never
@@ -89,12 +83,11 @@ import { openFeedback } from './feedback.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab, mountNotice } from './lab.ts';
 import { endingTally } from './notebook.ts';
+import { closingChoices, offerUnavailable } from './people-offers.ts';
 import { unseenSpeech } from './speech.ts';
-import { actionableStaffing } from './staffing.ts';
-import { journalWords, serviceStatus, tableAboutToLeave } from './status.ts';
+import { actionableStaffing, availableStaffing } from './staffing.ts';
+import { journalWords, noCoverWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
-
-const LAB_TOOLS = new URLSearchParams(location.search).get('lab') === '1';
 
 const SAVE = 'pass-save-v3';
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
@@ -262,7 +255,7 @@ const INFO: Record<string, [string, string]> = {
 };
 function topBar(label: string, phase: string): string {
   const [heading, text] = INFO[phase] ?? required(INFO.title);
-  return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}${s?.version === 'pass@13' && phase !== 'title' ? '<button id="people">People</button>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header><div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${esc(text)}</p></div>`;
+  return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}${s && (s.version === 'pass@13' || kitchenEdition(s)) && phase !== 'title' ? '<button id="people">People</button>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header><div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${esc(text)}</p></div>`;
 }
 let tillStart = { key: '', amount: 0 };
 function tillBar(st: GameState): string {
@@ -327,10 +320,7 @@ function openGameMenu() {
       console.error('New game failed', error);
       button.disabled = false;
       (dialog.querySelector('#save-result') as HTMLElement).textContent =
-        'The new game could not start. Your current game is safe. You can try New game again, or send Feedback.' +
-        (LAB_TOOLS
-          ? ` Details: ${error instanceof Error ? error.message.slice(0, 300) : 'Unknown error'}`
-          : '');
+        'The new game could not start. Your current game is safe. You can try New game again, or send Feedback.';
     }
   });
   dialog.querySelector('#full-screen')?.addEventListener('click', () => {
@@ -351,6 +341,21 @@ function openGameMenu() {
       },
     });
   });
+  if (s?.phase === 'service') {
+    const speeds = document.createElement('fieldset');
+    speeds.id = 'menu-speed';
+    speeds.innerHTML = `<legend>Kitchen speed</legend>${SPEED_NAMES.map((name, i) => `<button data-speed="${i}" aria-pressed="${i === speed}">${name}</button>`).join(' ')}`;
+    speeds.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-speed]');
+      if (!button) return;
+      speed = Number(button.dataset.speed);
+      carry = 0;
+      for (const option of speeds.querySelectorAll<HTMLButtonElement>('[data-speed]'))
+        option.setAttribute('aria-pressed', String(Number(option.dataset.speed) === speed));
+      drawTop();
+    });
+    dialog.querySelector('.menu-rows')?.append(speeds);
+  }
   const recording = telemetryToggle(lab);
   const refreshRecording = () => {
     const input = recording.querySelector('input');
@@ -367,7 +372,35 @@ function openGameMenu() {
     { once: true },
   );
   dialog.querySelector('#record-controls')?.prepend(recording);
-  if (LAB_TOOLS) dialog.querySelector('#record-controls')?.append(cast.controls());
+  const debug = document.createElement('details');
+  debug.className = 'debug-tools';
+  debug.innerHTML = `<summary>Debug</summary><div><button id="debug-export" ${s ? '' : 'disabled'}>Export run</button><button id="debug-verify" ${s ? '' : 'disabled'}>Verify replay</button><button id="debug-import">Import run</button><p>Seed: ${s?.seed ?? 'no game'}</p><p id="debug-result" role="status"></p></div>`;
+  debug.querySelector('#debug-export')?.addEventListener('click', download);
+  debug.querySelector('#debug-verify')?.addEventListener('click', async () => {
+    try {
+      const ex = cast.run();
+      if (!ex) return;
+      const replayed = await validateReplayFile(ex);
+      required(debug.querySelector('#debug-result')).textContent =
+        fingerprint(replayed) === fingerprint(required(s))
+          ? 'The replay matches this game.'
+          : 'The replay does not match this game.';
+    } catch {
+      required(debug.querySelector('#debug-result')).textContent = 'This run could not be verified.';
+    }
+  });
+  debug.querySelector('#debug-import')?.addEventListener('click', () => {
+    dialog.close();
+    title();
+    document.getElementById('file')?.click();
+  });
+  const privacy = required(dialog.querySelector('#record-controls a'));
+  const diagnostics = document.createElement('div');
+  diagnostics.style.display = 'flex';
+  diagnostics.style.alignItems = 'baseline';
+  diagnostics.style.gap = '12px';
+  diagnostics.append(privacy, debug);
+  dialog.querySelector('#record-controls')?.append(diagnostics);
   document.body.append(dialog);
   dialog.showModal();
 }
@@ -385,7 +418,7 @@ function openPeople() {
     menuOpen = false;
     last = performance.now();
   });
-  if (s?.version === 'pass@13') {
+  if (s?.version === 'pass@13' || (s && kitchenEdition(s))) {
     const actions = document.createElement('section');
     if (s.night === 1 && s.phase === 'board')
       for (const id of Object.keys(s.castChapter?.actors ?? {})) {
@@ -406,15 +439,30 @@ function openPeople() {
       if (cookOf(s, m.id).here && !cookOf(s, m.id).gone) {
         const b = document.createElement('button');
         b.textContent = INVITATIONS[m.id] ?? `Talk with ${m.name}`;
-        b.disabled = !!personOf(s, m.id).activity;
+        const unavailable = offerUnavailable(s, m.id);
+        b.disabled = unavailable !== null;
+        const explanation = document.createElement('p');
+        explanation.textContent = unavailable ?? '';
+        explanation.id = `offer-reason-${m.id}`;
+        if (unavailable) b.setAttribute('aria-describedby', explanation.id);
         b.onclick = () => {
           if (!s) return;
+          const before = s.said.length;
           queueInput(s, { kind: 'cast-talk', who: m.id, choice: 'listen' });
           writeSave();
-          dialog.close();
-          drawAll(true);
+          const answer = document.createElement('section');
+          answer.setAttribute('role', 'status');
+          answer.setAttribute('tabindex', '-1');
+          const lines = s.said.slice(before);
+          answer.textContent = lines.length
+            ? lines.map((line) => `${nameOf(s as GameState, line.who)}: ${gloss(line.text)}`).join(' ')
+            : `${m.name} cannot talk now. Ask when they are free.`;
+          b.after(answer);
+          b.disabled = true;
+          explanation.textContent = offerUnavailable(s, m.id) ?? '';
+          answer.focus();
         };
-        actions.append(b);
+        actions.append(b, explanation);
         const decline = document.createElement('button');
         decline.textContent = `Talk with ${m.name} another time`;
         decline.onclick = () => {
@@ -487,38 +535,23 @@ function title() {
       <p>You have taken over Nevin’s small restaurant. You give the cooks their jobs. They can refuse.</p>
       <p>The bank wants ${lira(w1.bill)} (Turkish lira) by closing time on Saturday.</p>
       ${old ? '<p class="soft">The game has changed since you last played. Your old saved game cannot be opened. Start a new game instead.</p>' : ''}
-      ${
-        LAB_TOOLS
-          ? `<fieldset class="start-approaches"><legend>How long will customers wait?</legend>
+      <fieldset class="start-approaches"><legend>How long will customers wait?</legend>
         <label><input type="radio" name="pace" value="nevin" /><span>Selim suggests a longer wait.<small>Nevin’s pace gives customers more time to wait for all four weeks.</small></span></label>
         <label><input type="radio" name="pace" value="normal" checked /><span>Dilek suggests the normal wait.<small>Customers wait the usual amount of time.</small></span></label>
-      </fieldset>`
-          : ''
-      }
-      ${LAB_TOOLS ? '<button id="fresh-authored">Begin without continuity</button><button id="other-ways" aria-haspopup="dialog">Lab tools</button>' : ''}
-      ${
-        LAB_TOOLS
-          ? `<button id="kitchen-edition">Try the kitchen edition</button><p class="soft">A separate local kitchen adds dining-room work, conversations, guest requests and a wedding delivery failure. The usual New game stays the same.</p>
-      <button id="narration-edition">Try the narration edition</button><p class="soft">A separate follow-up kitchen uses plain captions and describes what actually interrupted a missed commitment. Existing notebooks keep their edition.</p>
-      <button id="followup-edition">Try the follow-up edition</button><p class="soft">A separate kitchen lets you ask about words you heard, gives dining-room work actual food deliveries, and lets cooks finish part of their work before answering again.</p>`
-          : ''
-      }
+      </fieldset>
+      <button id="other-ways" aria-haspopup="dialog">Other ways to begin</button>
       <p id="title-status" role="status" aria-live="polite"></p>
       <div id="title-confirm" class="inline-confirm" hidden><p id="title-confirm-message"></p><div class="row"><button id="title-confirm-yes">Continue</button><button id="title-confirm-no">Keep this game</button></div></div>
     </div>
     <div class="actions">
       ${save ? `<button class="primary" id="cont">Resume <span class="soft">(${esc(weekTitle(replayNight(save)))})</span></button><button id="new">New game</button>` : '<button class="primary" id="new">New game</button>'}
     </div>
-    ${
-      LAB_TOOLS
-        ? `<dialog id="other-ways-sheet" class="other-ways-sheet" aria-labelledby="other-ways-heading"><h2 id="other-ways-heading">Other ways in</h2><div class="actions">
+    <dialog id="other-ways-sheet" class="other-ways-sheet" aria-labelledby="other-ways-heading"><h2 id="other-ways-heading">Other ways to begin</h2><div class="actions">
       <button id="week-two">Begin at the second week</button><p class="soft">An experienced helper runs the first week for you. You take over on the Sunday after it.</p>
       <button id="first-party">Begin at the first party</button><p class="soft">Choose the promises on Sunday and take the pass before the first party sits.</p>
-      ${turnBack}<button id="load">Load a playtest run</button><button id="close-other-ways">Back</button>
+      ${turnBack}<button id="close-other-ways">Back</button>
     </div></dialog>
-    <input type="file" id="file" accept="application/json" hidden />`
-        : ''
-    }
+    <input type="file" id="file" accept="application/json" hidden />
     ${footer()}
   </div>`;
   mountNotice();
@@ -593,30 +626,20 @@ function title() {
         })().catch(() => status('That Sunday could not be loaded.'));
       });
     });
-  const begin = (
-    secondWeek: boolean,
-    firstParty = false,
-    authored = false,
-    kitchen: boolean | 'followup' | 'narration' = false,
-  ) => {
+  const begin = (secondWeek: boolean, firstParty = false) => {
     const start = () => {
       void (async () => {
         const nevin = app.querySelector<HTMLInputElement>('input[name="pace"]:checked')?.value === 'nevin';
         const seed = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
-        const returning = !secondWeek && !authored ? await cast.fresh(seed) : null;
-        if (secondWeek || authored) await cast.local();
+        const returning = !secondWeek ? await cast.fresh(seed) : null;
+        if (secondWeek) await cast.local();
         clearSave();
         firstPartyStart = firstParty;
-        s = kitchen
-          ? newGame(
-              seed,
-              kitchen === 'narration'
-                ? NARRATION_EDITION
-                : kitchen === 'followup'
-                  ? FOLLOWUP_EDITION
-                  : KITCHEN_EDITION,
-            )
-          : (returning ?? (secondWeek ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined) : newGame(seed)));
+        s =
+          returning ??
+          (secondWeek
+            ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined, 'pass@17')
+            : newGame(seed, 'pass@17'));
         cast.track();
         if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
@@ -624,27 +647,14 @@ function title() {
       })().catch((error: unknown) => {
         console.error('New game failed', error);
         status(
-          'The game could not start. Your saved game is safe. You can try New game again, or send Feedback from the menu.' +
-            (LAB_TOOLS
-              ? ` Details: ${error instanceof Error ? error.message.slice(0, 300) : 'Unknown error'}`
-              : ''),
+          'The game could not start. Your saved game is safe. You can try New game again, or send Feedback from the menu.',
         );
       });
     };
     if (save) ask('Start a new game? This replaces your saved game.', start);
     else start();
   };
-  document
-    .getElementById('narration-edition')
-    ?.addEventListener('click', () => begin(false, false, true, 'narration'));
-  document
-    .getElementById('followup-edition')
-    ?.addEventListener('click', () => begin(false, false, true, 'followup'));
   document.getElementById('new')?.addEventListener('click', () => begin(false));
-  document
-    .getElementById('kitchen-edition')
-    ?.addEventListener('click', () => begin(false, false, true, true));
-  document.getElementById('fresh-authored')?.addEventListener('click', () => begin(false, false, true));
   document.getElementById('week-two')?.addEventListener('click', () => begin(true));
   document.getElementById('first-party')?.addEventListener('click', () => begin(true, true));
   const file = document.getElementById('file') as HTMLInputElement;
@@ -711,6 +721,7 @@ function replayNight(sv: Save): number {
     'pass@14',
     'pass@15',
     'pass@16',
+    'pass@17',
   ].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
@@ -735,6 +746,7 @@ function replayNight(sv: Save): number {
         'pass@14',
         'pass@15',
         'pass@16',
+        'pass@17',
       ].includes(sv.game);
     }
   }
@@ -1229,7 +1241,7 @@ function inspectingNow() {
 }
 
 function livePlayback(st: GameState, view: { reading: boolean; inspecting: boolean }) {
-  return peopleRun(st) ? automaticClockPlayback(st, view) : automaticClockPlayback(st, view, speed);
+  return automaticClockPlayback(st, view, speed);
 }
 
 function frame(t: number) {
@@ -1341,10 +1353,14 @@ function drawTop() {
   (document.getElementById('clock') as HTMLElement).textContent = clock(s.minute);
   const till = document.getElementById('till') as HTMLElement;
   till.innerHTML = tillBar(s);
-  const playback = automaticClockPlayback(s, {
-    reading: performance.now() < readingUntil,
-    inspecting: inspectingNow(),
-  });
+  const playback = automaticClockPlayback(
+    s,
+    {
+      reading: performance.now() < readingUntil,
+      inspecting: inspectingNow(),
+    },
+    speed,
+  );
   if (playback.rate <= 0.5) {
     const reason =
       selected && inspectingNow()
@@ -1723,10 +1739,20 @@ function drawCaption() {
       : fresh && a
         ? `<span class="hand">${esc(a.text)}</span>`
         : '';
-  const key = caption + handover + (canTake ? `${a.at}${a.who}${a.counter}` : '');
+  const receipts =
+    s.version === 'pass@17'
+      ? s.said
+          .filter(
+            (line) =>
+              line.who === 'narrator' && line.text.endsWith('added to the till.') && spokenAt - line.at <= 5,
+          )
+          .map((line) => `<div class="served-receipt">${esc(line.text)}</div>`)
+          .join('')
+      : '';
+  const key = caption + handover + receipts + (canTake ? `${a.at}${a.who}${a.counter}` : '');
   if (key === captionKey) return;
   captionKey = key;
-  el.innerHTML = `${handover}${caption}${canTake ? `<button data-counter="${a.counter}">Ask ${esc(nameOf(s, a.who))}: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
+  el.innerHTML = `${handover}${caption}${receipts}${canTake ? `<button data-counter="${a.counter}">Ask ${esc(nameOf(s, a.who))}: ${esc(VERB_LABEL[a.counter as Verb] ?? '')}</button>` : ''}`;
 }
 
 function select(id: CookId | null) {
@@ -1806,7 +1832,7 @@ function drawSheet() {
   const st = s;
   const el = document.getElementById('sheet') as HTMLElement;
   const rq = st.request;
-  const staffing = actionableStaffing(st)[0];
+  const staffing = availableStaffing(st)[0] ?? actionableStaffing(st)[0];
   const priorityWaiting =
     st.passDecision?.state === 'asking' &&
     (!st.help || (!peopleRun(st) && st.version === 'pass@6')) &&
@@ -1846,7 +1872,7 @@ function drawSheet() {
     sheetKey = `staff${staffing.id}${st.inputs.length}`;
     renderPanel(
       el,
-      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>Nobody will work at the ${esc(VERB_LABEL[staffing.station].toLowerCase())} for about ${Math.max(1, staffing.until - st.minute)} minutes, until ${clock(staffing.until)}.</div><div class="staffing-options">${staffingOptions(
+      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>Nobody will work at the ${esc(VERB_LABEL[staffing.station].toLowerCase())} for about ${Math.max(1, staffing.until - st.minute)} minutes, until ${clock(staffing.until)}.</div><div class="soft">${staffingOptions(st, staffing).length ? 'Choose who to ask.' : esc(noCoverWords(`the ${VERB_LABEL[staffing.station].toLowerCase()}`))}</div><div class="staffing-options">${staffingOptions(
         st,
         staffing,
       )
@@ -1948,7 +1974,7 @@ function drawSheet() {
           `<button data-v="${v.verb}" ${waiting || absent || !attentionAvailable(st, selected as CookId) ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' (now)' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
-    ${['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION].includes(st.version) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
+    ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
     ${kitchenEdition(st) && !absent ? '<div class="row"><button data-kitchen-task="room">Ask for fifteen minutes in the dining room</button><p class="soft">This cook cannot prepare food while working there.</p></div>' : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div>${!attentionAvailable(st, selected as CookId) ? '<p class="soft" role="status">Let this cook finish this part of their work before asking again. The kitchen keeps running.</p>' : ''}<div class="hint">${
       absent
@@ -2371,6 +2397,7 @@ function evening() {
     ${!ended && !r.bill ? `<p class="evening-pace">${paceLine(st, r.night)}</p>` : ''}
     ${tillBar(st)}
     <p>We served ${r.served} of ${total} tables. We earned ${lira(r.takings)} tonight.</p>
+    <p class="closing-choices">${esc(closingChoices(st))}</p>
     ${lightJar && r.night !== 3 && st.jarPlace === 'counter' ? '<p>The tip jar was lighter than it should have been.</p>' : ''}
     ${crit}${wedding}${parties}
     ${r.apron ? '<p>Selim wore Nevin’s apron until closing time. Nobody mentioned it.</p>' : ''}
@@ -2685,7 +2712,7 @@ function ending() {
     ${st.stamps.length ? `<p class="soft">The notebook:</p>${stampList(st.stamps.map((x) => x.id))}` : ''}
     </div>
     <div class="actions">
-      <div class="end-secondaries"><button id="send">Feedback</button>${LAB_TOOLS ? '<button id="export">Download this run</button>' : ''}</div>
+      <div class="end-secondaries"><button id="send">Feedback</button></div>
       <button class="primary" id="again">New game</button>
     </div>
   </div>`;
@@ -2727,7 +2754,7 @@ function returnPage() {
   app.innerHTML = `<div class="page"><div class="page-body">${topBar('Zeynep returns', 'end')}
     <h1>Zeynep returns</h1><p>Her trial at the cold side is over. What she learned stays with her. Her sons still expect her home each evening.</p>
     <p>${esc(String((s.returnChapter.envelope.transfer.history as { id: string; summary: string }[]).find((f) => f.id === 'goodhands-encounter')?.summary ?? 'Her family’s answer is written in this chapter’s notebook.'))}</p><p>Chef has freed her from her kitchen shifts. She has no new job in this chapter.</p>
-    <div class="actions">${LAB_TOOLS ? '<button id="export">Download this chapter</button>' : ''}<button id="send">Feedback</button><button id="fresh">Start a new game</button></div></div></div>`;
+    <div class="actions"><button id="send">Feedback</button><button id="fresh">Start a new game</button></div></div></div>`;
   document.getElementById('export')?.addEventListener('click', download);
   document.getElementById('send')?.addEventListener('click', sendRun);
   document.getElementById('fresh')?.addEventListener('click', () => title());

@@ -12,7 +12,11 @@ import {
   stationsTonight,
 } from '../sim/kitchen.ts';
 import { VERB_WORD } from '../sim/lines.ts';
-import { actionableStaffing } from './staffing.ts';
+import { actionableStaffing, availableStaffing, canCoverStation } from './staffing.ts';
+
+export function noCoverWords(station: string): string {
+  return `Nobody can cover ${station} now. The cooks are unavailable or unwilling. Time runs at your chosen speed until someone can help.`;
+}
 
 export interface ServiceStatus {
   text: string;
@@ -25,7 +29,7 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (s.passDecision?.state === 'asking' && !s.help)
     return status('Orders are piling up. Choose which table the cooks serve first.', true);
   const queued = s.inputs.slice(s.applied).filter((input) => input.at <= s.minute);
-  const staffing = actionableStaffing(s)[0];
+  const staffing = availableStaffing(s)[0];
   if (staffing) {
     if (queued.some((input) => input.kind === 'staff' && input.id === staffing.id))
       return status('Waiting for your choice of who takes over.');
@@ -34,6 +38,10 @@ export function serviceStatus(s: GameState): ServiceStatus {
       true,
     );
   }
+
+  const uncovered = actionableStaffing(s)[0];
+  if (uncovered && s.request?.state !== 'asking')
+    return status(noCoverWords(VERB_WORD[uncovered.station] ?? uncovered.station));
 
   if (s.request?.state === 'asking') {
     if (queued.some((input) => input.kind === 'answer'))
@@ -64,6 +72,8 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (s.plates.clean <= 0 && waitingForPlate) {
     if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
       return status('Food is waiting for clean plates.');
+    if (['pass@16', 'pass@17'].includes(s.version) && !canCoverStation(s, 'dish'))
+      return status(`Food is waiting for clean plates. ${noCoverWords('the dishes')}`);
     return status(
       ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
         ? 'Nobody is washing dishes, so food is waiting for clean plates.'
@@ -80,6 +90,11 @@ export function serviceStatus(s: GameState): ServiceStatus {
       missing.length === 3
         ? 'the grill, the cold side and the oven'
         : missing.map((st) => VERB_WORD[st]).join(' and ');
+    if (
+      ['pass@16', 'pass@17'].includes(s.version) &&
+      missing.every((station) => !canCoverStation(s, station))
+    )
+      return status(noCoverWords(names));
     return status(
       ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
         ? `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'has' : 'have'} nobody in tonight’s plan.`

@@ -250,3 +250,15 @@ describe('display-only service cues', () => {
     expect(journalWords(s, { ...line, who: 'selim' })).toBe(line.text);
   });
 });
+
+it('explains a current staffing gap with no willing cover without demanding a response', () => {
+  const s = newGame(42, 'pass@16');
+  s.staffing = [
+    { id: 0, who: 'selim', station: 'cold', until: s.minute + 20, reason: 'I need to eat.', state: 'asking' },
+  ];
+  for (const c of s.cooks) c.here = false;
+  expect(serviceStatus(s)).toEqual({
+    text: 'Nobody can cover the cold side now. The cooks are unavailable or unwilling. Time runs at your chosen speed until someone can help.',
+    needsResponse: false,
+  });
+});

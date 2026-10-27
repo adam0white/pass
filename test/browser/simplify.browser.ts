@@ -7,25 +7,44 @@ async function quietNetwork(page: import('@playwright/test').Page) {
   await page.route('https://human.adamwhite.work/**', (route) => route.fulfill({ status: 204, body: '' }));
 }
 
-test('player title and menu hide lab tools; lab URL retains them', async ({ page }) => {
+test('public starts and pace need no flag, with diagnostics collapsed beside privacy', async ({ page }) => {
   await quietNetwork(page);
   await page.goto('/');
-  await expect(page.locator('#fresh-authored, #other-ways, #load, #file, .start-approaches')).toHaveCount(0);
+  await expect(page.locator('#fresh-authored')).toHaveCount(0);
+  await expect(page.locator('input[name="pace"][value="normal"]')).toBeChecked();
+  await expect(page.locator('#kitchen-edition, #narration-edition, #followup-edition')).toHaveCount(0);
+  await page.locator('#other-ways').click();
+  await expect(page.locator('#week-two')).toBeVisible();
+  await expect(page.locator('#first-party')).toBeVisible();
+  await page.locator('#close-other-ways').click();
   await page.locator('#game-menu').click();
   const menu = page.getByRole('dialog', { name: 'Game menu', exact: true });
   await expect(menu.getByRole('button', { name: 'Feedback', exact: true })).toBeVisible();
   await expect(menu.getByRole('checkbox')).toHaveCount(1);
-  await expect(menu).not.toContainText(/continuity|Download|accepted person/i);
-  await menu.getByRole('button', { name: 'New game', exact: true }).click();
-  await expect(menu.locator('#menu-new-confirm')).toBeVisible();
-  await menu.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(menu.locator('#menu-new-confirm')).toBeHidden();
+  await expect(menu.locator('.debug-tools')).not.toHaveAttribute('open', '');
+  await expect(menu.locator('#debug-export')).toBeHidden();
+  expect(
+    await menu.locator('.debug-tools').evaluate((node) => node.previousElementSibling?.textContent),
+  ).toBe('Lab privacy');
+  await expect(menu).not.toContainText(/accepted person|Download .*saved record/i);
   await menu.getByRole('button', { name: 'New game', exact: true }).click();
   await menu.locator('#menu-new-yes').click();
   await expect(page.locator('.people-board')).toBeVisible();
-  await page.goto('/?lab=1');
-  await page.locator('#other-ways').click();
-  await expect(page.locator('#load')).toBeVisible();
+  await page.locator('#game-menu').click();
+  await page.locator('.debug-tools summary').click();
+  await page.locator('#debug-verify').click();
+  await expect(page.locator('#debug-result')).toHaveText('The replay matches this game.');
+  await expect(page.locator('.debug-tools')).toContainText(/Seed: \d+/);
+  await page.locator('#menu-back').click();
+  await page.locator('#game-menu').click();
+  await expect(page.locator('#debug-verify')).toBeHidden();
+  await page.locator('#menu-back').click();
+  await page.locator('#open-service').click();
+  await page.locator('#game-menu').click();
+  await page.locator('#menu-speed').getByRole('button', { name: 'Fast', exact: true }).click();
+  await expect(
+    page.locator('#menu-speed').getByRole('button', { name: 'Fast', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('ordinary local new game keeps meaningful people actions outside the menu', async ({ page }) => {
@@ -134,7 +153,7 @@ test('recording notice stays in the footer and appears once per local origin', a
   await expect(page.locator('.lk-telemetry-notice')).toHaveCount(0);
 });
 
-test('failed admission keeps the save and hides technical details outside lab tools', async ({ page }) => {
+test('failed admission keeps the save and technical details in the console', async ({ page }) => {
   await quietNetwork(page);
   await page.goto('/');
   await page.locator('#new').click();
@@ -168,5 +187,5 @@ test('failed admission keeps the save and hides technical details outside lab to
   await page.goto('/?lab=1');
   await page.locator('#new').click();
   await page.locator('#title-confirm-yes').click();
-  await expect(page.locator('#title-status')).toContainText('Shelf unavailable. Use a local file.');
+  await expect(page.locator('#title-status')).not.toContainText('Shelf unavailable. Use a local file.');
 });

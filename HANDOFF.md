@@ -1,5 +1,13 @@
 # Pass handoff
 
+## Panel fix cycle — 2026-10-27
+
+What remains: the owner deferred new playtests and panel runs. A same-tester retest and Adam’s game-readiness acceptance remain open for review on 2026-11-03. Smaller panel asks F-1960–F-1969 keep their dates in docs/design.md.
+
+The technical delivery artifact is pass@17 deployed from signed source, exact green CI and a clean release manifest. New ordinary games use pass@17 with automatic cast carryover. Earlier notebooks replay their own edition. F-1953–F-1959 cover visible private answers and disabled reasons, closing choice/outcome accounts, a seeded first-night request around 18:30, actual order payments as earned, no-cover pacing, individual cook replies and explicit cover choices. Weekly targets and normal patience remain unchanged.
+
+Gameplay starts and pace choices are public. The menu has a speed picker and a collapsed Debug item beside Lab privacy containing only export, verify, import and seed. Cast controls belong to the central shelf. This supersedes the older gate descriptions below. No new panel or playtest was run. Independent correctness and game-design reviews found and resolved departed-cover restoration, generic closing text and omitted wedding-payment consequences. Final commits, CI and live receipts are recorded in ~/code/.lab-scratch/codex/pass.md.
+
 ## Dependency installation — 2026-10-26
 
 The dependency configuration uses pnpm 12.14.0 and shared Node 26.12.0. Install with `pnpm install --frozen-lockfile`; `npm run` still runs existing scripts. `pnpm-lock.yaml` imports the npm lock without intended dependency changes. Overrides and exact native build permissions live in `pnpm-workspace.yaml`. Do not regenerate an npm lock or install a runtime per worktree. Configuration delivery requires the full lane, unchanged raw build outputs against the npm baseline, signed source and exact green CI. This conversion does not deploy the app or establish game-readiness acceptance.
@@ -57,7 +65,7 @@ Final checks passed at 360×690, 1280×800, 820×1180 and 1180×820: Chrome used
 
 [README.md](README.md) describes the four-week campaign, literal controls and framework boundary. The original six-service first playable remains historical in [design](docs/design.md). The dynamic HF footer already credits the framework. No About feature or gameplay panel change is needed here.
 
-The game saves the notebook locally as seed and inputs with pinned chapter data. Ordinary Feedback offers “Keep a copy of this run”, even with recording off. Diagnostic starts, imports, replay verification and continuity controls require exact `?lab=1`. Recording and linked lab play follow the single Recording switch and the existing notice/privacy policy. Fictional continuity runs automatically and has separate ownership guards. Imported files and Sunday rewinds do not acquire native ownership; replay uses pinned state, not a new shelf read.
+The game saves the notebook locally as seed and inputs with pinned chapter data. Ordinary Feedback offers “Keep a copy of this run”, even with recording off. Gameplay starts are public. Export, replay verification, import and seed sit in the collapsed Debug item beside Lab privacy. Cast controls live on the central shelf. Recording and linked lab play follow the single Recording switch and the existing notice/privacy policy. Fictional continuity runs automatically and has separate ownership guards. Imported files and Sunday rewinds do not acquire native ownership; replay uses pinned state, not a new shelf read.
 
 Receiving routes remain finite source contracts, not blanket engine support. Current code admits the scoped Neighbours Rafi/Sam engine2.23 route and Good Hands Zeynep engine2.23 agency route with their passport, role and duty guards. Current native Pass daytime engine2.23 return remains unproved/refused. A receiving guard is not evidence that Neighbours adopted the outgoing Pass source.
 

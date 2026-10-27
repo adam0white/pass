@@ -23,6 +23,12 @@ export function breakSlots(current: number): { minute: number; label: string }[]
 export function openingBoard(s: GameState): BoardRow[] {
   const rows = boardDefaults(s);
   const ids = onShift(s);
+  // Panel edition never assigns relief without a player's choice. Previous choices survive.
+  if (s.version === 'pass@17')
+    return rows.map((row) => ({
+      ...row,
+      cover: s.previousBoard?.some((old) => old.cook === row.cook) ? row.cover : null,
+    }));
   // Preserve deliberate gaps for a returning crew. A new relief cook can fill old gaps.
   const sameCrew =
     s.previousBoard?.length === ids.length && ids.every((id) => s.previousBoard?.some((r) => r.cook === id));

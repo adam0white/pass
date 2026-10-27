@@ -15,7 +15,7 @@ import {
   seedTie,
 } from '@adam0white/human-framework';
 import { castForGame } from '@adam0white/lab-client';
-import { kitchenLexicon, NARRATION_EDITION } from './narration-edition.ts';
+import { kitchenLexicon, NARRATION_EDITION, PANEL_EDITION } from './narration-edition.ts';
 
 export type CookId = string;
 export type Station = 'grill' | 'cold' | 'dish' | 'oven';
@@ -81,7 +81,11 @@ export function makeCook(
     id,
     now,
     ...(plainNarration
-      ? { lexicon: edition === NARRATION_EDITION ? structuredClone(kitchenLexicon) : { plainEnglish: true } }
+      ? {
+          lexicon: [NARRATION_EDITION, PANEL_EDITION].includes(edition)
+            ? structuredClone(kitchenLexicon)
+            : { plainEnglish: true },
+        }
       : {}),
     enable: { fatigueStore: true },
   };
@@ -125,7 +129,9 @@ export function makeCook(
       kind: 'abstain',
       toId: 'self',
       label: 'my rule about the plates',
-      ...(['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16'].includes(edition)
+      ...(['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(
+        edition,
+      )
         ? { firm: true as const }
         : {}),
       actions: [],
@@ -208,10 +214,12 @@ export function makeCook(
       recurEvery: 1440,
     });
   }
-  if (['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16'].includes(edition))
+  if (
+    ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)
+  )
     enableSuggestionReasons(p);
   acceptKitchenShift(p, now);
-  if (['pass@13', 'pass@14', 'pass@15', 'pass@16'].includes(edition)) canonicalProfile(p);
+  if (['pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)) canonicalProfile(p);
   return p;
 }
 
@@ -290,7 +298,11 @@ export function makeHire(
   const base = {
     id: t.id,
     ...(plainNarration
-      ? { lexicon: edition === NARRATION_EDITION ? structuredClone(kitchenLexicon) : { plainEnglish: true } }
+      ? {
+          lexicon: [NARRATION_EDITION, PANEL_EDITION].includes(edition)
+            ? structuredClone(kitchenLexicon)
+            : { plainEnglish: true },
+        }
       : {}),
     name: t.name,
     now,
@@ -381,10 +393,12 @@ export function makeHire(
       lastAt: now,
     });
   }
-  if (['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16'].includes(edition))
+  if (
+    ['pass@10', 'pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)
+  )
     enableSuggestionReasons(p);
   acceptKitchenShift(p, now);
-  if (['pass@13', 'pass@14', 'pass@15', 'pass@16'].includes(edition)) canonicalProfile(p);
+  if (['pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17'].includes(edition)) canonicalProfile(p);
   return p;
 }
 

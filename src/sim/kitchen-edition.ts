@@ -5,6 +5,7 @@
  * No new people, group-duty model, voice-request framework or generated inner speech.
  */
 import { type Affordance, begin, decide, finish, interrupt, tick } from '@adam0white/human-framework';
+import { PRIVATE_CLUES } from './cast-scenes.ts';
 import {
   cookOf,
   type FoodStation,
@@ -16,12 +17,12 @@ import {
   personOf,
   plan,
 } from './kitchen.ts';
-import { NARRATION_EDITION, observeNarration } from './narration-edition.ts';
+import { NARRATION_EDITION, observeNarration, PANEL_EDITION } from './narration-edition.ts';
 
 export const KITCHEN_EDITION = 'pass@14';
 export const FOLLOWUP_EDITION = 'pass@15';
 export const kitchenEdition = (s: Pick<GameState, 'version'>) =>
-  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION].includes(s.version);
+  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION].includes(s.version);
 export interface KitchenWorld {
   night: number;
   stock: Record<FoodStation, number>;
@@ -95,7 +96,7 @@ export function kitchenNight(s: GameState) {
     },
     guests: [],
     conversations: [],
-    ...([FOLLOWUP_EDITION, NARRATION_EDITION].includes(s.version)
+    ...([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION].includes(s.version)
       ? { followup: { attention: {}, deliveries: [] } }
       : {}),
   };
@@ -245,7 +246,11 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
   if (!chosen || !start(s, who, chosen, rec)) return;
   if (chosen.id !== aff.id) {
     reserveAttention(s, who, verdict);
-    words(s, who, `${rec.suggestion?.says ?? 'Not now, Chef.'} I am not taking that request now.`);
+    words(
+      s,
+      who,
+      `${rec.suggestion?.says ?? 'Not now, Chef.'} ${s.version === PANEL_EDITION && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
+    );
     return;
   }
   words(
@@ -269,6 +274,40 @@ const ordinaryWords = (who: string) =>
       'I used to say I never got tired. I do get tired. I would rather tell you before I make a mistake.',
     sam: 'I wrote down what I tried today. There are still jobs here I have not learned. I want to say that plainly.',
   })[who] ?? 'I can talk for three minutes, Chef.';
+/** These are spoken replies, not an imported private biography or an inferred thought. */
+const personalReply = (who: string, kind: 'later' | 'private') => {
+  const replies: Record<string, [string, string]> = {
+    selim: [
+      'I cannot leave these pans for a talk now. Ask me about Nevin when I have a moment.',
+      'Nevin wanted someone else to learn the whole grill station. I still have not put a name on her list.',
+    ],
+    dilek: [
+      'I cannot stop to talk now. I can tell you about the kitchen sounds when I have a moment.',
+      'Those clips are kitchen sounds. I ask before recording a voice. I want you to take that seriously.',
+    ],
+    rafi: [
+      'I cannot talk now. Ask me about the repair when I have a moment.',
+      'Taking that deposit before checking the part was my mistake. Telling you does not repay it.',
+    ],
+    zeynep: [
+      'I cannot stop now. I still want time to work out the daytime menu costs.',
+      'The application is mine. The salary line is still blank; this needs to be paid work.',
+    ],
+    hulya: [
+      'I cannot talk now. Ask me about the seeds when I have a moment.',
+      'I have kept those envelopes through several staff rooms. I want to try the sunny ledge, but nothing is planted yet.',
+    ],
+    murat: [
+      'I cannot stop now. We can discuss the reference when I have a moment.',
+      'An accurate reference matters more than a flattering one. You have seen when I get tired.',
+    ],
+    sam: [
+      'I cannot talk now. I can show you my testing notebook when I have a moment.',
+      'I want the notebook to say what I actually tried. Reading another report is not reproducing its result.',
+    ],
+  };
+  return replies[who]?.[kind === 'later' ? 0 : 1] ?? 'I cannot stop to talk now, Chef.';
+};
 export function kitchenMinute(s: GameState) {
   const world = s.kitchen;
   if (!world) return;
@@ -393,7 +432,17 @@ export function kitchenMinute(s: GameState) {
 
 /** A finite authored topic requires the exact speaker's actual retained utterance. */
 export function heardTopic(s: GameState, who: string) {
-  if (![FOLLOWUP_EDITION, NARRATION_EDITION].includes(s.version)) return undefined;
+  if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION].includes(s.version)) return undefined;
+  if (s.version === PANEL_EDITION) {
+    const disclosure = s.said.findLast((line) => line.who === who && line.text === PRIVATE_CLUES[who]);
+    if (disclosure)
+      return {
+        at: disclosure.at,
+        night: undefined,
+        text: disclosure.text,
+        reply: personalReply(who, 'private'),
+      };
+  }
   // Keep the requested prayer topic available even after an ordinary check-in.
   // Its newest played report wins deliberately; array category order is not chronology.
   const prayerReport =

@@ -261,5 +261,5 @@ it('re-enters the actual Pass-stamped claim of a current Neighbours source', asy
   expect(head.source.game).toBe('pass');
   expect(head.source.engine).toBe('2.23.0');
   expect(head.transfer.castPassport).toBe('neighbours-cast/1');
-  await expect(c.fresh(42)).resolves.toMatchObject({ version: 'pass@13' });
+  await expect(c.fresh(42)).resolves.toMatchObject({ version: 'pass@17' });
 });
