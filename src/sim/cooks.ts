@@ -13,7 +13,7 @@ import {
   type Person,
   promise,
   seedTie,
-} from '@adam0white/human-framework';
+} from '@adam0white/human-framework-legacy';
 import { castForGame } from '@adam0white/lab-client';
 import { kitchenLexicon, NARRATION_EDITION, PANEL_EDITION } from './narration-edition.ts';
 

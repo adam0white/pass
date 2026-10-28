@@ -6,7 +6,7 @@
 // claims for an already held chefNext. first300SecondsLongestUnavailable is the
 // narrower ready-food-only metric. Delegation-generated steps are never inputs.
 // Free-chef and busy-observed reach attempts are split: before a tap, no claim exists.
-import { restore, snapshot, tick } from '@adam0white/human-framework';
+import { restore, snapshot, tick } from '@adam0white/human-framework-legacy';
 import * as k from '../src/sim/kitchen.ts';
 import { clockPlayback } from '../src/ui/clock.ts';
 

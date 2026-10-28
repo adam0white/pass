@@ -4,8 +4,9 @@
  * physical opportunity, stocks, travel, payments and what was actually said or done.
  * No new people, group-duty model, voice-request framework or generated inner speech.
  */
-import { type Affordance, begin, decide, finish, interrupt, tick } from '@adam0white/human-framework';
+
 import { PRIVATE_CLUES } from './cast-scenes.ts';
+import { type Affordance, begin, decide, finish, interrupt, isHF4, tick } from './hf4-person.ts';
 import {
   cookOf,
   type FoodStation,
@@ -22,7 +23,9 @@ import { NARRATION_EDITION, observeNarration, PANEL_EDITION } from './narration-
 export const KITCHEN_EDITION = 'pass@14';
 export const FOLLOWUP_EDITION = 'pass@15';
 export const kitchenEdition = (s: Pick<GameState, 'version'>) =>
-  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version);
+  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(
+    s.version,
+  );
 export interface KitchenWorld {
   night: number;
   stock: Record<FoodStation, number>;
@@ -96,7 +99,7 @@ export function kitchenNight(s: GameState) {
     },
     guests: [],
     conversations: [],
-    ...([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)
+    ...([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)
       ? { followup: { attention: {}, deliveries: [] } }
       : {}),
   };
@@ -145,7 +148,7 @@ function start(s: GameState, who: string, aff: Affordance, rec: ReturnType<typeo
   const p = personOf(s, who),
     c = cookOf(s, who);
   if (p.activity?.affordanceId === aff.id) return true;
-  if (p.activity) {
+  if (p.activity && !isHF4(p)) {
     const a = p.activity;
     interrupt(p, s.minute, 'kitchen-conversation');
     observeNarration(s, p, 'interrupted');
@@ -249,7 +252,7 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
     words(
       s,
       who,
-      `${rec.suggestion?.says ?? 'Not now, Chef.'} ${[PANEL_EDITION, 'pass@18'].includes(s.version) && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
+      `${rec.suggestion?.says ?? 'Not now, Chef.'} ${[PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
     );
     return;
   }
@@ -432,8 +435,9 @@ export function kitchenMinute(s: GameState) {
 
 /** A finite authored topic requires the exact speaker's actual retained utterance. */
 export function heardTopic(s: GameState, who: string) {
-  if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)) return undefined;
-  if ([PANEL_EDITION, 'pass@18'].includes(s.version)) {
+  if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version))
+    return undefined;
+  if ([PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)) {
     const disclosure = s.said.findLast((line) => line.who === who && line.text === PRIVATE_CLUES[who]);
     if (disclosure)
       return {

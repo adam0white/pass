@@ -11,36 +11,7 @@
  * kitchen is not offered a break (HF has no shared duty; docs/hf-requests.md). Does not cover: front of house,
  * customers as people, spatial movement.
  */
-import {
-  type Activity,
-  type Affordance,
-  acquaintPerson,
-  adoptVoiceTrust,
-  begin,
-  type DecisionRecord,
-  decide,
-  diffChronicle,
-  enablePromptings,
-  finish,
-  glimpsePerson,
-  interrupt,
-  type Outcome,
-  type Person,
-  perceive,
-  predict,
-  predictAs,
-  promise,
-  readPerson,
-  releaseCommitment,
-  restore,
-  reviewed,
-  reviewLine,
-  type Suggestion,
-  type SuggestionResolution,
-  snapshot,
-  socialEvent,
-  tick,
-} from '@adam0white/human-framework';
+
 import { required } from '../required.ts';
 import {
   isLastOfWeek,
@@ -78,6 +49,47 @@ import {
   STATIONS,
   type Station,
 } from './cooks.ts';
+import {
+  type Activity,
+  type Affordance,
+  acquaintPerson,
+  adoptVoiceTrust,
+  begin,
+  checkpoint,
+  communityRun,
+  type DecisionRecord,
+  decide,
+  diffChronicle,
+  enablePromptings,
+  finish,
+  freshCommunity,
+  glimpsePerson,
+  interrupt,
+  isHF4,
+  learnPromptingResponse,
+  livedHours,
+  narration,
+  type Outcome,
+  type Person,
+  perceive,
+  personFromCommunity,
+  predict,
+  predictAs,
+  promise,
+  readPerson,
+  releaseCommitment,
+  restore,
+  restoreCommunity,
+  reviewed,
+  reviewLine,
+  type Suggestion,
+  type SuggestionResolution,
+  setKitchenWorld,
+  snapshot,
+  socialEvent,
+  tick,
+} from './hf4-person.ts';
+import type { KitchenCheckpoint } from './hf4-run.ts';
 import {
   attentionAvailable,
   FOLLOWUP_EDITION,
@@ -120,9 +132,17 @@ export const GAME_VERSION = 'pass@13';
 export { PANEL_EDITION } from './narration-edition.ts';
 /** New services run through the crew. Historical inputs keep their original rules until migration. */
 export const peopleRun = (s: Pick<GameState, 'version' | 'peopleRun'>) =>
-  ['pass@11', 'pass@12', 'pass@13', 'pass@14', 'pass@15', 'pass@16', 'pass@17', 'pass@18'].includes(
-    s.version,
-  ) || s.peopleRun === true;
+  [
+    'pass@11',
+    'pass@12',
+    'pass@13',
+    'pass@14',
+    'pass@15',
+    'pass@16',
+    'pass@17',
+    'pass@18',
+    'pass@19',
+  ].includes(s.version) || s.peopleRun === true;
 const portionEdition = (s: GameState) => !peopleRun(s) && (s.version === 'pass@8' || promisesOn(s));
 const handsOn = (s: GameState) => !peopleRun(s) && (s.version === 'pass@7' || portionEdition(s));
 const chefEdition = (s: GameState) => !peopleRun(s) && (s.version === 'pass@6' || handsOn(s));
@@ -140,7 +160,7 @@ const PLATES = 12;
 const HF_WAGE = 6;
 /** Oven heat (0..1) at which pide bakes. */
 export const OVEN_HOT = 0.7;
-const OFF_LINE = ['break', 'smoke', 'eat', 'phone'];
+const OFF_LINE = ['break', 'smoke', 'eat', 'phone', 'toilet'];
 const REST_WORD: Record<string, string> = {
   break: 'ten-minute break',
   smoke: 'cigarette',
@@ -391,6 +411,8 @@ export interface PartyCard {
 }
 
 export interface GameState {
+  hf4?: KitchenCheckpoint;
+  hf4Settled?: number;
   narration?: NarrationEvidence;
   /** Persisted narration choice; absence preserves pre-adoption narration. */
   plainNarration?: boolean;
@@ -531,12 +553,21 @@ export function newGame(
   edition: string = GAME_VERSION,
   chapter?: KitchenChapter,
   plainNarration = edition === GAME_VERSION ||
-    [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(edition),
+    [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(
+      edition,
+    ),
 ): GameState {
   const now = 9 * 60;
-  const people = FOUNDERS.map((m) => makeCook(m.id, seed, now, edition, plainNarration));
-  const chef = makeChef(seed, now, plainNarration);
-  if ([NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(edition))
+  const community = edition === 'pass@19' ? freshCommunity(seed, chapter?.portable) : undefined;
+  const people = FOUNDERS.map((m) =>
+    community
+      ? personFromCommunity(required(community.people[0]), m.id)
+      : makeCook(m.id, seed, now, edition, plainNarration),
+  );
+  const chef = community
+    ? personFromCommunity(required(community.people[0]), 'chef')
+    : makeChef(seed, now, plainNarration);
+  if (!community && [NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(edition))
     for (const p of [...people, chef]) p.lexicon = structuredClone(kitchenLexicon);
   for (const p of people) acquaintPerson(chef, p, 0.5, now);
   const regulars: Record<string, RegularState> = {};
@@ -544,13 +575,19 @@ export function newGame(
     regulars[r.id] = { regard: 0.6, tab: r.tab ? 'open' : 'paying', visits: 0, friendNext: false };
   const s: GameState = {
     version: edition,
-    ...([NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(edition)
+    ...([NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(edition)
       ? { narration: { v: 1 as const, causes: [] } }
       : {}),
     ...(plainNarration ? { plainNarration: true } : {}),
-    ...(['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(
-      edition,
-    )
+    ...([
+      'pass@13',
+      KITCHEN_EDITION,
+      FOLLOWUP_EDITION,
+      NARRATION_EDITION,
+      PANEL_EDITION,
+      'pass@18',
+      'pass@19',
+    ].includes(edition)
       ? { castRevisions: Object.fromEntries(CAST.map((c) => [c.castId, c.revision])) }
       : {}),
     seed,
@@ -568,6 +605,7 @@ export function newGame(
         NARRATION_EDITION,
         PANEL_EDITION,
         'pass@18',
+        'pass@19',
       ].includes(edition)
         ? { castId: required(CAST.find((c) => c.castId.split('.')[2] === m.id)).castId }
         : {}),
@@ -604,16 +642,68 @@ export function newGame(
     inputs: [],
     applied: 0,
   };
+  if (community) bindHF4World(s);
   dayHours(s, planOf(1).day);
   startNight(s, 1);
   if (chapter) {
     s.castChapter = structuredClone(chapter);
-    s.people = s.people.map((p) => (chapter.actors[p.id] ? restore(required(chapter.actors[p.id])) : p));
-    for (const p of s.people) if (chapter.actors[p.id]) acceptKitchenShift(p, s.minute);
+    if (!community)
+      s.people = s.people.map((p) => (chapter.actors[p.id] ? restore(required(chapter.actors[p.id])) : p));
+    for (const p of s.people)
+      if (chapter.actors[p.id] || chapter.portable?.[p.id]) acceptKitchenShift(p, s.minute);
     for (const [id, facts] of Object.entries(chapter.facts))
       s.said.push({ at: s.minute, who: id, kind: 'journal', text: facts.line });
   }
   return s;
+}
+
+function bindHF4World(s: GameState) {
+  const run = communityRun(s.chef);
+  setKitchenWorld(
+    s.chef,
+    {
+      available: (who, a) =>
+        a.durationMs > 0 &&
+        (who === 'chef' ||
+          !!s.people.find((p) => p.id === who) ||
+          !!CAST.find((c) => c.castId.split('.')[2] === who)),
+      outcome: (a, request) => {
+        const fraction = Math.min(1, (request.boundaryAt - a.start) / a.offer.durationMs),
+          c = s.cooks.find((c) => c.id === a.person);
+        const food = ['meal', 'eat'].includes(a.offer.actionId);
+        return {
+          exposures: [],
+          observedProgress: [],
+          ...(food ? { consumed: { food: 0.6 * fraction, water: 0.6 * fraction } } : {}),
+          ...(a.offer.actionId === 'toilet' && request.kind === 'action' && request.stage === 'finish'
+            ? { voidedBladder: true }
+            : {}),
+          ...(c && c.made > 0 && ['grill', 'cold', 'dish', 'oven'].includes(a.offer.actionId)
+            ? {
+                psychological: {
+                  competence: Math.min(0.2, c.made * 0.03),
+                  esteem: Math.min(0.15, c.made * 0.02),
+                },
+              }
+            : {}),
+          ...(a.offer.actionId === 'skim' ? { material: s.jar > 0 ? 3 : 0 } : {}),
+        };
+      },
+    },
+    () => {
+      const completed = run.completed;
+      for (const work of completed.filter((c) => c.sequence > (s.hf4Settled ?? 0))) {
+        const c = s.cooks.find((c) => c.id === work.person);
+        if (c) c.made = 0;
+        if (work.action === 'skim') {
+          const took = Math.min(s.jar, 12);
+          s.jar -= took;
+          s.jarSkimmed += took;
+        }
+      }
+      s.hf4Settled = run.completedCount;
+    },
+  );
 }
 
 function blankCook(id: CookId): CookState {
@@ -663,6 +753,21 @@ export const closeAt = (n: number) => nightStart(n) + CLOSE;
 /** Live the day before a service: meals, an afternoon, arriving at 17:00. */
 function dayHours(s: GameState, day: number) {
   const d = day * 1440;
+  if (isHF4(s.chef)) {
+    const people = [...livePeople(s), s.chef];
+    const times = [
+      { at: d + 600, affordance: offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }) },
+      { at: d + 840, affordance: offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }) },
+      { at: d + 1020, affordance: offer('wait', { duration: 20 }) },
+    ];
+    livedHours(
+      s.chef,
+      times.flatMap((t) => people.map((person) => ({ ...t, person }))),
+      d + 1040,
+    );
+    s.minute = d + 1040;
+    return;
+  }
   for (const p of chefEdition(s) ? [...livePeople(s), s.chef] : livePeople(s)) {
     if (p.activity) endActivity(p, 'interrupted', Math.max(p.now, p.activity.startedAt));
     hostAct(p, offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }), d + 10 * 60);
@@ -675,6 +780,54 @@ function dayHours(s: GameState, day: number) {
 /** A day without a service: meals, rest and sleep. */
 function offDay(s: GameState, day: number) {
   const d = day * 1440;
+  if (isHF4(s.chef)) {
+    const people = [...livePeople(s), s.chef],
+      tasks = people.flatMap((person) => [
+        {
+          person,
+          at: d + 600,
+          affordance: offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }),
+        },
+        {
+          person,
+          at: d + 660,
+          affordance: offer('rest', { duration: 120, effort: 0, advertises: { rest: 0.4, leisure: 0.3 } }),
+        },
+        {
+          person,
+          at: d + 840,
+          affordance: offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }),
+        },
+        {
+          person,
+          at: d + 1140,
+          affordance: offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }),
+        },
+        {
+          person,
+          at: d + 1380,
+          affordance: offer('sleep', {
+            mode: 'sleep',
+            duration: 540,
+            effort: 0,
+            advertises: { sleep: 1, rest: 0.5 },
+          }),
+        },
+      ]);
+    for (const person of people.filter((p) => p.agenda.commitments.some((c) => c.label === 'maghrib')))
+      tasks.push({
+        person,
+        at: d + 1125,
+        affordance: offer('pray', {
+          duration: 8,
+          effort: 0,
+          advertises: { meaning: 0.3 },
+          norms: [{ normId: 'salah', relation: 'fulfills' }],
+        }),
+      });
+    livedHours(s.chef, tasks, d + 1920);
+    return;
+  }
   for (const p of chefEdition(s) ? [...livePeople(s), s.chef] : livePeople(s)) {
     if (p.activity) endActivity(p, 'interrupted', Math.max(p.now, p.activity.startedAt));
     hostAct(p, offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }), d + 10 * 60);
@@ -718,6 +871,26 @@ function livePeople(s: GameState): Person[] {
 /** Live the hours after a service: home, a late meal, the evening review. */
 function nightHours(s: GameState, n: number) {
   const d = nightStart(n);
+  if (isHF4(s.chef)) {
+    const people = [...livePeople(s), s.chef];
+    livedHours(
+      s.chef,
+      people.flatMap((person) => [
+        {
+          person,
+          at: Math.max(person.now + 4, d + 1325),
+          affordance: offer('meal', { duration: 30, advertises: { food: 0.5, water: 0.5 } }),
+        },
+        {
+          person,
+          at: Math.max(person.now + 30, d + 1360),
+          affordance: offer('rest', { duration: 30, advertises: { rest: 0.3 } }),
+        },
+      ]),
+      Math.max(d + 1385, ...people.map((p) => p.now + 65)),
+    );
+    return;
+  }
   for (const p of chefEdition(s) ? [...livePeople(s), s.chef] : livePeople(s)) {
     if (p.activity) endActivity(p, 'interrupted', Math.max(p.now, p.activity.startedAt));
     const at = Math.max(p.now, d + CLOSE + 5);
@@ -729,6 +902,25 @@ function nightHours(s: GameState, n: number) {
 
 function sleepHours(s: GameState, n: number) {
   const d = nightStart(n);
+  if (isHF4(s.chef)) {
+    const people = [...livePeople(s), s.chef],
+      at = Math.max(d + 1410, ...people.map((p) => p.now));
+    livedHours(
+      s.chef,
+      people.map((person) => ({
+        person,
+        at,
+        affordance: offer('sleep', {
+          mode: 'sleep',
+          duration: 540,
+          effort: 0,
+          advertises: { sleep: 1, rest: 0.5 },
+        }),
+      })),
+      at + 540,
+    );
+    return;
+  }
   for (const p of chefEdition(s) ? [...livePeople(s), s.chef] : livePeople(s))
     hostAct(
       p,
@@ -779,7 +971,7 @@ function startNight(s: GameState, n: number) {
   if (promisesOn(s) && s.pace === 'nevin') for (const t of s.tickets) t.patience = 38;
   // One early booking overlaps the default grill meal. A different break or relief saves it.
   // Keep historical notebooks and Thursday onward on their recorded arrival/patience rules.
-  if (s.version === 'pass@18' && n <= 3) {
+  if (['pass@18', 'pass@19'].includes(s.version) && n <= 3) {
     const early = required(s.tickets[3]);
     early.at = nightStart(n) + 18 * 60 + 12;
     early.grill = 2;
@@ -940,9 +1132,15 @@ export function inKitchen(s: GameState, id: CookId): boolean {
 /** Historical contact is free. pass@14 offers a costed HF conversation through the same control. */
 export function contactAvailable(s: GameState, who: CookId, topic: 'check-in' | 'follow-up'): boolean {
   return (
-    ['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(
-      s.version,
-    ) &&
+    [
+      'pass@13',
+      KITCHEN_EDITION,
+      FOLLOWUP_EDITION,
+      NARRATION_EDITION,
+      PANEL_EDITION,
+      'pass@18',
+      'pass@19',
+    ].includes(s.version) &&
     s.people.some((p) => p.id === who) &&
     s.crew.some((m) => m.id === who && !m.left) &&
     inKitchen(s, who) &&
@@ -950,7 +1148,7 @@ export function contactAvailable(s: GameState, who: CookId, topic: 'check-in' | 
       (contact) => contact.night === s.night && contact.who === who && contact.topic === topic,
     ) &&
     (topic !== 'follow-up' ||
-      ([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)
+      ([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)
         ? !!heardTopic(s, who)
         : s.said.some((line) => line.who === who && line.at >= openAt(s.night) - 5))) &&
     attentionAvailable(s, who)
@@ -1002,6 +1200,10 @@ export function offersFor(s: GameState, id: CookId, requested?: Verb): Affordanc
   // Somebody stays on the line: the last cook in the kitchen is not offered a way off it.
   const canLeave = othersIn(s, id).length > 0;
   if (canLeave) {
+    if (isHF4(p))
+      list.push(
+        offer('toilet', { label: 'use the bathroom', duration: 3, effort: 0, advertises: { relief: 0.4 } }),
+      );
     list.push(
       offer('break', {
         action: 'rest',
@@ -1122,7 +1324,7 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
   return verbsTonight(s).map((verb) => {
     const offers = offersFor(s, id, verb);
     const sug = suggestion(verb, insist);
-    if (!m.founder) {
+    if (!m.founder || isHF4(s.chef)) {
       const g = predictAs(s.chef, p, offers, sug, { now: s.minute });
       return {
         verb,
@@ -1138,6 +1340,7 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
             'pass@16',
             'pass@17',
             'pass@18',
+            'pass@19',
           ].includes(s.version) &&
             answerWords(s, p, g.resolution, verb)?.text) ||
           g.resolution.says,
@@ -1160,6 +1363,7 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
           'pass@16',
           'pass@17',
           'pass@18',
+          'pass@19',
         ].includes(s.version) &&
           answerWords(s, p, r, verb)?.text) ||
         r.says,
@@ -1206,6 +1410,7 @@ function shortOf(r: SuggestionResolution, s: GameState, p: Person, verb: Verb): 
       'pass@16',
       'pass@17',
       'pass@18',
+      'pass@19',
     ].includes(s.version)
   ) {
     const words = answerWords(s, p, r, verb);
@@ -1292,9 +1497,15 @@ function apply(s: GameState, inp: Input) {
       return;
     case 'cast-invite': {
       if (
-        !['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(
-          s.version,
-        ) ||
+        ![
+          'pass@13',
+          KITCHEN_EDITION,
+          FOLLOWUP_EDITION,
+          NARRATION_EDITION,
+          PANEL_EDITION,
+          'pass@18',
+          'pass@19',
+        ].includes(s.version) ||
         s.night !== 1 ||
         s.phase !== 'board' ||
         s.minute !== openAt(1) - 5 ||
@@ -1302,10 +1513,13 @@ function apply(s: GameState, inp: Input) {
         s.inputs.slice(0, s.applied - 1).some((i) => i.kind === 'cast-invite' && i.who === inp.who)
       )
         return;
-      const initial = s.castChapter?.actors[inp.who],
+      const initial =
+          isHF4(s.chef) && s.castChapter?.portable?.[inp.who]
+            ? personFromCommunity(s.chef, inp.who)
+            : s.castChapter?.actors[inp.who],
         t = hireTemplate(inp.who);
       if (!initial || !t || initial.now !== s.minute || initial.activity) return;
-      const p = restore(initial);
+      const p = isHF4(s.chef) ? initial : restore(initial);
       const facts = s.castChapter?.facts[inp.who];
       const choice = decide(
         p,
@@ -1364,9 +1578,15 @@ function apply(s: GameState, inp: Input) {
     case 'cast-release': {
       const p = s.people.find((p) => p.id === inp.who);
       if (
-        !['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(
-          s.version,
-        ) ||
+        ![
+          'pass@13',
+          KITCHEN_EDITION,
+          FOLLOWUP_EDITION,
+          NARRATION_EDITION,
+          PANEL_EDITION,
+          'pass@18',
+          'pass@19',
+        ].includes(s.version) ||
         !p ||
         p.activity ||
         !['evening', 'sunday', 'end'].includes(s.phase)
@@ -1390,12 +1610,12 @@ function apply(s: GameState, inp: Input) {
       if (
         kitchenEdition(s) &&
         inp.choice !== 'leave' &&
-        !([PANEL_EDITION, 'pass@18'].includes(s.version) && inp.choice === 'listen')
+        !([PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) && inp.choice === 'listen')
       ) {
         kitchenTask(
           s,
           inp.who,
-          [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version) &&
+          [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) &&
             inp.choice === 'follow-up'
             ? 'follow-up'
             : 'conversation',
@@ -1427,9 +1647,15 @@ function apply(s: GameState, inp: Input) {
         return;
       }
       if (
-        !['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(
-          s.version,
-        ) ||
+        ![
+          'pass@13',
+          KITCHEN_EDITION,
+          FOLLOWUP_EDITION,
+          NARRATION_EDITION,
+          PANEL_EDITION,
+          'pass@18',
+          'pass@19',
+        ].includes(s.version) ||
         !p ||
         p.activity ||
         !inKitchen(s, inp.who) ||
@@ -1746,11 +1972,13 @@ function jarChoice(s: GameState, choice: 'move' | 'talk' | 'leave') {
         summary: 'the chef said: when the jar calls you, go scrub the trays, and we split it on Saturday',
       },
     ]);
-    enablePromptings(rafi, {
-      reading: 'inclination',
-      readingSource: 'host:rafi',
-      responses: [{ id: 'trays', kind: 'redirect', practice: 0.2 }],
-    });
+    if (isHF4(rafi)) learnPromptingResponse(rafi, { id: 'trays', kind: 'redirect', practice: 0.2 });
+    else
+      enablePromptings(rafi, {
+        reading: 'inclination',
+        readingSource: 'host:rafi',
+        responses: [{ id: 'trays', kind: 'redirect', practice: 0.2 }],
+      });
     say(s, 'narrator', 'I sat with Rafi on the back step. I did not say the word thief.', 'journal');
     say(s, 'rafi', 'When the jar tempts me, I’ll go and scrub the trays. Okay, Chef.', 'answer');
   } else say(s, 'narrator', 'I left the tip jar where it was.', 'journal');
@@ -1794,11 +2022,12 @@ function answerRequest(s: GameState, choice: 'yes' | 'no', ignored = false) {
   const p = personOf(s, rq.who);
   const c = cookOf(s, rq.who);
   const lines = REQUEST_LINES[rq.kind];
-  if (ignored) adoptVoiceTrust(p, CHEF, 0, 0.07);
-  else if (choice === 'yes') {
-    adoptVoiceTrust(p, CHEF, 1, 0.06);
+  if (ignored) {
+    if (!isHF4(p)) adoptVoiceTrust(p, CHEF, 0, 0.07);
+  } else if (choice === 'yes') {
+    if (!isHF4(p)) adoptVoiceTrust(p, CHEF, 1, 0.06);
     socialEvent(p, { at: s.minute, kind: 'help', otherId: CHEF, byMe: false, magnitude: 0.6 });
-  } else adoptVoiceTrust(p, CHEF, 0, 0.05);
+  } else if (!isHF4(p)) adoptVoiceTrust(p, CHEF, 0, 0.05);
   if (lines)
     say(
       s,
@@ -1975,12 +2204,12 @@ function arrive(s: GameState, t: Ticket) {
 function walk(s: GameState, t: Ticket) {
   if (
     (bookingOf(s, t.id) ||
-      [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)) &&
+      [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)) &&
     t.platedAt !== undefined
   )
     s.plates.dirty.push({ at: s.minute + 18 });
   t.status = 'walked';
-  if (s.version === 'pass@18')
+  if (['pass@18', 'pass@19'].includes(s.version))
     say(
       s,
       'narrator',
@@ -2010,7 +2239,7 @@ function scripted(s: GameState, m: number, pl: NightPlan) {
   const d = nightStart(s.night);
   // One seeded opening decision; no new request is inserted into historical runs.
   if (
-    [PANEL_EDITION, 'pass@18'].includes(s.version) &&
+    [PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) &&
     s.night === 1 &&
     m === d + 18 * 60 + 28 + Math.floor(hashUnit(s.seed, 1956, 1) * 5)
   )
@@ -2053,7 +2282,7 @@ export const gasOut = (s: GameState): boolean => {
 
 function cookMinute(s: GameState, c: CookState) {
   const p = personOf(s, c.id);
-  if (chefEdition(s) && p.activity && isStation(p.activity.affordanceId)) {
+  if (!isHF4(p) && chefEdition(s) && p.activity && isStation(p.activity.affordanceId)) {
     const st = p.activity.affordanceId;
     p.activity.effort = waitingAt(s, st) > 0 || st === 'oven' ? p.activity.affordance.effort : 0.08;
   }
@@ -2078,7 +2307,9 @@ function cookMinute(s: GameState, c: CookState) {
     endActivity(p, 'completed', s.minute, s, c);
     a = null;
   }
-  const due = c.pending !== null || (a ? s.minute >= a.reviewAt : s.minute >= c.idleUntil);
+  const due =
+    c.pending !== null ||
+    (a ? (isHF4(p) ? s.minute % 5 === 0 : s.minute >= a.reviewAt) : s.minute >= c.idleUntil);
   if (!due) return;
   const offers = offersFor(s, c.id).filter(
     (o) => !a || o.id !== a.affordanceId || (hasCover(s) && c.pending?.verb === o.id),
@@ -2112,20 +2343,20 @@ function cookMinute(s: GameState, c: CookState) {
       ['assented', 'complied'].includes(rec.suggestion?.verdict ?? '')
     ) {
       c.cover = { station: voice.verb, until: coverUntil(s) };
-      a.endsAt = c.cover.until;
+      if (!isHF4(p)) a.endsAt = c.cover.until;
     }
-    reviewed(p);
+    if (!isHF4(p)) reviewed(p);
     reserveAttention(s, c.id, rec.suggestion?.verdict ?? '');
     return;
   }
   const aff = offers.find((o) => o.id === rec.chosenAffordanceId);
   if (!aff) {
-    if (a) reviewed(p);
+    if (a && !isHF4(p)) reviewed(p);
     else c.idleUntil = s.minute + 3;
     return;
   }
   const from = a?.affordanceId ?? ended;
-  if (a) endActivity(p, 'interrupted', s.minute, s, c);
+  if (a && !isHF4(p)) endActivity(p, 'interrupted', s.minute, s, c);
   // Sent home by the chef: the chef has released the shift, so going is not a broken promise.
   if (aff.id === 'home' && voice?.verb === 'home') releaseShift(p, s.minute);
   if (!begin(p, aff, rec)) {
@@ -2142,7 +2373,7 @@ function cookMinute(s: GameState, c: CookState) {
       ['assented', 'complied'].includes(rec.suggestion?.verdict ?? '')
         ? { station: aff.id, until: coverUntil(s) }
         : null;
-    if (c.cover && p.activity) p.activity.endsAt = c.cover.until;
+    if (c.cover && p.activity && !isHF4(p)) p.activity.endsAt = c.cover.until;
   }
   if (isStation(aff.id) && !c.night.worked.includes(aff.id)) c.night.worked.push(aff.id);
   // A cook who moves station on their own says so in the journal, with what a watcher would see as the reason.
@@ -2220,6 +2451,7 @@ function answered(
     'pass@16',
     'pass@17',
     'pass@18',
+    'pass@19',
   ].includes(s.version)
     ? answerWords(s, p, r, voice.verb)
     : null;
@@ -2271,6 +2503,7 @@ function answered(
         'pass@16',
         'pass@17',
         'pass@18',
+        'pass@19',
       ].includes(s.version) &&
       previousBreak?.verb === verb &&
       s.minute < previousBreak.endsAt
@@ -2296,6 +2529,7 @@ function answered(
       'pass@16',
       'pass@17',
       'pass@18',
+      'pass@19',
     ].includes(s.version)
       ? (c.breakDeferred.reason ?? reason?.text ?? 'Not now, Chef.')
       : `I stopped my ${c.breakDeferred.rest}${came}. I won’t work at ${VERB_WORD[verb] ?? verb} yet.`;
@@ -2353,7 +2587,7 @@ function notePrompt(s: GameState, id: CookId, p: Person) {
   const r = p.promptings?.recent.at(-1);
   if (!r || r.at !== s.minute || s.lastPromptAt[id] === r.at) return;
   s.lastPromptAt[id] = r.at;
-  if ([NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)) {
+  if ([NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)) {
     const line = promptCaption(p);
     if (line) say(s, 'narrator', line.replaceAll('The person', nameOf(s, id)), 'prompt');
     return;
@@ -2399,6 +2633,10 @@ const clamp = (x: number) => Math.max(0, Math.min(1, x));
 
 function endActivity(p: Person, status: Outcome['status'], at: number, s?: GameState, c?: CookState) {
   const a = p.activity as Activity;
+  if (isHF4(p)) {
+    if (a) finish(p, { affordanceId: a.affordanceId, action: a.action, status, at });
+    return;
+  }
   if (s && (status === 'completed' || status === 'interrupted')) observeNarration(s, p, status);
   const out: Outcome = { affordanceId: a.affordanceId, action: a.action, status, at };
   const done = Math.min(1, (at - a.startedAt) / Math.max(1, a.endsAt - a.startedAt));
@@ -2418,6 +2656,7 @@ function endActivity(p: Person, status: Outcome['status'], at: number, s?: GameS
 
 /** The host does `aff` at `at` (no choice offered). */
 function hostAct(p: Person, aff: Affordance, at: number) {
+  if (isHF4(p)) throw new Error('The current kitchen must interleave home activities.');
   const rec = decide(p, [aff], { now: Math.max(p.now, at) });
   if (rec.chosenAffordanceId !== aff.id) return;
   if (!begin(p, aff, rec)) return;
@@ -2595,7 +2834,7 @@ function pass(s: GameState) {
       const onTime = s.minute <= t.due;
       const pay = onTime ? t.price : Math.round(t.price * 0.55);
       s.till += pay;
-      if ([PANEL_EDITION, 'pass@18'].includes(s.version))
+      if ([PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version))
         say(s, 'narrator', `Wedding order served. ₺${pay} added to the till.`, 'journal');
       say(
         s,
@@ -2650,7 +2889,7 @@ function pass(s: GameState) {
         say(s, 'narrator', `Table ${t.table} noticed the care in their food.`, 'journal');
     } else if (
       !(
-        [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version) &&
+        [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) &&
         t.platedAt !== undefined
       )
     ) {
@@ -2695,7 +2934,7 @@ function pass(s: GameState) {
       if (wait <= 25) say(s, 'narrator', r.pleased, 'journal');
     }
     s.till += pay;
-    if ([PANEL_EDITION, 'pass@18'].includes(s.version))
+    if ([PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version))
       say(s, 'narrator', `Table ${t.table} served. ₺${pay} added to the till.`, 'journal');
     const tip = wait < 15 ? 6 : wait < 25 ? 3 : 1;
     s.jar += tip;
@@ -2723,6 +2962,7 @@ function say(s: GameState, who: Said['who'], text: string, kind: Said['kind']) {
       NARRATION_EDITION,
       PANEL_EDITION,
       'pass@18',
+      'pass@19',
     ].includes(s.version)
       ? episodeText(text)
       : text,
@@ -2778,7 +3018,8 @@ function evening(s: GameState, c: CookState): string {
 /** Tonight's named lapse, if the evening review found one the cook would talk about. */
 function lapseOf(s: GameState, id: CookId): string {
   const p = personOf(s, id);
-  if ([NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)) return eveningNarration(s, p) ?? ``;
+  if ([NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version))
+    return eveningNarration(s, p) ?? ``;
   const said = reviewLine(p);
   if (!said || said.startsWith('Today I kept') || !p.review?.last) return '';
   return lapseLine(memberOf(s, id).template ?? id, p.review.last.missed);
@@ -2945,14 +3186,21 @@ function enterSunday(s: GameState) {
   const pl = planOf(n);
   sleepHours(s, n);
   const sunday = (pl.week - 1) * 7 + 6;
-  for (const p of livePeople(s)) {
-    if (p.activity) endActivity(p, 'interrupted', Math.max(p.now, p.activity.startedAt));
-    hostAct(
-      p,
-      offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }),
-      sunday * 1440 + 10 * 60,
+  if (isHF4(s.chef))
+    livedHours(
+      s.chef,
+      [...livePeople(s), s.chef].map((person) => ({
+        person,
+        at: sunday * 1440 + 600,
+        affordance: offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }),
+      })),
+      sunday * 1440 + 720,
     );
-  }
+  else
+    for (const p of livePeople(s)) {
+      if (p.activity) endActivity(p, 'interrupted', Math.max(p.now, p.activity.startedAt));
+      hostAct(p, offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }), sunday * 1440 + 600);
+    }
   s.minute = sunday * 1440 + 12 * 60;
   s.phase = 'sunday';
   // pass@9: word gets around. Whoever is owed next week saw the queue, and asks half of what was left over.
@@ -3002,6 +3250,12 @@ function weekStamps(s: GameState, week: number): string[] {
 
 /** HF chronicle: what each cook now does unprompted, or has started doing, compared with before. */
 function changesThisWeek(s: GameState, week: number): { id: CookId; line: string }[] {
+  if (isHF4(s.chef))
+    return livePeople(s).flatMap((p) =>
+      narration(p, 'day-closed')
+        .slice(-7)
+        .map((line) => ({ id: p.id, line })),
+    );
   const out: { id: CookId; line: string }[] = [];
   const from = (week - 1) * 7;
   for (const m of activeCrew(s)) {
@@ -3013,12 +3267,12 @@ function changesThisWeek(s: GameState, week: number): { id: CookId; line: string
     if (before.length === 0 || after.length === 0) continue;
     const { changes, lines } = diffChronicle(before, after, {
       voices: [CHEF],
-      ...([NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)
+      ...([NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)
         ? { person: p, name: m.name }
         : {}),
     });
     for (const [index, x] of changes.entries()) {
-      const line = [NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version)
+      const line = [NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)
         ? lines[index]
         : changeLine(m.name, x.kind, x.subject);
       if (line && x.kind === 'unprompted') {
@@ -3083,9 +3337,16 @@ function candidates(s: GameState, week: number): string[] {
     (h) =>
       !taken.has(h.id) &&
       !s.castChapter?.actors[h.id] &&
-      (['pass@13', KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(
-        s.version,
-      )
+      !s.castChapter?.portable?.[h.id] &&
+      ([
+        'pass@13',
+        KITCHEN_EDITION,
+        FOLLOWUP_EDITION,
+        NARRATION_EDITION,
+        PANEL_EDITION,
+        'pass@18',
+        'pass@19',
+      ].includes(s.version)
         ? h.id !== 'can'
         : h.id !== 'sam'),
   );
@@ -3113,7 +3374,7 @@ function choose(s: GameState, key: string, value: string) {
   if (key === 'hire' && value !== 'none') {
     const t = hireTemplate(value);
     if (!t || !page.candidates.includes(value)) return;
-    const carried = s.castChapter?.actors[t.id];
+    const carried = s.castChapter?.actors[t.id] ?? s.castChapter?.portable?.[t.id];
     if (carried) {
       say(
         s,
@@ -3123,7 +3384,10 @@ function choose(s: GameState, key: string, value: string) {
       );
       return;
     }
-    const p = makeHire(t, s.seed, s.minute, s.version, s.plainNarration === true);
+    const p = isHF4(s.chef)
+      ? personFromCommunity(s.chef, t.id)
+      : makeHire(t, s.seed, s.minute, s.version, s.plainNarration === true);
+    if (isHF4(p)) acceptKitchenShift(p, s.minute);
     s.people.push(p);
     s.crew.push({
       id: t.id,
@@ -3134,6 +3398,7 @@ function choose(s: GameState, key: string, value: string) {
         NARRATION_EDITION,
         PANEL_EDITION,
         'pass@18',
+        'pass@19',
       ].includes(s.version)
         ? { castId: required(CAST.find((c) => c.castId.split('.')[2] === t.id)).castId }
         : {}),
@@ -3151,9 +3416,9 @@ function choose(s: GameState, key: string, value: string) {
     const p = personOf(s, 'dilek');
     if (value === 'yes') {
       memberOf(s, 'dilek').offDay = 2;
-      adoptVoiceTrust(p, CHEF, 1, 0.08);
+      if (!isHF4(p)) adoptVoiceTrust(p, CHEF, 1, 0.08);
       socialEvent(p, { at: s.minute, kind: 'help', otherId: CHEF, byMe: false, magnitude: 0.7 });
-    } else adoptVoiceTrust(p, CHEF, 0, 0.08);
+    } else if (!isHF4(p)) adoptVoiceTrust(p, CHEF, 0, 0.08);
   } else if (key.startsWith('tab:')) {
     const st = s.regulars[key.slice(4)];
     if (!st) return;
@@ -3181,6 +3446,36 @@ function leaveSunday(s: GameState) {
   const n = s.night;
   const pl = planOf(n);
   const sunday = (pl.week - 1) * 7 + 6;
+  if (isHF4(s.chef)) {
+    const people = [...livePeople(s), s.chef],
+      tasks = people.map((person) => ({
+        person,
+        at: sunday * 1440 + 1380,
+        affordance: offer('sleep', {
+          mode: 'sleep',
+          duration: 540,
+          effort: 0,
+          advertises: { sleep: 1, rest: 0.5 },
+        }),
+      }));
+    for (const person of people.filter((p) => p.agenda.commitments.some((c) => c.label === 'maghrib')))
+      tasks.push({
+        person,
+        at: sunday * 1440 + 1125,
+        affordance: offer('pray', {
+          duration: 8,
+          effort: 0,
+          advertises: { meaning: 0.3 },
+          norms: [{ normId: 'salah', relation: 'fulfills' }],
+        }),
+      });
+    livedHours(s.chef, tasks, sunday * 1440 + 1920);
+    const next = planOf(n + 1);
+    for (let d = sunday + 1; d < next.day; d++) offDay(s, d);
+    dayHours(s, next.day);
+    startNight(s, n + 1);
+    return;
+  }
   for (const p of livePeople(s)) prayAtHome(p, sunday * 1440);
   for (const p of livePeople(s))
     hostAct(
@@ -3222,6 +3517,7 @@ export function exportRun(s: GameState, framework: string): Export {
 }
 
 export function cloneState(s: GameState): GameState {
+  if (isHF4(s.chef)) return { ...structuredClone(s), hf4: checkpoint(s.chef) };
   return {
     ...structuredClone({ ...s, people: [], chef: null as unknown as Person }),
     people: s.people.map((p) => snapshot(p)),
@@ -3230,6 +3526,17 @@ export function cloneState(s: GameState): GameState {
 }
 
 export function restoreState(json: GameState): GameState {
+  if (json.version === 'pass@19') {
+    if (!json.hf4) throw new Error('Keep this file and start a new game.');
+    const c = restoreCommunity(json.hf4, [...json.people, json.chef]);
+    const restored = {
+      ...structuredClone(json),
+      people: json.people.map((p) => personFromCommunity(required(c.people[0]), p.id)),
+      chef: personFromCommunity(required(c.people[0]), 'chef'),
+    };
+    bindHF4World(restored);
+    return restored;
+  }
   return {
     ...structuredClone({ ...json, people: [], chef: null as unknown as Person }),
     people: json.people.map((p) => restore(p)),
@@ -3245,7 +3552,9 @@ export function replay(
   edition: string = GAME_VERSION,
   chapter?: KitchenChapter,
   plainNarration = edition === GAME_VERSION ||
-    [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(edition),
+    [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(
+      edition,
+    ),
 ): GameState {
   const s = newGame(seed, edition, chapter, plainNarration);
   for (const inp of inputs) {
@@ -3272,6 +3581,7 @@ export function replay(
 
 /** Whether an export or save can be replayed by this edition of the game. */
 export const canReplay = (game: string | undefined): boolean =>
+  game === 'pass@19' ||
   game === 'pass@18' ||
   game === PANEL_EDITION ||
   game === 'pass@16' ||
@@ -3291,6 +3601,7 @@ export const canReplay = (game: string | undefined): boolean =>
 
 /** A compact fingerprint of everything that matters, for replay checks. */
 export function fingerprint(s: GameState): string {
+  if (s.version === 'pass@19') return JSON.stringify(isHF4(s.chef) ? cloneState(s) : s);
   return JSON.stringify({
     night: s.night,
     phase: s.phase,
@@ -3577,6 +3888,7 @@ function takeStation(
         'pass@16',
         'pass@17',
         'pass@18',
+        'pass@19',
       ].includes(s.version)
         ? suggestionWords(p, r, station)?.text
         : undefined) ?? r.says)
@@ -3593,10 +3905,10 @@ function takeStation(
       'answer',
     );
   if (!accepted || !aff) return { accepted: false, says };
-  if (p.activity) endActivity(p, 'interrupted', s.minute, s, c);
+  if (p.activity && !isHF4(p)) endActivity(p, 'interrupted', s.minute, s, c);
   if (!begin(p, aff, rec)) return { accepted: false, says: 'I cannot start that work now.' };
   c.cover = { station, until };
-  if (p.activity) p.activity.endsAt = until;
+  if (p.activity && !isHF4(p)) p.activity.endsAt = until;
   if (!c.night.worked.includes(station)) c.night.worked.push(station);
   return { accepted: true, says };
 }
@@ -3656,7 +3968,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     const affs = coverOffers(s, row.cover, row.station, 20);
     if (p.activity) interrupt(p, s.minute, 'voice:chef');
     const rec = decide(p, affs, { suggestion: suggestion(row.station) });
-    reviewed(p);
+    if (!isHF4(p)) reviewed(p);
     row.coverAccepted = rec.chosenAffordanceId === row.station && rec.suggestion?.verdict === 'assented';
     const answer = rec.suggestion;
     const says = answer
@@ -3670,6 +3982,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
           'pass@16',
           'pass@17',
           'pass@18',
+          'pass@19',
         ].includes(s.version)
           ? suggestionWords(p, answer, row.station)?.text
           : undefined) ?? answer.says)
@@ -3697,6 +4010,10 @@ export function staffingOptions(s: GameState, d: StaffingDecision): CookId[] {
     if (id === d.who || !inKitchen(s, id) || cookOf(s, id).pending || stationOf(s, id) === d.station)
       return false;
     const offers = coverOffers(s, id, d.station, Math.max(1, d.until - s.minute));
+    if (isHF4(s.chef))
+      return (
+        predictAs(s.chef, personOf(s, id), offers, suggestion(d.station)).resolution.verdict === 'assented'
+      );
     const preview = restore(snapshot(personOf(s, id)));
     if (preview.activity) interrupt(preview, s.minute, 'voice:chef');
     return predict(preview, offers, suggestion(d.station)).verdict === 'assented';
@@ -3824,7 +4141,7 @@ function resumeBoardStation(s: GameState, c: CookState, station: Station, until 
   const rec = decide(p, [agreed]);
   if (begin(p, agreed, rec)) {
     c.cover = { station, until };
-    if (p.activity) p.activity.endsAt = until;
+    if (p.activity && !isHF4(p)) p.activity.endsAt = until;
   }
 }
 
@@ -4181,6 +4498,7 @@ export const promisesOn = (s: Pick<GameState, 'version'>): boolean =>
     'pass@16',
     'pass@17',
     'pass@18',
+    'pass@19',
   ].includes(s.version);
 
 /** The Sunday card for one offered party. */

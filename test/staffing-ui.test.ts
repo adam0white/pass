@@ -1,4 +1,4 @@
-import { begin, decide } from '@adam0white/human-framework';
+import { begin, decide } from '@adam0white/human-framework-legacy';
 import { describe, expect, it } from 'vitest';
 import { boardDefaults, cookOf, newGame, personOf, queueInput, stationOf, step } from '../src/sim/kitchen.ts';
 import { automaticClockPlayback, clockPlayback } from '../src/ui/clock.ts';

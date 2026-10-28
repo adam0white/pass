@@ -1,4 +1,4 @@
-import { predict } from '@adam0white/human-framework';
+import { predict } from '@adam0white/human-framework-legacy';
 import { expect, it } from 'vitest';
 import { HIRES, makeCook, makeHire } from '../src/sim/cooks.ts';
 import {

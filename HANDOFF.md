@@ -1,5 +1,11 @@
 # Pass handoff
 
+## HF 4 port — 2026-10-28
+
+The `pass@19` source uses HF 4.7.0, lab-client 0.5.3 and lab-kit 0.5.21. A none-policy game reached an ending and its complete export matched both cold restore and host replay; HF replay verified the archive. Earlier editions retain the HF 3 runtime. HF 3 shelf passports refuse before claim and remain available as source files. Ordinary request answers do not create promise evidence or directly adjust advising-voice trust in the new edition.
+
+Delivery requires the lane, review, signed source, exact CI and deployment. Adam accepts game readiness separately. A real cross-game shelf journey remains unverified.
+
 ## Early-service retest fix — 2026-10-27
 
 New ordinary starts use `pass@18`. Monday through Wednesday each have one early

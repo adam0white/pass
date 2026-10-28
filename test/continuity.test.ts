@@ -71,7 +71,7 @@ it('title and local reload do not claim a new chapter; file receipt stays nonown
     false,
   );
 });
-it('preflights all seven expected heads once before accepting a fresh batch', async () => {
+it('refuses an old incomplete passport before claiming any heads', async () => {
   const e = await envelope();
   mocks.shelf.request.mockImplementation(async (r) => {
     if (r.action === 'prepareBatch')
@@ -89,11 +89,9 @@ it('preflights all seven expected heads once before accepting a fresh batch', as
     return null;
   });
   const c = continuity(() => null, vi.fn(), vi.fn());
-  const s = await c.fresh(42);
-  expect(s.castChapter?.inputs[0]?.parent.revision).toBe(e.revision);
+  await expect(c.fresh(42)).rejects.toThrow('omits the full retained history');
   const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'putBatch');
-  expect(puts).toHaveLength(1);
-  expect(Object.keys(required(puts[0])[0].expectedHeads)).toHaveLength(7);
+  expect(puts).toHaveLength(0);
   expect(mocks.lab.telemetryOn).toBe(false);
   expect(mocks.lab.allowPersonaRecording.mock.calls.every(([allow]) => !allow)).toBe(true);
 });
@@ -235,7 +233,7 @@ it('failed fresh admission preserves the running notebook receipts and recording
   expect(mocks.lab.telemetryOn).toBe(false);
 });
 
-it('re-enters the actual Pass-stamped claim of a current Neighbours source', async () => {
+it('preserves a historical Neighbours source when its incomplete passport is refused', async () => {
   const { readFileSync } = await import('node:fs');
   const { castForGame } = await import('@adam0white/lab-client');
   let head: PersonaEnvelope = JSON.parse(
@@ -257,9 +255,8 @@ it('re-enters the actual Pass-stamped claim of a current Neighbours source', asy
     return null;
   });
   const c = continuity(() => null, vi.fn(), vi.fn());
-  await c.fresh(42);
-  expect(head.source.game).toBe('pass');
-  expect(head.source.engine).toBe('2.23.0');
-  expect(head.transfer.castPassport).toBe('neighbours-cast/1');
-  await expect(c.fresh(42)).resolves.toMatchObject({ version: 'pass@18' });
+  const before = structuredClone(head);
+  await expect(c.fresh(42)).rejects.toThrow('omits the full retained history');
+  expect(head).toEqual(before);
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'putBatch')).toBe(false);
 });

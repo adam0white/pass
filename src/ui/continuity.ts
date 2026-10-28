@@ -1,5 +1,5 @@
 /** Whole kitchen ownership and pinned exports. Title entry is read-only; files never acquire ownership. */
-import { ENGINE_VERSION, FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework';
+import { ENGINE_VERSION, FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework-legacy';
 import {
   anchorPersonaLife,
   canonicalCast,
@@ -15,14 +15,9 @@ import {
   watchPersonaCheckpoint,
 } from '@adam0white/lab-client';
 import { personaControls } from '@adam0white/lab-kit';
-import {
-  CAST,
-  digest,
-  keyOf,
-  kitchenTransfer,
-  prepareKitchenChapter,
-  validateKitchenChapter,
-} from '../sim/cast-chapter.ts';
+import { CAST, digest, keyOf, kitchenTransfer, validateKitchenChapter } from '../sim/cast-chapter.ts';
+import { hf4KitchenTransfer, prepareHF4KitchenChapter } from '../sim/hf4-cast.ts';
+import { isHF4 } from '../sim/hf4-person.ts';
 import { type Export, exportRun, type GameState, newGame } from '../sim/kitchen.ts';
 import { kitchenEdition } from '../sim/kitchen-edition.ts';
 import { lab } from './lab.ts';
@@ -86,8 +81,8 @@ export function continuity(
   const source = () => ({
     game: 'pass',
     build: lab.build().c ?? 'local',
-    engine: ENGINE_VERSION,
-    rules: 'pass-13',
+    engine: '4.7.0',
+    rules: 'pass-19',
   });
   const emit = () => window.dispatchEvent(new Event('pass-continuity'));
   const report = (s: string) => {
@@ -109,7 +104,11 @@ export function continuity(
   const run = (): ContinuityExport | null => {
     const s = getState();
     return s
-      ? { ...exportRun(s, FRAMEWORK_VERSION), continuity: data(), oneCast: structuredClone(rows) }
+      ? {
+          ...exportRun(s, s.version === 'pass@19' ? '4.7.0' : FRAMEWORK_VERSION),
+          continuity: data(),
+          oneCast: structuredClone(rows),
+        }
       : null;
   };
   const track = () => {
@@ -170,7 +169,10 @@ export function continuity(
           (head.terminal
             ? person.body.alive
             : !state.releasedCast?.includes(person.id) ||
-              receipt?.checkpointDigest !== (await digest(snapshot(person))))
+              receipt?.checkpointDigest !==
+                (isHF4(person)
+                  ? (await hf4KitchenTransfer(person)).checkpoint.checkpointDigest
+                  : await digest(snapshot(person))))
         )
           throw new Error('Saved receipt does not match the played kitchen checkpoint.');
       }
@@ -221,7 +223,7 @@ export function continuity(
         typeof location !== 'undefined' &&
         ['localhost', '127.0.0.1'].includes(location.hostname))
     ) {
-      const next = newGame(seed, 'pass@18');
+      const next = newGame(seed, 'pass@19');
       reset();
       localOnly = true;
       await gate();
@@ -231,12 +233,12 @@ export function continuity(
       shelf,
       CAST.map((c) => c.castId),
       source(),
-      (inputs) => prepareKitchenChapter(inputs, seed),
+      (inputs) => prepareHF4KitchenChapter(inputs, seed),
       { isCurrent: () => epoch === generation },
     );
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
     if (chapter) chapter.initial.claims = structuredClone(chapter.claims);
-    const next = chapter ? newGame(seed, 'pass@18', chapter.initial) : newGame(seed, 'pass@18');
+    const next = chapter ? newGame(seed, 'pass@19', chapter.initial) : newGame(seed, 'pass@19');
     reset();
     if (!chapter) {
       await gate();
@@ -282,13 +284,14 @@ export function continuity(
       if (!['evening', 'sunday', 'end'].includes(s.phase) || !s.releasedCast?.includes(id) || p.activity)
         continue;
       try {
-        const raw = snapshot(p),
-          transfer = await kitchenTransfer(raw);
+        const transfer = isHF4(p) ? await hf4KitchenTransfer(p) : await kitchenTransfer(snapshot(p));
         if (
           epoch !== generation ||
           getState() !== s ||
           s.minute !== minute ||
-          (await digest(snapshot(p))) !== transfer.checkpoint.checkpointDigest
+          (isHF4(p)
+            ? (await hf4KitchenTransfer(p)).checkpoint.checkpointDigest
+            : await digest(snapshot(p))) !== transfer.checkpoint.checkpointDigest
         )
           return;
         const old = parent?.transfer.checkpoint as { checkpointDigest?: string } | undefined;

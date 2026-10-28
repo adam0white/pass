@@ -1,5 +1,5 @@
 /** Pass-authored vocabulary and observable causes. HF retains all review and norm facts. */
-import { type Lexicon, type Person, promptingLine, reviewLine } from '@adam0white/human-framework';
+import { isHF4, type Lexicon, narration, type Person, promptingLine, reviewLine } from './hf4-person.ts';
 import type { GameState } from './kitchen.ts';
 
 export const NARRATION_EDITION = 'pass@16';
@@ -38,7 +38,7 @@ export const kitchenLexicon: Lexicon = {
 
 /** Called on the actual active interval before HF advances or ends it, never on a queued request. */
 export function observeNarration(s: GameState, p: Person, status?: 'completed' | 'interrupted') {
-  if (![NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version) || !s.narration) return;
+  if (![NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) || !s.narration) return;
   const a = p.activity;
   if (!a || a.startedAt >= s.minute) return;
   const ordered =
@@ -82,9 +82,14 @@ export function observeNarration(s: GameState, p: Person, status?: 'completed' |
 }
 
 export function eveningNarration(s: GameState, p: Person): string | undefined {
+  if (isHF4(p)) return narration(p, 'review').at(-1);
   const review = p.review;
   const r = review?.last;
-  if (![NARRATION_EDITION, PANEL_EDITION, 'pass@18'].includes(s.version) || !review || !r?.missed.length)
+  if (
+    ![NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) ||
+    !review ||
+    !r?.missed.length
+  )
     return undefined;
   const groups = new Map<'ordered' | 'interrupted' | 'ordinary', string[]>();
   const lines: string[] = [];
@@ -115,6 +120,7 @@ export function eveningNarration(s: GameState, p: Person): string | undefined {
 }
 
 export function promptCaption(p: Person): string | undefined {
+  if (isHF4(p)) return narration(p, 'prompting').at(-1);
   const r = p.promptings?.recent.at(-1);
   if (!r || !p.promptings) return undefined;
   const kind = p.promptings.responses.find((x) => x.id === r.responseId)?.kind;

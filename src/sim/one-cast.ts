@@ -12,7 +12,7 @@ import {
   restore,
   snapshot,
   validatePersonaProjection,
-} from '@adam0white/human-framework';
+} from '@adam0white/human-framework-legacy';
 import { canonicalPersona, type PersonaEnvelope } from '@adam0white/lab-client';
 import { required } from '../required.ts';
 import type { GameState } from './kitchen.ts';
@@ -63,6 +63,8 @@ export function zeynepDepartureStatus(s: GameState): {
   eligible: boolean;
   reasons: string[];
 } {
+  if (s.version === 'pass@19')
+    return { canRelease: false, eligible: false, reasons: ['Use the current kitchen release control.'] };
   const reasons: string[] = [];
   const p = personOf(s);
   if (s.version !== 'pass@12') reasons.push('This kitchen edition has no guest chapter.');

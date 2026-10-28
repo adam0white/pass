@@ -4,7 +4,15 @@
 
 **Done for the first playable** (set 2026-10-18 by the coordinator's brief; the owner accepts feel separately): six playable nights with one new pressure each, an ending, a playtest export that replays, tests, a headless balance measure, a late source-unread playtest recorded verbatim, live at https://pass.adamwhite.work.
 
-## HF 4 port — 2026-10-28
+## HF 4 candidate — 2026-10-28
+
+The `pass@19` edition uses the HF 4 Run and a retained v2 portable-person opening. Earlier HF 3 saves and incomplete shelf passports refuse before a new claim; the source file stays available. A complete none-policy game reached an ending and passed cold restore, host replay and framework replay on the 4.7 candidate, whose published framework payload was verified identical. Delivery checks and Adam's acceptance remain separate.
+
+Pass selects HF's daily numerical fidelity consistently for new `pass@19` batches and receipts. It retains the same faculty equations and reached semantic boundaries, with a looser local numerical estimate than fine fidelity; it is not a global error guarantee. Each fidelity path replays its own results. Earlier editions retain their historical runtime.
+
+A chef answering a request is not evidence of a kept or broken promise. Yes, no and no answer do not directly change advising-voice trust in `pass@19`; earlier editions adjust that trust for each outcome, with a larger cost for no answer than no. A yes that helps the cook records the actual help as a social event. HF 4.7's authored social response changes belief-source trust, which is separate from advising-voice trust, so it does not replace that adjustment. A supported request-answer evidence route may be adopted when available.
+
+## Historical HF 4.5.1 assessment — 2026-10-28
 
 Remaining: HF G4 must provide a knowledge-bounded forecast of another person's answer before this game can move from HF 3.0.0. Recheck the published contract on **2026-11-17**. Adam accepts game readiness separately.
 

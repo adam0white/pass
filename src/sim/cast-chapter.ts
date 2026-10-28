@@ -11,7 +11,7 @@ import {
   snapshot,
   tick,
   validateCalendarPersona,
-} from '@adam0white/human-framework';
+} from '@adam0white/human-framework-legacy';
 import {
   canonicalPersona,
   castForGame,
@@ -34,8 +34,11 @@ const same = (a: unknown, b: unknown) => canonicalPersona(a) === canonicalPerson
 // Portable calendar semantics are shared only by these explicitly supported releases.
 const nativeEngine = (engine: string) => engine === '2.17.0' || engine === '2.21.0';
 const identity = (xs: string[]) => Object.fromEntries(xs.map((x) => [x, x]));
+
+import type { PortableAdmission } from '@adam0white/human-framework';
 export interface KitchenChapter {
-  version: 'pass-cast/1';
+  portable?: Record<string, PortableAdmission>;
+  version: 'pass-cast/1' | 'pass-cast/2';
   /** Absent in historical chapters; validation must retain their original narration. */
   plainNarration?: boolean;
   seed: number;
@@ -248,6 +251,12 @@ export async function validateKitchenChapter(chapter: KitchenChapter) {
       )
         throw new Error('Initial claim does not belong to this pinned source.');
     }
+  }
+  if (chapter.version === 'pass-cast/2') {
+    const { prepareHF4KitchenChapter } = await import('./hf4-cast.ts');
+    if (!same(await prepareHF4KitchenChapter(chapter.inputs, chapter.seed), content))
+      throw new Error('Pinned retained kitchen chapter does not match its sources.');
+    return;
   }
   if (
     chapter.version !== 'pass-cast/1' ||

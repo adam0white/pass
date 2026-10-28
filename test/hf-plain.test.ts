@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { FRAMEWORK_VERSION } from '@adam0white/human-framework';
+import { FRAMEWORK_VERSION } from '@adam0white/human-framework-legacy';
 import { describe, expect, it } from 'vitest';
 import { CAST, freshActor } from '../src/sim/cast-chapter.ts';
 import { replayExport } from '../src/sim/continuation.ts';

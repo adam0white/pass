@@ -1,4 +1,4 @@
-import { begin, decide } from '@adam0white/human-framework';
+import { begin, decide } from '@adam0white/human-framework-legacy';
 import { describe, expect, it } from 'vitest';
 import { NIGHT_PLANS, nightStart } from '../src/sim/campaign.ts';
 import type { Station } from '../src/sim/cooks.ts';
