@@ -1,6 +1,54 @@
 import { expect, it } from 'vitest';
 import { checkpoint, freshCommunity, perceive, verifyCommunity } from '../src/sim/hf4-person.ts';
-import { boardDefaults, cookOf, newGame, personOf, queueInput, step } from '../src/sim/kitchen.ts';
+import {
+  boardDefaults,
+  cloneState,
+  cookOf,
+  newGame,
+  personOf,
+  queueInput,
+  replay,
+  restoreState,
+  step,
+} from '../src/sim/kitchen.ts';
+
+it('resumes the planned meal after actual prayer completion and replays the break', () => {
+  const s = newGame(42, 'pass@19');
+  queueInput(s, {
+    kind: 'board',
+    rows: boardDefaults(s).map((row) => ({ ...row, breakAt: row.cook === 'selim' ? 1125 : row.breakAt })),
+  });
+  queueInput(s, { kind: 'open' });
+  while (s.minute <= 1125) step(s);
+  expect(personOf(s, 'selim').activity?.affordanceId).toBe('pray');
+  while (s.minute < 1136) step(s);
+  expect(personOf(s, 'selim').activity?.affordanceId).toBe('eat');
+  const restored = restoreState(JSON.parse(JSON.stringify(cloneState(s))));
+  const before = personOf(s, 'selim').body.satiety;
+  while (s.minute <= 1145) {
+    step(s);
+    step(restored);
+  }
+  expect(personOf(s, 'selim').body.satiety).toBeGreaterThan(before);
+  const receipts = checkpoint(s.chef)
+    .archive.history.flatMap((t) => t.inputs)
+    .filter((input) => input.kind === 'action.resolved');
+  expect(
+    receipts.some(
+      (input) =>
+        input.payload.person === 'selim' &&
+        input.payload.stage === 'interrupt' &&
+        input.payload.disposition === 'interrupted' &&
+        input.payload.outcome?.actionId === 'eat' &&
+        input.payload.outcome.end >= 1145 * 60_000 &&
+        (input.payload.outcome?.actual.consumed?.food ?? 0) > 0,
+    ),
+  ).toBe(true);
+  expect(JSON.parse(JSON.stringify(cloneState(restored)))).toEqual(JSON.parse(JSON.stringify(cloneState(s))));
+  expect(JSON.parse(JSON.stringify(cloneState(replay(s.seed, s.inputs, s.minute, s.version))))).toEqual(
+    JSON.parse(JSON.stringify(cloneState(s))),
+  );
+}, 120000);
 
 it('clears an earlier request when a cook accepts a new dining-room task', () => {
   const s = newGame(42, 'pass@19');

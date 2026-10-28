@@ -89,7 +89,7 @@ import {
   socialEvent,
   tick,
 } from './hf4-person.ts';
-import type { KitchenCheckpoint } from './hf4-run.ts';
+import { type KitchenCheckpoint, MINUTE_MS } from './hf4-run.ts';
 import {
   attentionAvailable,
   FOLLOWUP_EDITION,
@@ -283,6 +283,8 @@ export interface CookState {
   /** A station turned down because of a break in progress: kept for the rest of that break. */
   breakDeferred: { verb: Verb; endsAt: number; rest: string; reason?: string; short?: string } | null;
   cover?: { station: Station; until: number } | null;
+  /** An HF4 quiet action completed during this agreed break; resume its meal once. */
+  mealContinuationUntil?: number;
   idleUntil: number;
   progress: number;
   /** Portions made in the current stretch (an honest world effect at its end). */
@@ -695,6 +697,17 @@ function bindHF4World(s: GameState) {
       for (const work of completed.filter((c) => c.sequence > (s.hf4Settled ?? 0))) {
         const c = s.cooks.find((c) => c.id === work.person);
         if (c) c.made = 0;
+        const row = s.board?.rows.find((r) => r.cook === work.person && r.accepted);
+        if (
+          c &&
+          row &&
+          work.status === 'completed' &&
+          ['skim', 'pray', 'smoke', 'phone'].includes(work.action)
+        ) {
+          const start = nightStart(s.night) + row.breakAt;
+          const at = work.at / MINUTE_MS;
+          if (at > start && at < start + 20) c.mealContinuationUntil = start + 20;
+        }
         if (work.action === 'skim') {
           const took = Math.min(s.jar, 12);
           s.jar -= took;
@@ -1024,6 +1037,7 @@ function startNight(s: GameState, n: number) {
     c.made = 0;
     c.remembered = false;
     c.night = blankNight();
+    delete c.mealContinuationUntil;
     if (isFirstOfWeek(n)) {
       c.pushedBefore = (c.pushedBefore ?? 0) / 2 + c.week.complied;
       c.week = { complied: 0, insisted: 0, nights: 0 };
@@ -4036,6 +4050,8 @@ function raiseStaffing(s: GameState, who: CookId, station: Station, until: numbe
 
 /** Schedule only agreed parts. Ordinary autonomous decisions still handle refusals and emergencies. */
 function rotaMinute(s: GameState, c: CookState): boolean {
+  if (c.mealContinuationUntil !== undefined && s.minute >= c.mealContinuationUntil)
+    delete c.mealContinuationUntil;
   if (c.pending) return false;
   const row = s.board?.rows.find((r) => r.cook === c.id && r.accepted);
   if (!row) return false;
@@ -4043,6 +4059,7 @@ function rotaMinute(s: GameState, c: CookState): boolean {
   const start = nightStart(s.night) + row.breakAt;
   const end = start + 20;
   const activity = p.activity;
+  if (c.mealContinuationUntil !== undefined && activity) delete c.mealContinuationUntil;
   // Complete planned meals and relief, then restore the agreed home stations without another ask.
   if (s.minute === end) {
     if (activity) endActivity(p, 'completed', s.minute, s, c);
@@ -4073,6 +4090,11 @@ function rotaMinute(s: GameState, c: CookState): boolean {
   }
   if (s.minute > start && s.minute < end) {
     // A private moment can happen during the agreed break, then the cook eats before returning.
+    if (c.mealContinuationUntil === end && !activity) {
+      delete c.mealContinuationUntil;
+      beginBoardBreak(s, c, end, false);
+      return true;
+    }
     if (activity && s.minute >= activity.endsAt) {
       endActivity(p, 'completed', s.minute, s, c);
       beginBoardBreak(s, c, end, false);
