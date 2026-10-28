@@ -6,7 +6,7 @@
  */
 
 import { PRIVATE_CLUES } from './cast-scenes.ts';
-import { type Affordance, begin, decide, finish, interrupt, isHF4, tick } from './hf4-person.ts';
+import { type Affordance, begin, decide, finish, interrupt, isHF4, type Person, tick } from './hf4-person.ts';
 import {
   cookOf,
   type FoodStation,
@@ -144,10 +144,20 @@ export function kitchenOffers(s: GameState, who: string): Affordance[] {
     ),
   ];
 }
-function start(s: GameState, who: string, aff: Affordance, rec: ReturnType<typeof decide>): boolean {
+function start(
+  s: GameState,
+  who: string,
+  aff: Affordance,
+  rec: ReturnType<typeof decide>,
+  previous: Person['activity'],
+): boolean {
   const p = personOf(s, who),
     c = cookOf(s, who);
-  if (p.activity?.affordanceId === aff.id) return true;
+  if (
+    p.activity?.affordanceId === aff.id &&
+    (!isHF4(p) || (previous?.affordanceId === aff.id && previous.startedAt === p.activity.startedAt))
+  )
+    return true;
   if (p.activity && !isHF4(p)) {
     const a = p.activity;
     interrupt(p, s.minute, 'kitchen-conversation');
@@ -216,7 +226,8 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
           { belonging: 0.2, autonomy: 0.1 },
           { placeId: 'pass', material: 6 },
         );
-  const offers = [...offersFor(s, who), aff];
+  const offers = [...offersFor(s, who), aff],
+    previous = p.activity;
   const rec = decide(p, offers, {
     now: s.minute,
     suggestion: { voiceId: 'chef', affordanceId: aff.id, strength: 0.5 },
@@ -246,7 +257,7 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
       : `${p.name}, will you work in the dining room for fifteen minutes? Your station will need someone else.`,
   );
   const chosen = offers.find((o) => o.id === rec.chosenAffordanceId);
-  if (!chosen || !start(s, who, chosen, rec)) return;
+  if (!chosen || !start(s, who, chosen, rec, previous)) return;
   if (chosen.id !== aff.id) {
     reserveAttention(s, who, verdict);
     words(
@@ -429,7 +440,7 @@ export function kitchenMinute(s: GameState) {
           : 'I will explain the wait. I am leaving the other tables for three minutes. The cooks will keep the orders they already have.'
         : `${rec.suggestion?.says ?? 'No.'} I am staying with my work. Your order and your wait have not changed.`,
     );
-    if (accepted) start(s, c.id, requestedOffer, rec);
+    if (accepted) start(s, c.id, requestedOffer, rec, a);
   }
 }
 

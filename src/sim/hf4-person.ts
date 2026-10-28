@@ -62,6 +62,12 @@ function refresh(c: Community) {
     if (!p) continue;
     const x = parts(v),
       activity = c.run.active.find((a) => a.person === p.id);
+    const promptings = clone(x.promptings) as NonNullable<Person['promptings']>;
+    // Kitchen captions and retained readings use whole kitchen minutes.
+    for (const record of promptings.recent) record.at = Math.floor(record.at / MINUTE_MS);
+    for (const response of promptings.responses)
+      response.lastUsedAt = Math.floor(response.lastUsedAt / MINUTE_MS);
+    for (const echo of Object.values(promptings.echo)) echo.at = Math.floor(echo.at / MINUTE_MS);
     Object.assign(p, {
       name: x.summary.name,
       now: Math.floor(c.run.now / MINUTE_MS),
@@ -75,7 +81,7 @@ function refresh(c: Community) {
       ),
       will: { voices: clone(x.relationships.voices) },
       agenda: clone(x.agenda),
-      promptings: clone(x.promptings),
+      promptings,
       review: clone(x.review),
       activity: activity
         ? {
@@ -384,8 +390,10 @@ export function perceive(p: Person, percepts: Parameters<typeof historical.perce
   submit(p, 'observation.received', {
     person: p.id,
     evidenceId: `pass:observation:${needCommunity(p).run.now}`,
-    percepts: percepts.map((x) => ({
+    percepts: percepts.map(({ at, ...x }, index) => ({
       ...x,
+      id: `pass:percept:${needCommunity(p).run.now}:${index}`,
+      occurredAt: Math.round(at * MINUTE_MS),
       claims: [],
       norms: [],
       advice: [],

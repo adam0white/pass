@@ -3,6 +3,20 @@ import { expect, it } from 'vitest';
 import { acceptKitchenShift } from '../src/sim/cooks.ts';
 import { hf4KitchenTransfer, prepareHF4KitchenChapter } from '../src/sim/hf4-cast.ts';
 import { checkpoint, freshCommunity, restoreCommunity, verifyCommunity } from '../src/sim/hf4-person.ts';
+import { advance } from '../src/sim/host-policy.ts';
+import { newGame, personOf, queueInput, step } from '../src/sim/kitchen.ts';
+
+it('records actual HF4 promptings in kitchen minutes', () => {
+  const s = newGame(42, 'pass@19');
+  const phase = () => s.phase;
+  while (!(s.night === 3 && s.phase === 'evening')) advance(s, 'ask', 'promise-none');
+  queueInput(s, { kind: 'jar', choice: 'talk' });
+  queueInput(s, { kind: 'open' });
+  while (phase() === 'board') advance(s, 'ask', 'promise-none');
+  while (phase() === 'service') step(s);
+  expect(personOf(s, 'rafi').promptings?.recent.length).toBeGreaterThan(0);
+  expect(s.said.some((line) => line.kind === 'prompt')).toBe(true);
+}, 120000);
 
 it('retains a hired cook shift through a community refresh and restore', () => {
   const community = freshCommunity(42);
