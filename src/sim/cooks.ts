@@ -11,10 +11,10 @@ import {
   enableSuggestionReasons,
   MINUTES_PER_YEAR,
   type Person,
-  promise,
   seedTie,
 } from '@adam0white/human-framework-legacy';
 import { castForGame } from '@adam0white/lab-client';
+import { promise } from './hf4-person.ts';
 import { kitchenLexicon, NARRATION_EDITION, PANEL_EDITION } from './narration-edition.ts';
 
 export type CookId = string;

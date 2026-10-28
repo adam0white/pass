@@ -1,7 +1,22 @@
 import { createPersona, initialPersonaLife, preparePersonaLife } from '@adam0white/lab-client';
 import { expect, it } from 'vitest';
+import { acceptKitchenShift } from '../src/sim/cooks.ts';
 import { hf4KitchenTransfer, prepareHF4KitchenChapter } from '../src/sim/hf4-cast.ts';
-import { freshCommunity } from '../src/sim/hf4-person.ts';
+import { checkpoint, freshCommunity, restoreCommunity, verifyCommunity } from '../src/sim/hf4-person.ts';
+
+it('retains a hired cook shift through a community refresh and restore', () => {
+  const community = freshCommunity(42);
+  const hire = community.people.find((person) => person.id === 'hulya');
+  if (!hire) throw new Error('Missing hire');
+  acceptKitchenShift(hire, 540);
+  const saved = JSON.parse(JSON.stringify(checkpoint(hire)));
+  const restored = restoreCommunity(saved);
+  const savedHire = restored.people.find((person) => person.id === 'hulya');
+  expect(savedHire?.agenda.commitments.some((commitment) => commitment.label === 'my shift')).toBe(true);
+  if (!savedHire) throw new Error('Missing restored hire');
+  expect(JSON.parse(JSON.stringify(checkpoint(savedHire)))).toEqual(saved);
+  expect(verifyCommunity(savedHire).verified).toBe(true);
+});
 
 it('projects a current person and admits the retained passport before the new run starts', async () => {
   const person = freshCommunity(42).people.find((p) => p.id === 'hulya');
