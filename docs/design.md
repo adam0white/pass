@@ -4,6 +4,18 @@
 
 **Done for the first playable** (set 2026-10-18 by the coordinator's brief; the owner accepts feel separately): six playable nights with one new pressure each, an ending, a playtest export that replays, tests, a headless balance measure, a late source-unread playtest recorded verbatim, live at https://pass.adamwhite.work.
 
+## HF 4 port — 2026-10-28
+
+Remaining: HF G4 must provide a knowledge-bounded forecast of another person's answer before this game can move from HF 3.0.0. Recheck the published contract on **2026-11-17**. Adam accepts game readiness separately.
+
+The target checked was the published HF 4.5.1 GitHub release (npm still returned 404 at the check; npm latest was 4.5.0). Client 0.5.2 is the matching released portable bridge; its own HF 4.4.0 dependency is intentional. Neither is adopted here. The game retains HF 3.0.0 / client 0.4.15 / kit 0.5.17.
+
+`src/sim/kitchen.ts` `hints` uses `predictAs(chef, cook, offers, suggestion)` for hires. Its verdict, words and confidence describe the chef's guess. HF 4.5.1 `preview` with `perspective: {kind: 'person', observer: 'chef'}` and `person: 'cook'` returns `invalid-admission` at `$.perspective`: “Person preview requires the same observer”. `inspect` supplies observed signs and impressions, but no predicted answer. Host preview would use hidden actor state. A game-local prediction calculation would duplicate HF. Both violate the port recipe. This is a framework contract blocker, not a reason to remove the hints or change their knowledge boundary.
+
+The recipe's old blanket G2/G3 blockers are not current: HF 4.5.1 publishes retained portable admission and `DEFAULT_NORMS`. The remaining port still needs a full bridge, finite legacy cast mappings, millisecond conversion, request settlement and exact whole-game export proof. A passing public HF control does not prove this game is ported. The control and live API refusal are retained with `~/code/.lab-scratch/codex/pass-murmur-evidence/run-control451.ts` and `run-control451.json`.
+
+The last query switch guarded the development console handle. Development builds now expose it without a query parameter. Production diagnostics remain in the collapsed Debug item beside Lab privacy. Browser controls use the ordinary URL. The simulation and export pin remain unchanged.
+
 ## How it was chosen (2026-10-18)
 
 Three concepts were written (kept below) and sent, with the owner's taste signal and nothing else, to two consultants who did not read any source.

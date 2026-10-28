@@ -7,7 +7,7 @@ async function title(page: Page) {
   await page.addInitScript(() => {
     Math.random = () => 0;
   });
-  await page.goto('/?lab=1');
+  await page.goto('/');
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -119,7 +119,7 @@ async function savedParty(page: Page, phase: 'board' | 'service' | 'evening', pr
     minute: s.minute,
     pages: [{ week: 1, k: beginAtWeekTwo(42, undefined, 'pass@9').inputs.length }],
   });
-  await page.goto('/?lab=1');
+  await page.goto('/');
   await page.locator('#cont').click();
   return { s, booking };
 }
