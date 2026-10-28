@@ -16,7 +16,7 @@ async function start(page: import('@playwright/test').Page) {
     minute: s.minute,
     pages: [],
   });
-  await page.goto('/?lab=1');
+  await page.goto('/');
   await page.getByRole('button', { name: /Resume/ }).click();
 }
 

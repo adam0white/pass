@@ -4,6 +4,5 @@ import './ui/board-layout.css';
 import './ui/pages-layout.css';
 import { _debug, start } from './ui/app.ts';
 
-if (import.meta.env.DEV && new URLSearchParams(location.search).get('lab') === '1')
-  (window as unknown as { __pass: typeof _debug }).__pass = _debug;
+if (import.meta.env.DEV) (window as unknown as { __pass: typeof _debug }).__pass = _debug;
 start();

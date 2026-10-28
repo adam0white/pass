@@ -20,7 +20,7 @@ for (const [width, height] of [
       minute: legacy.minute,
       pages: [],
     });
-    await page.goto('/?lab=1');
+    await page.goto('/');
     await page.locator('#cont').click();
     await page.locator('#open-service').click();
     await page.locator('[data-pick="selim"]').click();

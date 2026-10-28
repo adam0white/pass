@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('opening voices preserve the default and the tally has no pregame preference', async ({ page }) => {
-  await page.goto('/?lab=1');
+  await page.goto('/');
   const pace = page.locator('input[name="pace"][value="nevin"]');
   const normal = page.locator('input[name="pace"][value="normal"]');
   await expect(normal).toBeChecked();

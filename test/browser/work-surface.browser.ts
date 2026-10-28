@@ -16,7 +16,7 @@ async function start(page: Page) {
     minute: s.minute,
     pages: [],
   });
-  await page.goto('/?lab=1');
+  await page.goto('/');
   await page.getByRole('button', { name: /Resume/ }).click();
   await page.evaluate(() => {
     const app = Reflect.get(window, '__pass');

@@ -5,7 +5,7 @@ import { newGame } from '../../src/sim/kitchen.ts';
 test.beforeEach(async ({ page }) => {
   await page.route('https://human.adamwhite.work/**', (route) => route.fulfill({ status: 204, body: '' }));
   await page.clock.install();
-  await page.goto('/?lab=1');
+  await page.goto('/');
 });
 
 test('new log lines highlight temporarily while the situation stays visible', async ({ page }) => {

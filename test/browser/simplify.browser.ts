@@ -184,7 +184,7 @@ test('failed admission keeps the save and technical details in the console', asy
   await expect(page.locator('#save-result')).toContainText('Your current game is safe.');
   await expect(page.locator('#save-result')).not.toContainText('Shelf unavailable');
   expect(await page.evaluate(() => localStorage.getItem('pass-save-v3'))).toBe(saved);
-  await page.goto('/?lab=1');
+  await page.goto('/');
   await page.locator('#new').click();
   await page.locator('#title-confirm-yes').click();
   await expect(page.locator('#title-status')).not.toContainText('Shelf unavailable. Use a local file.');
