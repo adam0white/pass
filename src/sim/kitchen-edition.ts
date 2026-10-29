@@ -412,12 +412,10 @@ export function kitchenCompleted(s: GameState, who: string, action: string, at: 
     );
     if (entry) {
       entry.completed = at;
-      if (
-        entry.private &&
-        entry.activity === activity &&
-        !s.said.some((line) => line.who === who && line.text === PRIVATE_CLUES[who])
-      )
+      if (entry.private && entry.activity === activity && !s.privateAccounts?.[who]) {
         words(s, who, PRIVATE_CLUES[who] ?? '', at);
+        recordPrivateAccount(s, who, at);
+      }
     }
   }
   if (action === 'explain-wait') {
@@ -651,6 +649,14 @@ export function roomDelivery(s: GameState, ticket: number, table: number): boole
   return false;
 }
 
+/** Successful discovery belongs to this notebook, not the capped presentation log. */
+export function recordPrivateAccount(s: GameState, who: string, at: number) {
+  const text = PRIVATE_CLUES[who];
+  if (s.version !== 'pass@19' || !text || s.privateAccounts?.[who]) return;
+  s.privateAccounts ??= {};
+  s.privateAccounts[who] = { at, text };
+}
+
 /** Scope: a private invitation uses the same three-minute HF choice as ordinary contact.
  * Only an actual completion may disclose the existing account. Busy breaks stay private.
  */
@@ -664,6 +670,7 @@ export function privateConversationAvailable(s: GameState, who: string): boolean
     inKitchen(s, who) &&
     !locked(s, who) &&
     attentionAvailable(s, who) &&
+    !s.privateAccounts?.[who] &&
     !s.said.some((line) => line.who === who && line.text === PRIVATE_CLUES[who])
   );
 }
@@ -679,8 +686,10 @@ export interface HeardTopic {
 export function heardTopics(s: GameState, who: string): HeardTopic[] {
   if (s.version !== 'pass@19') return [];
   const topics: HeardTopic[] = [];
+  const account = s.privateAccounts?.[who];
+  if (account) topics.push({ ...account, id: `private:${who}`, reply: personalReply(who, 'private') });
   const prior = retainedTopic(s, who);
-  if (prior)
+  if (prior && !topics.some((topic) => topic.text === prior.text))
     topics.push({
       ...prior,
       id:

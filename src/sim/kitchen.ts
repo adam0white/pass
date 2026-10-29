@@ -108,6 +108,7 @@ import {
   kitchenOffers,
   kitchenStarted,
   kitchenTask,
+  recordPrivateAccount,
   reserveAttention,
   roomDelivery,
   takeIngredient,
@@ -434,6 +435,8 @@ export interface GameState {
   /** Persisted narration choice; absence preserves pre-adoption narration. */
   plainNarration?: boolean;
   kitchen?: KitchenWorld;
+  /** Player-heard private accounts survive the rolling journal and night reset. */
+  privateAccounts?: Record<string, { at: number; text: string }>;
   version: string;
   castRevisions?: Record<string, string>;
   /** Recorded by a migration input; absent in historical snapshots. */
@@ -1206,7 +1209,9 @@ export function contactAvailable(s: GameState, who: CookId, topic: 'check-in' | 
       ([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)
         ? !!heardTopic(s, who)
         : s.said.some((line) => line.who === who && line.at >= openAt(s.night) - 5))) &&
-    attentionAvailable(s, who)
+    attentionAvailable(s, who) &&
+    (s.version !== 'pass@19' ||
+      !['conversation', 'no-replies', 'resign'].includes(personOf(s, who).activity?.affordanceId ?? ''))
   );
 }
 
@@ -1765,7 +1770,8 @@ function apply(s: GameState, inp: Input) {
         !p ||
         p.activity ||
         (s.version === 'pass@19' &&
-          s.said.some((line) => line.who === inp.who && line.text === PRIVATE_CLUES[inp.who])) ||
+          (!!s.privateAccounts?.[inp.who] ||
+            s.said.some((line) => line.who === inp.who && line.text === PRIVATE_CLUES[inp.who]))) ||
         !inKitchen(s, inp.who) ||
         !s.crew.some((m) => m.id === inp.who && !m.left) ||
         s.inputs
@@ -1773,8 +1779,10 @@ function apply(s: GameState, inp: Input) {
           .some((i) => i.kind === 'cast-talk' && i.who === inp.who && i.choice === 'listen')
       )
         return;
-      if (inp.choice === 'listen')
+      if (inp.choice === 'listen') {
         s.said.push({ at: s.minute, who: p.id, kind: 'journal', text: PRIVATE_CLUES[p.id] ?? '' });
+        recordPrivateAccount(s, p.id, s.minute);
+      }
       return;
     }
     case 'zeynep-release':

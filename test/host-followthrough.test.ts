@@ -8,6 +8,7 @@ import { interrupt, verifyCommunity } from '../src/sim/hf4-person.ts';
 import {
   boardDefaults,
   cloneState,
+  contactAvailable,
   exportRun,
   newGame,
   personOf,
@@ -23,6 +24,7 @@ import {
   heardTopics,
   privateConversationAvailable,
 } from '../src/sim/kitchen-edition.ts';
+import { offerUnavailable } from '../src/ui/people-offers.ts';
 import clearingPrefix from './fixtures/host-clearing-prefix.json';
 
 function service() {
@@ -58,9 +60,20 @@ it('keeps private words unheard until an actual conversation completes, then off
   if (!topic) throw new Error('Missing actually heard account.');
   queueInput(s, { kind: 'cast-talk', who: 'dilek', choice: 'follow-up', topic: topic.id });
   expect(s.kitchen?.conversations.at(-1)?.source).toEqual({ at: topic.at, text: topic.text });
+  expect(contactAvailable(s, 'dilek', 'follow-up')).toBe(false);
   expect(s.said.some((line) => line.who === 'chef' && line.text.includes(topic.text))).toBe(true);
   expect(raw(replayExport(exportRun(s, '4.8.1')))).toEqual(raw(s));
   expect(verifyCommunity(s.chef).verified).toBe(true);
+  // Presentation retention control: evict the rolling speech log, leaving actual
+  // completed work and HF untouched. This edited-log fixture makes no host replay claim.
+  const aged = restoreState(raw(s));
+  aged.said = [];
+  for (let i = 0; i < 5; i++) step(aged);
+  expect(privateConversationAvailable(aged, 'dilek')).toBe(false);
+  expect(offerUnavailable(aged, 'dilek')).toContain('already heard');
+  expect(heardTopics(aged, 'dilek').some((entry) => entry.text === PRIVATE_CLUES.dilek)).toBe(true);
+  const cold = restoreState(raw(aged));
+  expect(heardTopics(cold, 'dilek')).toEqual(heardTopics(aged, 'dilek'));
 }, 120000);
 
 it('reveals no account from an interrupted private activity or a later ordinary completion', () => {
