@@ -97,7 +97,7 @@ The signed Rafi outgoing source was regenerated at legal first-service evening m
 
 ## Delivery rules
 
-Use managed worktrees and signed commits with the Codex trailer. Fetch/rebase before each push. Run the normal shared wrapper before each commit: `PATH=/opt/homebrew/bin:$PATH node ~/code/human-framework/scripts/suite-lock.ts -- npm run check:lane`. This repo’s lane runs the full check. Exact green CI is required. Source-only root docs do not redeploy the app during an open round. App delivery, owner acceptance and wider roadmap completion remain separate. Preserve legacy replay tests and the owner policy below.
+Use managed worktrees and signed commits with the Codex trailer. Fetch/rebase before each push. Before each commit, run `PATH=/opt/homebrew/bin:$PATH npm run check:lane` for lint and typechecking. Do not wait on the shared suite lock. Hosted CI runs the full check, including legacy replay tests. Exact green source and merged-main CI are required before deployment. The normal `npm run deploy` runs the lane, build and Wrangler deploy. Source-only root docs do not redeploy the app during an open round. App delivery, owner acceptance and wider roadmap completion remain separate. Preserve legacy replay tests and the owner policy below.
 
 ## Historical handoff body — preserved verbatim, archived 2026-10-25
 
@@ -125,7 +125,7 @@ Immutable lab-client0.4.6 and lab-kit0.5.6 implement this direction and the late
 
 ## Checks and delivery
 
-Use the exact package/lock pins; preserve newer authorized SDK patches. Full local suites use `PATH=/opt/homebrew/bin:$PATH node ~/code/human-framework/scripts/suite-lock.ts -- npm run check:lane`. Package scripts do not acquire the shared lock. Deploy includes tests, so use the same wrapper with `-- npm run deploy` after exact-commit CI succeeds. Commits remain signed. Genuine shared-profile browser journeys require the machine-wide browser lease and restoration of owner data/preferences. No isolated profile or synthetic shelf injection is accepted as live proof.
+Use the exact package/lock pins; preserve newer authorized SDK patches. The later owner delivery rule supersedes the historical shared-suite wrapper: run `PATH=/opt/homebrew/bin:$PATH npm run check:lane` without waiting on the suite lock. Hosted CI runs the full check. After exact source and merged-main CI pass, the normal `npm run deploy` runs the lane, build and Wrangler deploy. Commits remain signed. Genuine shared-profile browser journeys require the machine-wide browser lease and restoration of owner data/preferences. No isolated profile or synthetic shelf injection is accepted as live proof.
 
 ## Simplify increment, 2026-10-24
 
