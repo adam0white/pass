@@ -1,8 +1,15 @@
+import { PRIVATE_CLUES } from '../sim/cast-scenes.ts';
 import { cookOf, type GameState, nameOf, personOf } from '../sim/kitchen.ts';
 import { lira } from './words.ts';
 
 /** Private offers have one answer per notebook. Reading availability never changes the run. */
 export function offerUnavailable(s: GameState, who: string): string | null {
+  if (
+    s.version === 'pass@19' &&
+    (!!s.privateAccounts?.[who] ||
+      s.said.some((line) => line.who === who && line.text === PRIVATE_CLUES[who]))
+  )
+    return 'You already heard this account. You can ask about what they said during service.';
   if (s.inputs.some((i) => i.kind === 'cast-talk' && i.who === who && i.choice === 'listen'))
     return 'You already heard this account. You can ask about what they said during service.';
   const cook = cookOf(s, who);

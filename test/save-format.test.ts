@@ -23,6 +23,7 @@ it('shows refusal for incompatible or malformed saves at the stable key', () => 
   for (const value of [
     '{',
     JSON.stringify({ format: 99, game: 'pass@19' }),
+    JSON.stringify({ format: 1, game: 'pass@19', framework: '4.8.1', hf4Engine: frameworkEngine() }),
     JSON.stringify({ format: 1, game: 'pass@18' }),
     JSON.stringify({ format: 1, game: 'pass@19', framework: 'future-hf', hf4Engine: frameworkEngine() }),
   ]) {
@@ -42,7 +43,7 @@ it('shows refusal for a save under any historical framework key', () => {
 
 it('reads a compatible save from the stable key', () => {
   const save = {
-    format: 1,
+    format: 2,
     game: 'pass@19',
     framework: '4.8.1',
     hf4Engine: frameworkEngine(),

@@ -229,9 +229,7 @@ export function continuity(
     };
     if (
       !shelf.enabled ||
-      (import.meta.env.DEV &&
-        typeof location !== 'undefined' &&
-        ['localhost', '127.0.0.1'].includes(location.hostname))
+      (typeof location !== 'undefined' && ['localhost', '127.0.0.1'].includes(location.hostname))
     ) {
       const next = newGame(seed, 'pass@19');
       reset();

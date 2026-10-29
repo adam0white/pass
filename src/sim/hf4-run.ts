@@ -207,6 +207,7 @@ export class KitchenRun {
     minute: number,
     suggestion?: Extract<Input, { kind: 'suggestion.received' }>['payload']['received'],
     world = defaultWorld,
+    settleForeground = false,
   ) {
     const at = this.nextInputTime(minute);
     const revision = ++this.ingress.serial;
@@ -223,6 +224,20 @@ export class KitchenRun {
     this.offers = new Map(prior).set(person, structuredClone([...offers]));
     try {
       const result = this.advance(at, inputs, world);
+      // Explicit foreground tasks must survive HF's interrupt/reconsider handover.
+      // Ordinary rota work retains its existing minute-by-minute host policy.
+      const foreground = settleForeground;
+      const handoverAt = foreground ? this.nextInputTime(minute) : undefined;
+      const resumed =
+        handoverAt === undefined
+          ? undefined
+          : this.advance(
+              handoverAt,
+              suggestion && !this.active.some((a) => a.person === person)
+                ? [this.input('suggestion.received', { person, received: suggestion }, handoverAt)]
+                : [],
+              world,
+            );
       // Offers are one choice's world facts. Withdraw them before HF's next autonomous decision.
       const clearAt = this.nextInputTime(minute);
       const cleared = this.advance(
@@ -230,7 +245,7 @@ export class KitchenRun {
         [this.input('offers.received', { person, revision: ++this.ingress.serial, offers: [] }, clearAt)],
         world,
       );
-      return { ...cleared, events: [...result.events, ...cleared.events] };
+      return { ...cleared, events: [...result.events, ...(resumed?.events ?? []), ...cleared.events] };
     } catch (error) {
       this.offers = prior;
       throw error;

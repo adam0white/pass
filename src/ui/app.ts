@@ -1,6 +1,14 @@
 import { required } from '../required.ts';
 import { episodeText, INVITATIONS } from '../sim/cast-scenes.ts';
-import { attentionAvailable, FOLLOWUP_EDITION, heardTopic, kitchenEdition } from '../sim/kitchen-edition.ts';
+import {
+  attentionAvailable,
+  clearingAvailable,
+  FOLLOWUP_EDITION,
+  heardTopic,
+  heardTopics,
+  kitchenEdition,
+  privateConversationAvailable,
+} from '../sim/kitchen-edition.ts';
 import { NARRATION_EDITION } from '../sim/narration-edition.ts';
 /**
  * The Pass UI: plain DOM and inline SVG over the pure sim. The UI reads state and queues inputs; it never
@@ -62,6 +70,7 @@ import {
   pendingCoverLine,
   peopleRun,
   personOf,
+  plan,
   plateOptions,
   priorityOptions,
   queueInput,
@@ -92,7 +101,7 @@ import { journalWords, noCoverWords, serviceStatus, tableAboutToLeave } from './
 import { gloss, lira } from './words.ts';
 
 const SAVE = 'pass-save';
-const SAVE_FORMAT = 1;
+const SAVE_FORMAT = 2;
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2', 'pass-save-v3'];
 
 interface PartyStart {
@@ -125,6 +134,8 @@ interface Save {
 
 const app = document.getElementById('app') as HTMLElement;
 let s: GameState | null = null;
+// Imported play keeps the occupied native notebook byte-for-byte. Export keeps file progress.
+let filePlay = false;
 let pages: { week: number; k: number }[] = [];
 let speed = 1;
 let readingUntil = 0;
@@ -207,7 +218,7 @@ function writeSave() {
       returnChapter: s.returnChapter,
       castChapter: s.castChapter,
     };
-    localStorage.setItem(SAVE, JSON.stringify(sv));
+    if (!filePlay) localStorage.setItem(SAVE, JSON.stringify(sv));
     lab.captureSave(structuredClone(sv));
     return true;
   } catch {
@@ -215,6 +226,7 @@ function writeSave() {
   }
 }
 function clearSave() {
+  filePlay = false;
   pages = [];
   firstPartyStart = false;
   partyHandover = null;
@@ -232,7 +244,8 @@ const esc = (x: string) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string,
   );
 const clock = (m: number) => {
-  const d = ((m % 1440) + 1440) % 1440;
+  const whole = Math.ceil(m);
+  const d = ((whole % 1440) + 1440) % 1440;
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
 };
 /** A hand-drawn line: a few jittered points between two ends, deterministic per key. */
@@ -308,7 +321,7 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title)}, week ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save your game. You can keep a copy of it through Feedback.' : 'The game is paused while this menu is open.') : 'No game has started.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
+  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title)}, week ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save your game. You can keep a copy of it through Feedback.' : filePlay ? 'The game is paused. You are playing a file. Your saved game stays on this device. Keep a copy of this run through Feedback before leaving.' : 'The game is paused while this menu is open.') : 'No game has started.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
   let replacing = false;
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -614,6 +627,7 @@ function title() {
       firstPartyStart = save.firstPartyStart ?? false;
       partyHandover = save.partyHandover ?? null;
       pages = save.pages ?? [];
+      filePlay = false;
       s = restored;
       cast.track();
       enterWithStatus();
@@ -640,6 +654,7 @@ function title() {
           firstPartyStart = save.firstPartyStart ?? false;
           partyHandover = null;
           pages = save.pages.filter((p) => p.week <= week);
+          filePlay = false;
           s = restored;
           cast.track();
           writeSave();
@@ -708,6 +723,7 @@ function title() {
             false,
             r,
           );
+          filePlay = true;
           s = r;
           cast.track();
           firstPartyStart = false;
@@ -717,7 +733,11 @@ function title() {
           enterWithStatus('The game was replayed. It matches the saved game in the file.');
         })().catch(() => status('That file could not be loaded.'));
       };
-      if (save) ask('Load this game? It replaces your saved game.', load);
+      if (save)
+        ask(
+          'Play this file? Your saved game will stay on this device. Keep a copy of the file run before leaving.',
+          load,
+        );
       else load();
     } catch {
       status('That file is not a saved game from The Pass.');
@@ -1907,13 +1927,15 @@ function drawSheet() {
     return;
   }
   if (staffing) {
+    const minutes = Math.max(1, Math.ceil(staffing.until - st.minute));
+    const durationWords = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
     const queued = st.inputs
       .slice(st.applied)
       .some((input) => input.kind === 'staff' && input.id === staffing.id);
     sheetKey = `staff${staffing.id}${st.inputs.length}`;
     renderPanel(
       el,
-      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>Nobody will work at the ${esc(VERB_LABEL[staffing.station].toLowerCase())} for about ${Math.max(1, staffing.until - st.minute)} minutes, until ${clock(staffing.until)}.</div><div class="soft">${staffingOptions(st, staffing).length ? 'Choose who to ask.' : esc(noCoverWords(`the ${VERB_LABEL[staffing.station].toLowerCase()}`))}</div><div class="staffing-options">${staffingOptions(
+      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>Nobody will work at the ${esc(VERB_LABEL[staffing.station].toLowerCase())} for about ${durationWords}, until ${clock(staffing.until)}.</div><div class="soft">${staffingOptions(st, staffing).length ? 'Choose who to ask.' : esc(noCoverWords(`the ${VERB_LABEL[staffing.station].toLowerCase()}`))}</div><div class="staffing-options">${staffingOptions(
         st,
         staffing,
       )
@@ -2016,6 +2038,34 @@ function drawSheet() {
       )
       .join('')}</div>
     ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
+    ${
+      st.version === 'pass@19' && !absent
+        ? `<div class="crew-contact"><button data-contact="invite" ${privateConversationAvailable(st, selected) ? '' : 'disabled'}>Invite ${esc(m.name)} to talk in private for three minutes</button><p class="soft">If they agree, they stop work. Their station may need someone else. They can refuse.</p>${
+            heardTopics(st, m.id).length
+              ? `<details><summary>Choose something you heard ${esc(m.name)} say</summary>${heardTopics(
+                  st,
+                  m.id,
+                )
+                  .map(
+                    (topic) =>
+                      `<button data-heard-topic="${esc(topic.id)}" ${contactAvailable(st, m.id, 'follow-up') ? '' : 'disabled'}>Talk about: “${esc(topic.text)}”</button>`,
+                  )
+                  .join('')}</details>`
+              : ''
+          }</div>`
+        : ''
+    }
+    ${
+      st.version === 'pass@19' && !absent
+        ? st.tickets
+            .filter((ticket) => clearingAvailable(st, ticket.id))
+            .map(
+              (ticket) =>
+                `<div class="row"><button data-clear-table="${ticket.id}" ${inKitchen(st, m.id) && attentionAvailable(st, m.id) ? '' : 'disabled'}>Ask ${esc(m.name)} to clear the abandoned meal for table ${ticket.table}</button><p class="soft">This takes three minutes away from cooking. The plate returns to ${plan(st).dish ? 'the dish station' : 'the kitchen for washing'}.</p></div>`,
+            )
+            .join('')
+        : ''
+    }
     ${kitchenEdition(st) && !absent ? '<div class="row"><button data-kitchen-task="room">Ask for fifteen minutes in the dining room</button><p class="soft">This cook cannot prepare food while working there.</p></div>' : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div>${!attentionAvailable(st, selected as CookId) ? '<p class="soft" role="status">Let this cook finish this part of their work before asking again. The kitchen keeps running.</p>' : ''}<div class="hint">${
       absent
@@ -2038,10 +2088,31 @@ function drawSheet() {
       writeSave();
       drawAll(true);
     };
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-heard-topic], [data-clear-table]')) {
+    b.onclick = () => {
+      if (!selected) return;
+      if (b.dataset.heardTopic)
+        queueInput(st, {
+          kind: 'cast-talk',
+          who: selected,
+          choice: 'follow-up',
+          topic: b.dataset.heardTopic,
+        });
+      else queueInput(st, { kind: 'clear-table', who: selected, ticket: Number(b.dataset.clearTable) });
+      readingUntil = performance.now() + READING_MS;
+      selected = null;
+      writeSave();
+      drawAll(true);
+    };
+  }
   for (const b of el.querySelectorAll<HTMLButtonElement>('.verbs button')) bindHold(b);
   for (const b of el.querySelectorAll<HTMLButtonElement>('[data-contact]')) {
-    const choice = b.dataset.contact as 'check-in' | 'follow-up';
-    b.disabled = !selected || !contactAvailable(st, selected, choice);
+    const choice = b.dataset.contact as 'check-in' | 'follow-up' | 'invite';
+    b.disabled =
+      !selected ||
+      (choice === 'invite'
+        ? !privateConversationAvailable(st, selected)
+        : !contactAvailable(st, selected, choice));
     b.onclick = () => {
       if (!selected) return;
       queueInput(st, { kind: 'cast-talk', who: selected, choice });

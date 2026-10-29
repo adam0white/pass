@@ -95,17 +95,20 @@ import {
 import { type KitchenCheckpoint, MINUTE_MS } from './hf4-run.ts';
 import {
   attentionAvailable,
+  clearTable,
   FOLLOWUP_EDITION,
   heardTopic,
   KITCHEN_EDITION,
   type KitchenWorld,
   kitchenCompleted,
   kitchenEdition,
+  kitchenInterrupted,
   kitchenMinute,
   kitchenNight,
   kitchenOffers,
   kitchenStarted,
   kitchenTask,
+  recordPrivateAccount,
   reserveAttention,
   roomDelivery,
   takeIngredient,
@@ -195,10 +198,17 @@ export interface StaffingDecision {
 }
 export type Input =
   | { at: number; kind: 'kitchen-task'; who: string; task: 'room' | 'conversation' }
+  | { at: number; kind: 'clear-table'; who: string; ticket: number }
   | { at: number; kind: 'replacement' }
   | { at: number; kind: 'cast-invite'; who: string }
   | { at: number; kind: 'cast-release'; who: string }
-  | { at: number; kind: 'cast-talk'; who: string; choice: 'listen' | 'leave' | 'check-in' | 'follow-up' }
+  | {
+      at: number;
+      kind: 'cast-talk';
+      who: string;
+      choice: 'listen' | 'leave' | 'check-in' | 'follow-up' | 'invite';
+      topic?: string;
+    }
   | { at: number; kind: 'people-run' }
   | { at: number; kind: 'zeynep-release' }
   | { at: number; kind: 'board'; rows: BoardRow[] }
@@ -425,6 +435,8 @@ export interface GameState {
   /** Persisted narration choice; absence preserves pre-adoption narration. */
   plainNarration?: boolean;
   kitchen?: KitchenWorld;
+  /** Player-heard private accounts survive the rolling journal and night reset. */
+  privateAccounts?: Record<string, { at: number; text: string }>;
   version: string;
   castRevisions?: Record<string, string>;
   /** Recorded by a migration input; absent in historical snapshots. */
@@ -450,7 +462,7 @@ export interface GameState {
   crew: CrewMember[];
   cooks: CookState[];
   tickets: Ticket[];
-  plates: { clean: number; pile: number; dirty: { at: number }[] };
+  plates: { clean: number; pile: number; dirty: { at: number; abandonedTicket?: number }[] };
   oven: { heat: number };
   help?: {
     ticket: number;
@@ -715,7 +727,8 @@ function bindHF4World(s: GameState) {
           }
         }
         if (c && work.status === 'completed')
-          kitchenCompleted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS));
+          kitchenCompleted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS), work.activity);
+        else if (c) kitchenInterrupted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS), work.activity);
         const row = s.board?.rows.find((r) => r.cook === work.person && r.accepted);
         if (
           c &&
@@ -1169,7 +1182,8 @@ export function inKitchen(s: GameState, id: CookId): boolean {
   const c = cookOf(s, id);
   if (!c.here || c.gone) return false;
   const a = personOf(s, id).activity;
-  if (kitchenEdition(s) && ['room', 'explain-wait'].includes(a?.affordanceId ?? '')) return false;
+  if (kitchenEdition(s) && ['room', 'explain-wait', 'clear-table'].includes(a?.affordanceId ?? ''))
+    return false;
   return !a || (!OFF_LINE.includes(a.affordanceId) && a.affordanceId !== 'pray' && a.affordanceId !== 'skim');
 }
 
@@ -1195,7 +1209,9 @@ export function contactAvailable(s: GameState, who: CookId, topic: 'check-in' | 
       ([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)
         ? !!heardTopic(s, who)
         : s.said.some((line) => line.who === who && line.at >= openAt(s.night) - 5))) &&
-    attentionAvailable(s, who)
+    attentionAvailable(s, who) &&
+    (s.version !== 'pass@19' ||
+      !['conversation', 'no-replies', 'resign'].includes(personOf(s, who).activity?.affordanceId ?? ''))
   );
 }
 
@@ -1494,6 +1510,7 @@ export function queueInput(s: GameState, input: NewInput): void {
     input.kind === 'cast-invite' ||
     input.kind === 'cast-talk' ||
     input.kind === 'kitchen-task' ||
+    input.kind === 'clear-table' ||
     input.kind === 'replacement' ||
     input.kind === 'cast-release' ||
     (chefEdition(s) &&
@@ -1694,6 +1711,9 @@ function apply(s: GameState, inp: Input) {
       });
       return;
     }
+    case 'clear-table':
+      clearTable(s, inp.who, inp.ticket);
+      return;
     case 'cast-talk': {
       if (
         kitchenEdition(s) &&
@@ -1706,7 +1726,10 @@ function apply(s: GameState, inp: Input) {
           [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) &&
             inp.choice === 'follow-up'
             ? 'follow-up'
-            : 'conversation',
+            : inp.choice === 'invite'
+              ? 'private'
+              : 'conversation',
+          inp.topic,
         );
         return;
       }
@@ -1746,6 +1769,9 @@ function apply(s: GameState, inp: Input) {
         ].includes(s.version) ||
         !p ||
         p.activity ||
+        (s.version === 'pass@19' &&
+          (!!s.privateAccounts?.[inp.who] ||
+            s.said.some((line) => line.who === inp.who && line.text === PRIVATE_CLUES[inp.who]))) ||
         !inKitchen(s, inp.who) ||
         !s.crew.some((m) => m.id === inp.who && !m.left) ||
         s.inputs
@@ -1753,8 +1779,10 @@ function apply(s: GameState, inp: Input) {
           .some((i) => i.kind === 'cast-talk' && i.who === inp.who && i.choice === 'listen')
       )
         return;
-      if (inp.choice === 'listen')
+      if (inp.choice === 'listen') {
         s.said.push({ at: s.minute, who: p.id, kind: 'journal', text: PRIVATE_CLUES[p.id] ?? '' });
+        recordPrivateAccount(s, p.id, s.minute);
+      }
       return;
     }
     case 'zeynep-release':
@@ -1788,7 +1816,7 @@ function apply(s: GameState, inp: Input) {
               say(
                 s,
                 inp.cover,
-                `Nobody will work at ${VERB_WORD[own.station]} while I work at ${VERB_WORD[decision.station]} until ${clock(decision.until)}.`,
+                `Nobody will work at ${VERB_WORD[own.station]} while I work at ${VERB_WORD[decision.station]} until ${publicClock(s, decision.until)}.`,
                 'answer',
               );
             }
@@ -2263,7 +2291,7 @@ function arrive(s: GameState, t: Ticket) {
       say(
         s,
         'narrator',
-        `Table ${t.table} comes first, as promised. Their food must go out by ${clock(booking.servedBy)}.`,
+        `Table ${t.table} comes first, as promised. Their food must go out by ${publicClock(s, booking.servedBy)}.`,
         'call',
       );
     } else if (booking.promised) {
@@ -2271,7 +2299,7 @@ function arrive(s: GameState, t: Ticket) {
       say(
         s,
         'narrator',
-        `I promised table ${t.table} ${p?.signature.words}. It is my next portion, due by ${clock(booking.servedBy)}.`,
+        `I promised table ${t.table} ${p?.signature.words}. It is my next portion, due by ${publicClock(s, booking.servedBy)}.`,
         'call',
       );
     }
@@ -2295,7 +2323,7 @@ function walk(s: GameState, t: Ticket) {
       [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)) &&
     t.platedAt !== undefined
   )
-    s.plates.dirty.push({ at: s.minute + 18 });
+    s.plates.dirty.push({ at: s.minute + 18, ...(s.version === 'pass@19' ? { abandonedTicket: t.id } : {}) });
   t.status = 'walked';
   if (['pass@18', 'pass@19'].includes(s.version))
     say(
@@ -2376,10 +2404,19 @@ function cookMinute(s: GameState, c: CookState) {
   }
   observeNarration(s, p);
   tick(p, s.minute);
+  // A foreground request already received HF's choice in this minute. Do not
+  // immediately reconsider the new activity before any of its time can pass.
+  if (
+    isHF4(p) &&
+    p.activity &&
+    p.activity.startedAt >= s.minute &&
+    s.kitchen?.foregroundAt?.[c.id] === p.activity.startedAt
+  )
+    return;
   if (
     kitchenEdition(s) &&
     p.activity &&
-    ['room', 'conversation', 'explain-wait', 'no-replies'].includes(p.activity.affordanceId) &&
+    ['room', 'conversation', 'explain-wait', 'no-replies', 'clear-table'].includes(p.activity.affordanceId) &&
     !c.pending
   )
     return;
@@ -3071,6 +3108,9 @@ const clock = (m: number) => {
   const d = ((m % 1440) + 1440) % 1440;
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
 };
+// Format only the spoken deadline; retain exact HF timestamps and durations.
+const publicClock = (s: GameState, minute: number) =>
+  clock(s.version === 'pass@19' ? Math.ceil(minute) : minute);
 
 function evening(s: GameState, c: CookState): string {
   const rq = s.request;
@@ -3654,6 +3694,7 @@ export function replay(
       inp.kind === 'cast-invite' ||
       inp.kind === 'cast-talk' ||
       inp.kind === 'kitchen-task' ||
+      inp.kind === 'clear-table' ||
       inp.kind === 'replacement' ||
       inp.kind === 'cast-release' ||
       (chefEdition(s) &&
@@ -3713,7 +3754,7 @@ function coverUntil(s: GameState): number {
 
 function stationPromise(s: GameState, station: Station): string {
   const until = coverUntil(s);
-  const end = clock(until);
+  const end = publicClock(s, until);
   return until === nightStart(s.night) + RUSH_TO
     ? `I will work at ${VERB_WORD[station]} until the rush slows down at ${end}.`
     : `I will work at ${VERB_WORD[station]} until ${end}.`;
@@ -3721,14 +3762,14 @@ function stationPromise(s: GameState, station: Station): string {
 
 export function stationRequestLine(s: GameState, _id: CookId): string | null {
   return hasCover(s)
-    ? `Ask the cook to work at a station until ${clock(coverUntil(s))}. Another request can change it.`
+    ? `Ask the cook to work at a station until ${publicClock(s, coverUntil(s))}. Another request can change it.`
     : 'A station request lasts for one 25-minute stretch. Then the cook chooses again.';
 }
 
 export function coverLine(s: GameState, id: CookId): string | null {
   const cover = cookOf(s, id).cover;
   return hasCover(s) && cover && s.minute < cover.until
-    ? `I will work at ${VERB_WORD[cover.station]} until ${clock(cover.until)}.`
+    ? `I will work at ${VERB_WORD[cover.station]} until ${publicClock(s, cover.until)}.`
     : null;
 }
 
@@ -3990,7 +4031,7 @@ function takeStation(
       s,
       c.id,
       accepted
-        ? `${says} I will work at ${VERB_WORD[station]} until ${clock(until)}.`
+        ? `${says} I will work at ${VERB_WORD[station]} until ${publicClock(s, until)}.`
         : `${says} I have not agreed to that part.`,
       'answer',
     );
@@ -4028,7 +4069,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     const reply = takeStation(s, c, row.station, until, true);
     row.accepted = reply.accepted;
     row.answer = row.accepted
-      ? `${reply.says} I will work at ${VERB_WORD[row.station] ?? row.station} until ${clock(until)}. Then I will take a twenty-minute meal break. After that, I will work at ${VERB_WORD[row.station]} until closing time.`
+      ? `${reply.says} I will work at ${VERB_WORD[row.station] ?? row.station} until ${publicClock(s, until)}. Then I will take a twenty-minute meal break. After that, I will work at ${VERB_WORD[row.station]} until closing time.`
       : `${reply.says} I have not agreed to that station. Try another station, or open with nobody there.`;
     // Keep the actual HF answer rather than replacing a no with a generic yes.
     say(s, id, row.answer, 'answer');
@@ -4078,7 +4119,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
           : undefined) ?? answer.says)
       : 'No.';
     const line = row.coverAccepted
-      ? `${says} I will take over ${VERB_WORD[row.station]} from ${nameOf(s, row.cook)} at ${clock(row.breakAt)}, for twenty minutes.`
+      ? `${says} I will take over ${VERB_WORD[row.station]} from ${nameOf(s, row.cook)} at ${publicClock(s, row.breakAt)}, for twenty minutes.`
       : `${says} I haven’t agreed to take over that station.`;
     row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
     say(s, row.cover, line, 'answer');
@@ -4128,7 +4169,7 @@ function raiseStaffing(s: GameState, who: CookId, station: Station, until: numbe
   say(
     s,
     who,
-    `${reason} Someone needs to work at ${VERB_WORD[station] ?? station} until ${clock(until)}.`,
+    `${reason} Someone needs to work at ${VERB_WORD[station] ?? station} until ${publicClock(s, until)}.`,
     'call',
   );
 }
@@ -4164,7 +4205,7 @@ function rotaMinute(s: GameState, c: CookState): boolean {
     say(
       s,
       c.id,
-      `This is my planned meal break. I will be back at ${VERB_WORD[row.station]} at ${clock(end)}.`,
+      `This is my planned meal break. I will be back at ${VERB_WORD[row.station]} at ${publicClock(s, end)}.`,
       'journal',
     );
     if (row.cover && row.coverAccepted && inKitchen(s, row.cover)) {
@@ -4345,7 +4386,7 @@ export function cookingStep(s: GameState): {
       equipmentWait ??
       (s.minute >= readyAt
         ? `Table ${t.table}: I am ready to ${act}.`
-        : `Table ${t.table}: I will ${act} at ${clock(readyAt)}.`),
+        : `Table ${t.table}: I will ${act} at ${publicClock(s, readyAt)}.`),
   };
 }
 

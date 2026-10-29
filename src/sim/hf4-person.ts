@@ -299,7 +299,7 @@ function decision(result: DeepReadonly<StepResult>, p: Person): DecisionRecord {
 export function decide(
   p: Person,
   offers: readonly Affordance[],
-  options: Parameters<typeof historical.decide>[2] = {},
+  options: Parameters<typeof historical.decide>[2] & { settleForeground?: boolean } = {},
 ): DecisionRecord {
   if (!isHF4(p)) return historical.decide(p, offers, options);
   const c = needCommunity(p),
@@ -316,6 +316,7 @@ export function decide(
     Math.max(Math.floor(c.run.now / MINUTE_MS), Math.floor(options.now ?? p.now)),
     received,
     c.world,
+    options.settleForeground,
   );
   const d = decision(result, p);
   c.last.set(p.id, d);

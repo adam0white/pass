@@ -22,6 +22,7 @@ export const HF4_ACTIONS = [
   'pray',
   'apron',
   'room',
+  'clear-table',
   'conversation',
   'explain-wait',
   'no-replies',
@@ -82,6 +83,11 @@ const plainActions = {
   },
   dish: { base: 'wash the dishes', past: 'washed the dishes', gerund: 'washing the dishes' },
   oven: { base: 'look after the oven', past: 'looked after the oven', gerund: 'looking after the oven' },
+  'clear-table': {
+    base: 'clear the abandoned meal',
+    past: 'cleared the abandoned meal',
+    gerund: 'clearing the abandoned meal',
+  },
   room: {
     base: 'work in the dining room',
     past: 'worked in the dining room',
