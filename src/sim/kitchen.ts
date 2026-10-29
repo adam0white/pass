@@ -4034,6 +4034,15 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
       : `${says} I haven’t agreed to take over that station.`;
     row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
     say(s, row.cover, line, 'answer');
+    if (isHF4(p) && own?.accepted) {
+      const cook = cookOf(s, row.cover);
+      cook.cover = null;
+      if (!resumeBoardStation(s, cook, own.station, nightStart(s.night) + own.breakAt)) {
+        own.accepted = false;
+        own.answer += ' I cannot resume that station now.';
+        cook.cover = null;
+      }
+    }
   }
   s.board = { rows: result, agreed: true };
 }
@@ -4185,14 +4194,16 @@ function resumeBoardStation(s: GameState, c: CookState, station: Station, until 
   const p = personOf(s, c.id);
   if (p.activity) endActivity(p, 'interrupted', s.minute, s, c);
   const aff = offersFor(s, c.id, station).find((a) => a.id === station);
-  if (!aff) return;
+  if (!aff) return false;
   const agreed = { ...aff, duration: Math.max(1, until - s.minute), followedBy: undefined };
   // No new suggestion: this is carrying out the prior agreement, not asking again.
   const rec = decide(p, [agreed]);
   if (begin(p, agreed, rec)) {
     c.cover = { station, until };
     if (p.activity && !isHF4(p)) p.activity.endsAt = until;
+    return true;
   }
+  return false;
 }
 
 function detectBoardGaps(s: GameState) {

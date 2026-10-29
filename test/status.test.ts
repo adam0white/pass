@@ -47,6 +47,16 @@ describe('serviceStatus', () => {
       needsResponse: false,
     });
   });
+  it('explains an unfillable pass@19 station gap without prompting', () => {
+    const s = setup();
+    s.version = 'pass@19';
+    s.tickets = [ticket()];
+    for (const cook of s.cooks) cook.gone = true;
+    expect(serviceStatus(s)).toEqual({
+      text: 'Nobody can cover the grill now. The cooks are unavailable or unwilling. Time runs at your chosen speed until someone can help.',
+      needsResponse: false,
+    });
+  });
   it('prioritizes a named request over a pending job and missing work', () => {
     const s = setup();
     s.tickets = [ticket()];

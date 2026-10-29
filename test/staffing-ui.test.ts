@@ -2,7 +2,7 @@ import { begin, decide } from '@adam0white/human-framework-legacy';
 import { describe, expect, it } from 'vitest';
 import { boardDefaults, cookOf, newGame, personOf, queueInput, stationOf, step } from '../src/sim/kitchen.ts';
 import { automaticClockPlayback, clockPlayback } from '../src/ui/clock.ts';
-import { actionableStaffing } from '../src/ui/staffing.ts';
+import { actionableStaffing, availableStaffing } from '../src/ui/staffing.ts';
 import { serviceStatus } from '../src/ui/status.ts';
 
 function movedCook() {
@@ -41,6 +41,25 @@ function movedCook() {
 }
 
 describe('staffing prompts after an accepted station change', () => {
+  it('keeps pass@19 unfillable staffing gaps visible without a prompt', () => {
+    const s = newGame(42, 'pass@19');
+    s.phase = 'service';
+    s.staffing = [
+      {
+        id: 0,
+        who: 'selim',
+        station: 'grill',
+        until: s.minute + 20,
+        reason: 'I need help.',
+        state: 'asking',
+      },
+    ];
+    for (const cook of s.cooks) if (cook.id !== 'selim') cook.gone = true;
+    expect(actionableStaffing(s)).toHaveLength(1);
+    expect(availableStaffing(s)).toEqual([]);
+    expect(serviceStatus(s).needsResponse).toBe(false);
+  });
+
   it('suppresses the follow-up after an actual current-edition accepted chef ask', () => {
     const s = newGame(1, 'pass@13');
     queueInput(s, { kind: 'board', rows: boardDefaults(s) });

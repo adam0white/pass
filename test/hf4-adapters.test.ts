@@ -151,3 +151,21 @@ it('records dated kitchen advice as replayable HF4 evidence', () => {
   });
   expect(verifyCommunity(rafi).verified).toBe(true);
 });
+
+it('keeps a relief cook at their agreed station until the scheduled break', () => {
+  const s = newGame(42, 'pass@19');
+  const rows = boardDefaults(s).map((row) => ({
+    ...row,
+    breakAt: row.cook === 'selim' ? 1090 : 1185,
+    cover: row.cook === 'selim' ? 'dilek' : null,
+  }));
+  queueInput(s, { kind: 'board', rows });
+  const own = s.board?.rows.find((row) => row.cook === 'dilek');
+  expect(own?.accepted).toBe(true);
+  expect(personOf(s, 'dilek').activity?.affordanceId).toBe(own?.station);
+  expect(cookOf(s, 'dilek').cover?.station).toBe(own?.station);
+  queueInput(s, { kind: 'open' });
+  step(s);
+  expect(cookOf(s, 'dilek').cover?.station).toBe(own?.station);
+  expect(verifyCommunity(s.chef).verified).toBe(true);
+});
