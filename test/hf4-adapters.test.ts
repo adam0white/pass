@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import { kitchenOffer } from '../src/sim/hf4-authoring.ts';
 import {
   checkpoint,
+  communityRun,
   decide,
   freshCommunity,
   interrupt,
@@ -257,4 +258,39 @@ it('passes the remaining rush forecast to HF station offers', () => {
   expect(received?.kind === 'offers.received' && received.payload.offers[0]?.expected.followedBy).toEqual(
     converted.expected.followedBy,
   );
+}, 120000);
+
+it('resumes an agreed station when the emergency meal completes', () => {
+  const s = newGame(42, 'pass@19');
+  queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+  queueInput(s, { kind: 'open' });
+  const p = personOf(s, 'dilek');
+  const c = cookOf(s, 'dilek');
+  const station = c.cover?.station;
+  expect(station).toBeDefined();
+  interrupt(p, s.minute, 'emergency fixture');
+  decide(p, [
+    {
+      id: 'eat',
+      action: 'eat',
+      label: 'eat and catch my breath',
+      duration: 2,
+      effort: 0,
+      advertises: { food: 0.6, water: 0.6, rest: 0.5 },
+    },
+  ]);
+  const active = communityRun(p).active.find((a) => a.person === p.id);
+  if (!active) throw new Error('Missing emergency meal');
+  c.cover = null;
+  c.emergencyMealId = active.id;
+  const restored = restoreState(JSON.parse(JSON.stringify(cloneState(s))));
+  for (let i = 0; i < 4; i++) {
+    step(s);
+    step(restored);
+  }
+  expect(cookOf(s, 'dilek').cover?.station).toBe(station);
+  expect(p.activity?.affordanceId).toBe(station);
+  expect(cookOf(restored, 'dilek').cover?.station).toBe(station);
+  expect(JSON.parse(JSON.stringify(cloneState(restored)))).toEqual(JSON.parse(JSON.stringify(cloneState(s))));
+  expect(verifyCommunity(s.chef).verified).toBe(true);
 }, 120000);

@@ -289,6 +289,8 @@ export interface CookState {
   cover?: { station: Station; until: number } | null;
   /** An HF4 quiet action completed during this agreed break; resume its meal once. */
   mealContinuationUntil?: number;
+  emergencyMealId?: string;
+  emergencyMealCompleted?: boolean;
   idleUntil: number;
   progress: number;
   /** Portions made in the current stretch (an honest world effect at its end). */
@@ -705,7 +707,13 @@ function bindHF4World(s: GameState) {
       const completed = run.completed;
       for (const work of completed.filter((c) => c.sequence > (s.hf4Settled ?? 0))) {
         const c = s.cooks.find((c) => c.id === work.person);
-        if (c) c.made = 0;
+        if (c) {
+          c.made = 0;
+          if (c.emergencyMealId === work.activity) {
+            delete c.emergencyMealId;
+            if (work.status === 'completed') c.emergencyMealCompleted = true;
+          }
+        }
         if (c && work.status === 'completed')
           kitchenCompleted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS));
         const row = s.board?.rows.find((r) => r.cook === work.person && r.accepted);
@@ -1058,6 +1066,8 @@ function startNight(s: GameState, n: number) {
     c.remembered = false;
     c.night = blankNight();
     delete c.mealContinuationUntil;
+    delete c.emergencyMealId;
+    delete c.emergencyMealCompleted;
     if (isFirstOfWeek(n)) {
       c.pushedBefore = (c.pushedBefore ?? 0) / 2 + c.week.complied;
       c.week = { complied: 0, insisted: 0, nights: 0 };
@@ -4173,6 +4183,13 @@ function rotaMinute(s: GameState, c: CookState): boolean {
     }
     return true;
   }
+  if (isHF4(p) && c.emergencyMealId && communityRun(p).active.some((a) => a.id === c.emergencyMealId))
+    return true;
+  if (c.emergencyMealCompleted) {
+    delete c.emergencyMealCompleted;
+    resumeBoardStation(s, c, row.station);
+    return true;
+  }
   if (c.cover && c.cover.until <= s.minute) {
     resumeBoardStation(s, c, row.station);
     return true;
@@ -4187,7 +4204,11 @@ function rotaMinute(s: GameState, c: CookState): boolean {
       effort: 0,
       advertises: { food: 0.6, water: 0.6, rest: 0.5 },
     });
-    begin(p, meal, decide(p, [meal]));
+    const started = begin(p, meal, decide(p, [meal]));
+    if (started && isHF4(p)) {
+      const active = communityRun(p).active.find((a) => a.person === p.id);
+      if (active) c.emergencyMealId = active.id;
+    }
     c.cover = null;
     raiseStaffing(s, c.id, st, s.minute + 20, 'I need to eat and sit down, Chef.');
     return true;
