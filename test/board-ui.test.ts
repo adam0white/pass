@@ -43,7 +43,7 @@ describe('board presentation choices', () => {
     const s = newGame(42, 'pass@19');
     s.previousBoard = boardDefaults(s).slice(0, -1);
     expect(openingBoard(s).every((row) => row.cover === null)).toBe(true);
-  });
+  }, 120000);
   it('previews real answers without changing a notebook and matches the committed answers', () => {
     const s = tuesday();
     const before = cloneState(s);

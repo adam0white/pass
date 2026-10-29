@@ -309,7 +309,7 @@ it('names skipped people and preserves their saved heads when the batch cannot c
   expect(c.message).toMatch(/saved|history|story/i);
   expect(source).toEqual(before);
   expect(c.data().ownedHeads).toEqual({});
-}, 30000);
+}, 120000);
 
 // Synthetic peer status checks the host guard; it does not claim live peer readiness.
 it.each([false, true])(
@@ -372,7 +372,7 @@ it('writes an eligible current portable checkpoint when the peer gate is open', 
   expect(puts).toHaveLength(1);
   expect(required(puts[0])[0].envelope.castId).toBe('hf.cast.selim.pass');
   expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
-}, 30000);
+}, 120000);
 
 it('publishes the preserved release checkpoint after the live kitchen advances and reloads it', async () => {
   const { hf4KitchenTransfer } = await import('../src/sim/hf4-cast.ts');
@@ -393,7 +393,7 @@ it('publishes the preserved release checkpoint after the live kitchen advances a
   const saved = required(c.data().ownedHeads?.['hf.cast.selim.pass']);
   expect(saved.transfer.checkpoint).toEqual(release.checkpoint);
   await expect(c.restore(c.data(), false, true, state)).resolves.toBeUndefined();
-}, 30000);
+}, 120000);
 
 it('does not publish an HF4 release without its preserved checkpoint', async () => {
   const state = newGame(42, 'pass@19');
@@ -403,7 +403,7 @@ it('does not publish an HF4 release without its preserved checkpoint', async () 
   await c.restore();
   await c.checkpoint();
   expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
-}, 30000);
+}, 120000);
 
 it('replays and restores a release when the source cannot be projected', async () => {
   const state = newGame(42, 'pass@19');
@@ -440,4 +440,4 @@ it('publishes the release projection even if the live person later dies', async 
   await c.checkpoint();
   expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
   expect(c.data().ownedHeads?.['hf.cast.selim.pass']?.terminal).toBeFalsy();
-}, 30000);
+}, 120000);

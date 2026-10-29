@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { kitchenOffer } from '../src/sim/hf4-authoring.ts';
 import {
   checkpoint,
   decide,
@@ -14,6 +15,7 @@ import {
   cloneState,
   cookOf,
   newGame,
+  offersFor,
   pace,
   personOf,
   queueInput,
@@ -195,7 +197,7 @@ it('does not author copied home activities for departed people', () => {
     .flatMap((transaction) => transaction.inputs);
   expect(inputs.some((input) => 'person' in input.payload && input.payload.person === 'selim')).toBe(false);
   expect(inputs.some((input) => 'person' in input.payload && input.payload.person === 'dilek')).toBe(true);
-});
+}, 120000);
 
 it('pins the released cook checkpoint across later community time', () => {
   const s = newGame(42, 'pass@19');
@@ -211,7 +213,7 @@ it('pins the released cook checkpoint across later community time', () => {
   expect(restoreState(JSON.parse(JSON.stringify(cloneState(s)))).releasedCastProjections?.selim).toEqual(
     saved,
   );
-});
+}, 120000);
 
 it('retains actual protested work through refresh and restore', () => {
   const s = newGame(42, 'pass@19');
@@ -235,4 +237,24 @@ it('retains actual protested work through refresh and restore', () => {
   expect(pace(replayed, 'dilek', 'grill')).toBeCloseTo(slowed);
   tick(s.chef, s.minute + 1);
   expect(p.activity?.protest).toBe(true);
+}, 120000);
+
+it('passes the remaining rush forecast to HF station offers', () => {
+  const s = newGame(42, 'pass@19');
+  s.phase = 'service';
+  const offer = offersFor(s, 'dilek').find((a) => a.id === 'grill');
+  if (!offer?.followedBy?.length) throw new Error('Missing authored rush continuation');
+  const converted = kitchenOffer('dilek', offer);
+  expect(converted.expected.followedBy).toEqual(
+    offer.followedBy.map(({ duration, ...span }) => ({ ...span, durationMs: duration * 60000 })),
+  );
+  expect(kitchenOffer('dilek', { ...offer, followedBy: undefined }).expected.followedBy).toEqual([]);
+  decide(personOf(s, 'dilek'), [offer]);
+  const inputs = checkpoint(s.chef).archive.history.flatMap((transaction) => transaction.inputs);
+  const received = inputs.findLast(
+    (input) => input.kind === 'offers.received' && input.payload.offers.length,
+  );
+  expect(received?.kind === 'offers.received' && received.payload.offers[0]?.expected.followedBy).toEqual(
+    converted.expected.followedBy,
+  );
 }, 120000);

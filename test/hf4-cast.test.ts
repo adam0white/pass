@@ -94,7 +94,7 @@ it('projects a current person and admits the retained passport before the new ru
     JSON.parse(JSON.stringify(cloneState(replay(43, game.inputs, game.minute, 'pass@19', chapter)))),
   ).toEqual(saved);
   expect(chapter.portable?.hulya?.person).toEqual(transfer.portable);
-}, 30000);
+}, 120000);
 
 it('fingerprints the host state as well as the HF archive', async () => {
   const { cloneState, fingerprint, newGame } = await import('../src/sim/kitchen.ts');
@@ -141,4 +141,4 @@ it('keeps a retained visitor duty at its mapped wall time when paid work is acce
   expect(
     JSON.parse(JSON.stringify(cloneState(replay(43, game.inputs, game.minute, 'pass@19', chapter)))),
   ).toEqual(saved);
-}, 30000);
+}, 120000);

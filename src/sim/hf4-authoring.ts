@@ -357,12 +357,17 @@ export interface KitchenOffer {
   material?: number;
   placeId?: string;
   norms?: Offer['norms'];
+  followedBy?: readonly { label?: string; duration: number; effort: number; focus?: number }[];
 }
-export function kitchenOffer(person: string, a: KitchenOffer): Offer {
-  const exactMs = a.duration * MINUTE_MS,
+function durationInMs(duration: number): number {
+  const exactMs = duration * MINUTE_MS,
     durationMs = Math.round(exactMs);
   if (!Number.isSafeInteger(durationMs) || Math.abs(exactMs - durationMs) > 0.00001)
     throw new Error('Kitchen duration must be an integer number of milliseconds.');
+  return durationMs;
+}
+export function kitchenOffer(person: string, a: KitchenOffer): Offer {
+  const durationMs = durationInMs(a.duration);
   return {
     id: a.id,
     actionId: a.action,
@@ -379,7 +384,10 @@ export function kitchenOffer(person: string, a: KitchenOffer): Offer {
       needs: a.advertises,
       ...(a.id === 'toilet' ? { voidsBladder: true } : {}),
       ...(a.material === undefined ? {} : { material: a.material }),
-      followedBy: [],
+      followedBy: (a.followedBy ?? []).map(({ duration, ...span }) => ({
+        ...span,
+        durationMs: durationInMs(duration),
+      })),
       provenance: ['pass:authored-offer'],
     },
     fulfills: [],

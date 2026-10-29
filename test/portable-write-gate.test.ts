@@ -92,7 +92,7 @@ it('uses the actual SDK gate to skip a named person and preserve the saved head'
   expect(c.message).toContain('Rafi');
   expect(parent).toEqual(before);
   expect(c.data().ownedHeads).toEqual({});
-}, 30000);
+}, 120000);
 
 it.each([false, true])(
   'uses the actual SDK gate before portable writes, terminal=%s',

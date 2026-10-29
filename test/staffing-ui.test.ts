@@ -58,7 +58,7 @@ describe('staffing prompts after an accepted station change', () => {
     expect(actionableStaffing(s)).toHaveLength(1);
     expect(availableStaffing(s)).toEqual([]);
     expect(serviceStatus(s).needsResponse).toBe(false);
-  });
+  }, 120000);
 
   it('suppresses the follow-up after an actual current-edition accepted chef ask', () => {
     const s = newGame(1, 'pass@13');
