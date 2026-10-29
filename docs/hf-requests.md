@@ -1,5 +1,13 @@
 # HF requests
 
+## Current HF4 status — 2026-10-29
+
+Public new games use HF4.12.0/0.5.12/0.5.29. The numbered historical wording below is retained, not an opt-in policy. Current host mechanisms use actual reasons/firm rules and published prompting/chronicle/evening evidence, including actual resolve references. `voice.evidence-received` EXISTS; current Pass lacks an authority-bound public experienced-felt/outcome-to-request source. Do not infer felt from body, mood, grant, approval or words. All/HF4 owns the evidence contract; Pass owns occurrence/linkage/adoption, check2026-10-30.
+
+Groups/individual commitments do not provide shared obligation/current satisfier/reassignment/release. Keep last-cook convention and actual work-interval attention; no arbitrary refusal cap or local shared-duty cognition. All/HF4 director owns generic coverage/attention, check2026-11-03. Published teaching/method/joint fields also exist; exact current observer/evidence and chapter limits for cast horizons are in [canonical cast](canonical-cast.md#current-horizon-source-boundaries--2026-10-29). No candidate4.10 pin or private actor read.
+
+## Historical requests
+
 Filed 2026-10-19 against HF 2.7.0, and appended to `~/code/human-framework/docs/game-requests-2026-10-18.md` ("The Pass, owner playtest"). Items 1 and 4 are done in pass@10 with HF 2.13.0. The other host-side workarounds stay.
 
 1. **A deferral names what decided it — done in pass@10 with HF 2.13.0.** Every cook and hire enables `SuggestionResolution.decidedBy`. Captions, rota replies and job-button hints phrase the deciding activity or term in the cook’s words. The counter-offer stays available, and a break’s no repeats its original reason until that break ends.

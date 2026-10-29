@@ -27,6 +27,7 @@ import {
   openAt,
   personOf,
   plan,
+  stationOf,
 } from './kitchen.ts';
 import { suggestionWords } from './lines.ts';
 import { NARRATION_EDITION, observeNarration, PANEL_EDITION } from './narration-edition.ts';
@@ -367,6 +368,15 @@ const personalReply = (who: string, kind: 'later' | 'private') => {
 /** An interrupted task keeps its original world fallback and reveals no private account. */
 export function kitchenInterrupted(s: GameState, who: string, action: string, at: number, activity: string) {
   if (s.version !== 'pass@19') return;
+  for (const lesson of s.grillLessons ?? []) {
+    if (
+      ['waiting', 'watching'].includes(lesson.state) &&
+      [lesson.teacherActivity, lesson.learnerActivity].includes(activity)
+    ) {
+      lesson.state = 'interrupted';
+      words(s, 'narrator', 'The grill lesson stopped before the demonstration was finished.', at);
+    }
+  }
   const conversation = s.kitchen?.conversations.find((entry) => entry.activity === activity);
   if (conversation) conversation.interrupted = at;
   const clearing = s.kitchen?.clearings?.find(
@@ -380,6 +390,21 @@ export function kitchenInterrupted(s: GameState, who: string, action: string, at
 
 /** Host consequences of an actual completion. HF4 calls this from its receipt drain. */
 export function kitchenCompleted(s: GameState, who: string, action: string, at: number, activity?: string) {
+  for (const lesson of s.grillLessons ?? []) {
+    if (!activity) continue;
+    if (lesson.learnerActivity === activity) lesson.learnerCompleted = at;
+    if (!['waiting', 'watching'].includes(lesson.state) || lesson.teacherActivity !== activity) continue;
+    lesson.teacherCompleted = at;
+    lesson.state = lesson.guidedWork > 0 && lesson.learnerActivity ? 'demonstrated' : 'no-food-work';
+    words(
+      s,
+      'narrator',
+      lesson.state === 'demonstrated'
+        ? `Selim finished his guidance while ${memberOf(s, lesson.learner).name} worked at the grill${lesson.learnerInsisted ? ' after you insisted on that work' : ''}. This records actual work together, not mastery.`
+        : 'Selim’s time for guidance ended without food work together. No completed demonstration is recorded.',
+      at,
+    );
+  }
   const world = s.kitchen;
   if (!world || !['room', 'conversation', 'explain-wait', 'no-replies', 'clear-table'].includes(action))
     return;
@@ -822,4 +847,148 @@ export function clearTable(s: GameState, who: string, ticket: number) {
   s.kitchen.clearings ??= [];
   s.kitchen.clearings.push({ ticket, who, activity: active.id, at: s.minute, outcome: 'clearing' });
   words(s, who, `I will clear the abandoned meal for table ${table}. I cannot cook while I do that.`);
+}
+
+/** A finite physical lesson, not a competence award or a synthetic witnessed-method input.
+ * Existing HF choices govern both people. Only actual overlapping guidance and food work, exact
+ * completed activities and later learner food work are recorded as world observations.
+ */
+export interface GrillLesson {
+  id: number;
+  at: number;
+  learner: string;
+  teacherVerdict?: string;
+  learnerVerdict: string;
+  learnerInsisted?: boolean;
+  teacherActivity?: string;
+  learnerActivity?: string;
+  teacherCompleted?: number;
+  learnerCompleted?: number;
+  guidedWork: number;
+  learnerWork: number;
+  lastLearnerWorkAt?: number;
+  food?: { ticket: number; at: number };
+  state: 'declined' | 'waiting' | 'watching' | 'demonstrated' | 'no-food-work' | 'interrupted' | 'practised';
+}
+export function grillLessonAvailable(s: GameState, learner: string): boolean {
+  return (
+    s.version === 'pass@19' &&
+    s.phase === 'service' &&
+    !!s.privateAccounts?.selim &&
+    learner !== 'selim' &&
+    s.crew.some((m) => m.id === learner && !m.left) &&
+    s.cooks.some((c) => c.id === learner && c.here && !c.gone) &&
+    s.cooks.some((c) => c.id === 'selim' && c.here && !c.gone) &&
+    inKitchen(s, learner) &&
+    stationOf(s, learner) !== 'grill' &&
+    inKitchen(s, 'selim') &&
+    !locked(s, learner) &&
+    !locked(s, 'selim') &&
+    attentionAvailable(s, learner) &&
+    attentionAvailable(s, 'selim') &&
+    !s.grillLessons?.some((x) => ['waiting', 'watching'].includes(x.state)) &&
+    s.tickets.some((t) => t.status === 'open' && t.doneGrill < t.grill)
+  );
+}
+export function grillLesson(s: GameState, learner: string) {
+  if (!grillLessonAvailable(s, learner) || !s.kitchen) return;
+  const lesson: GrillLesson = {
+    id: s.applied - 1,
+    at: s.minute,
+    learner,
+    learnerVerdict: 'not-asked',
+    guidedWork: 0,
+    learnerWork: 0,
+    state: 'declined',
+  };
+  s.grillLessons ??= [];
+  s.grillLessons.push(lesson);
+  const teacher = personOf(s, 'selim');
+  const teach = task(
+    'conversation',
+    `guide ${memberOf(s, learner).name} at the grill for three minutes`,
+    3,
+    { belonging: 0.2, autonomy: 0.1, meaning: 0.3 },
+    { action: 'conversation', focus: 0, placeId: 'line', material: 6 },
+  );
+  const teacherOffers = [...offersFor(s, 'selim'), teach],
+    old = teacher.activity;
+  const reply = decide(teacher, teacherOffers, {
+    now: s.minute,
+    suggestion: { voiceId: 'chef', affordanceId: teach.id, strength: 0.5 },
+    settleForeground: true,
+  });
+  lesson.teacherVerdict = reply.suggestion?.verdict ?? 'refused';
+  const actual = teacherOffers.find((o) => o.id === reply.chosenAffordanceId);
+  words(
+    s,
+    'chef',
+    `Selim, will you show ${memberOf(s, learner).name} the grill while they prepare the waiting food?`,
+  );
+  if (!actual || !start(s, 'selim', actual, reply, old)) return;
+  if (actual.id !== teach.id || !['assented', 'complied'].includes(lesson.teacherVerdict)) {
+    words(s, 'selim', reply.suggestion?.says || 'I have not agreed to teach now.');
+    reserveAttention(s, 'selim', lesson.teacherVerdict);
+    return;
+  }
+  lesson.teacherActivity = communityRun(teacher).active.find((a) => a.person === 'selim')?.id;
+  s.kitchen.foregroundAt ??= {};
+  if (teacher.activity) s.kitchen.foregroundAt.selim = teacher.activity.startedAt;
+  lesson.state = 'waiting';
+  words(
+    s,
+    'selim',
+    `I will make three minutes to guide ${memberOf(s, learner).name} at the grill. I will step back from cooking. They still need to choose that work.`,
+  );
+}
+/** Associate only an actual successful station decision, never a predicted answer. */
+export function noteLessonLearner(s: GameState, who: string, verdict: string, insisted: boolean) {
+  for (const lesson of s.grillLessons ?? []) {
+    if (!['waiting', 'watching'].includes(lesson.state) || lesson.learner !== who) continue;
+    const active = communityRun(personOf(s, who)).active.find(
+      (a) => a.person === who && a.offer.id === 'grill',
+    );
+    const teacher = communityRun(personOf(s, 'selim')).active.some(
+      (a) => a.person === 'selim' && a.id === lesson.teacherActivity,
+    );
+    if (!active || !teacher || !['assented', 'complied', 'commanded'].includes(verdict)) continue;
+    lesson.learnerActivity = active.id;
+    lesson.learnerVerdict = verdict;
+    lesson.learnerInsisted = insisted;
+  }
+}
+export function noteLessonWork(s: GameState, who: string, amount: number) {
+  if (!s.grillLessons?.length || amount <= 0) return;
+  for (const lesson of s.grillLessons) {
+    if (
+      ['waiting', 'watching'].includes(lesson.state) &&
+      who === lesson.learner &&
+      communityRun(personOf(s, 'selim')).active.some(
+        (a) => a.person === 'selim' && a.id === lesson.teacherActivity,
+      ) &&
+      communityRun(personOf(s, lesson.learner)).active.some(
+        (a) => a.person === lesson.learner && a.id === lesson.learnerActivity,
+      )
+    ) {
+      lesson.state = 'watching';
+      lesson.guidedWork += amount;
+    }
+    if (lesson.state === 'demonstrated' && who === lesson.learner) {
+      lesson.learnerWork += amount;
+      lesson.lastLearnerWorkAt = s.minute;
+    }
+  }
+}
+export function noteLessonFood(s: GameState, ticket: number) {
+  for (const lesson of s.grillLessons ?? []) {
+    if (lesson.state !== 'demonstrated' || lesson.lastLearnerWorkAt !== s.minute || lesson.learnerWork <= 0)
+      continue;
+    lesson.food = { ticket, at: s.minute };
+    lesson.state = 'practised';
+    words(
+      s,
+      'narrator',
+      `${memberOf(s, lesson.learner).name} worked at the grill as a portion for table ${s.tickets.find((t) => t.id === ticket)?.table} was finished. That is observed practice, not a promise of mastery.`,
+    );
+  }
 }

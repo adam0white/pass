@@ -1,24 +1,40 @@
 # Pass handoff
 
+## Remaining panel source — 2026-10-29
+
+What remains: independent recheck, exact source CI and ROOT integration/main CI/normal fresh managed deployment/live controls/cleanup. Adam/eligible player acceptance and the same-tester retest remain paused, review 2026-11-03. This source increment runs no player rounds or screenshots.
+
+ROOT delivered the prior bounded host batch in f34b437 (PR7); exact source CI40829839136 attempt2 passed473 tests, exact main CI40838774222 and normal deploy dc6740ba have the parent receipt in `~/code/.lab-scratch/games-deferred/recovery-pass-delivery-report.md`. Its local full cold/native proof and eight actual direct live pointer/export cases are separate scopes. That delivery did not disposition every literal panel clause; the one-PR target was missed and disclosed.
+
+Current remainder source covers F1960–65/1969: actual station-gap warnings and Selim’s public authored prayer window, full wrapping header/status/guesses and reachable crew, cook-labelled Change controls, tap/keyboard insist through the existing ask/cost/guards, compact separate station/cover outcomes with full cook-labelled answers in disclosures, work-area/cold-side/rush context on each board, and a desktop board that uses its reading width. Prayer notice shares the unchanged authored1115–1160 agenda values. It describes a scheduled fictional window, never a guaranteed choice, missed prayer or a ruling. Guesses stay approximate; actual replies still supply their recorded reason. Slowdown words now have their own wrapping row while Saturday’s bill remains visible.
+
+F1966 Feedback prefill/edit/change/clear and F1967 native Resume already exist. F1968 has actual private invitation/heard-source/room/clearing routes; availability cannot establish Tessa’s satisfaction. Earlier Deferred resignation, guest replies, wedding supply failure and hire voice are implemented mechanisms in the current kitchen; old opt-in candidate headings below are historical, not a second current engine. Original tester reports remain verbatim. Complete literal GDI/GDR/GDL/panel and ranked-ask/conditional-return dispositions, contracts and dates are recorded in `recovery-pass-remainder-literal-rowmap.json` in the scratch directory. Root alone changes canonical inventory/ledger.
+
+A source-gated three-minute Selim grill-guidance request now uses existing cooks, actual waiting food and separate ordinary learner job choices. Completion and actual food work record bounded practice; this does not complete the whole-station horizon or award competence. Current 4.12 controls observed deferred and modified learner decisions without food credit. An actual refused verdict was not observed in the bounded controls; Adam’s readiness and the same-tester retest remain separate, review 2026-11-03.
+
+Voice evidence API availability is real, but authority-bound public experienced-felt/outcome-to-request data remains unavailable. All/HF4 director owns that contract; Pass owns stable host linkage/adoption, check2026-10-30. Shared obligation/satisfier/reassignment and generic attention semantics remain All/HF4 dependencies, check2026-11-03; preserve last-cook convention and no arbitrary click cap. HF 4.12 is adopted in this integration. No body/mood/grant/words/private-state inference supplies felt. Current graph is 4.12.0/0.5.12/0.5.29 with one HF4 public behavior and original-preserving clear refusal for unsupported saves.
+
+
 ## HF 4.12 adoption — 2026-10-29
 
-What remains: exact source and merged CI, clean deployment and live release verification. Adam accepts game readiness separately. Delivery receipt: `~/code/.lab-scratch/codex/pass-hf412.md`.
+This adoption was delivered at dc3; the current panel integration still needs its own gates. Adam accepts game readiness separately. Delivery receipt: `~/code/.lab-scratch/codex/pass-hf412.md`.
 
 Current graph: published HF 4.12.0, immutable client 0.5.12 and kit 0.5.29. Read upstream CHANGELOG from the actual current pin 4.8.1 through 4.12.0. New runs remain pass@19. Accepted history inspection uses `readRunHistory`; full native exports remain complete archive format 7. Native autosave uses HF's append-only journal with a matching host snapshot, chunks and committed head in one IndexedDB transaction. The cursor advances only after storage succeeds. Recovery executes the full journal. Each write appends only new chunks. Recovery still reads and executes the full history; no constant-cost recovery is claimed. An aborted transaction preserves the previous save and can retry from its committed cursor.
 
 The existing People dialog shows the chef's live self affect and learned outcomes in words only. Other cooks' hidden affect and expectations remain unobserved. Kitchen verdicts and selected reason sentences now belong to the HF phrasebook. The current answer path uses the framework's recorded suggestion rendering instead of the host's index-based narration selection. Historical narration remains test-only. Pass uses no newborn or retelling input.
 
-Older engine saves refuse with a plain start-new-game message and remain stored. This edition makes no 3.x compatibility or cross-game journey claim. All historical replay-hash tests and their pins stay unchanged; no replay pin was weakened or updated. HF's current engine identity, archive codec and recorded wording intentionally differ from 4.8.1; current replay/restore equality is tested under 4.12.0.
+Native saves and files claiming an unsupported framework refuse with a plain start-new-game message and remain stored. Before this integration, the dc3 file importer incorrectly replayed a 4.8 format-2 envelope under 4.12; that was not exact continuation. This edition makes no 3.x compatibility or cross-game journey claim. All historical replay-hash tests and their pins stay unchanged; no replay pin was weakened or updated. HF's current engine identity, archive codec and recorded wording intentionally differ from 4.8.1; current replay/restore equality is tested under 4.12.0.
 
 CI runner deadlines: journal recovery receives 30 seconds; the existing two-service clearing/replay control receives 300 seconds. The initial CI run exceeded their 5/120-second deadlines while all other assertions passed. Their inputs and assertions are unchanged.
 
 Hosted review is waived by coordinator ruling 2026-10-29T09:25Z. This task runs no hosted or extra independent review. Technical delivery does not accept game readiness or authorize a new player round.
 
+
 ## Current host follow-through — 2026-10-29
 
-What remains: one hosted Codex review, exact source and merged CI, clean managed deployment and live controls. Source controls are not delivery. Adam accepts readiness separately; owner/player retests remain paused, review 2026-11-03. No player round, friends' playtest or Show HN was run.
+Historical source-freeze note: this bounded batch was subsequently delivered by ROOT in f34b437; the new remainder above has its own outstanding gates. Source controls are not delivery. Adam accepts readiness separately; owner/player retests remain paused, review 2026-11-03. No player round, friends' playtest or Show HN was run.
 
-Current graph is HF4.8.1, client0.5.7 and kit0.5.24. Ordinary starts remain pass@19. Save format2 refuses format1 clearly and leaves its original stored. Historical engines remain replay-test dependencies, not an alternate current engine or public selector.
+This historical batch used HF4.8.1, client0.5.7 and kit0.5.24. Current 4.12 saves use the journal and older engine saves refuse while their originals remain stored. Historical engines remain replay-test dependencies, not an alternate current engine or public selector.
 
 The existing public check-in remains. Current service also offers a three-minute private invitation to an actual employee. HF may choose current work or a bodily need instead. Only that accepted conversation's actual completed activity discloses the existing account. Interruption reveals nothing. Successful discovery persists beyond the rolling journal and night changes. Follow-up controls wait for the current conversation to finish. A cook's supported heard statements are selectable by exact source and recipient; private words need prior actual disclosure. Public coverage clocks and durations use whole minutes; exact HF settlement times remain unchanged. Reading slows service; menus pause.
 

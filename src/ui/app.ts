@@ -4,6 +4,7 @@ import {
   attentionAvailable,
   clearingAvailable,
   FOLLOWUP_EDITION,
+  grillLessonAvailable,
   heardTopic,
   heardTopics,
   kitchenEdition,
@@ -98,6 +99,7 @@ import { lab, mountNotice } from './lab.ts';
 import { liveReadingWords } from './live-readings.ts';
 import { endingTally } from './notebook.ts';
 import { closingChoices, offerUnavailable, serviceAccount } from './people-offers.ts';
+import { agreementStatus, cookRequestWarning, publicPrayerPlan } from './request-context.ts';
 import { unseenSpeech } from './speech.ts';
 import { actionableStaffing, availableStaffing } from './staffing.ts';
 import { journalWords, noCoverWords, serviceStatus, tableAboutToLeave } from './status.ts';
@@ -277,7 +279,7 @@ const markLink = '<button id="game-menu" class="menu-trigger" aria-label="Game m
 const INFO: Record<string, [string, string]> = {
   title: [
     'The kitchen',
-    'Tap a cook, then tap a job. Hold the job button to insist. A cook can say no. A promise means a party’s food comes first. With Nevin’s pace, tables wait longer before they leave. Money is in Turkish lira.',
+    'Tap a cook, then tap a job. Hold the job button to insist, or use “Insist on a job”. A cook can say no. A promise means a party’s food comes first. With Nevin’s pace, tables wait longer before they leave. Money is in Turkish lira.',
   ],
   board: [
     'Tonight’s plan',
@@ -285,7 +287,7 @@ const INFO: Record<string, [string, string]> = {
   ],
   service: [
     'Running the pass',
-    'The pass is the counter where finished food waits to be served. To give a cook a job, tap the cook and then tap the job. To insist, hold the job button down. Insisting can cost you some of the cook’s trust. The words under each job are your guess at how the cook will answer. A ● means a dish is ready to serve. The bar at the top shows the money taken tonight. The mark on the bar shows how much you need tonight to pay Saturday’s bill. Time slows down when someone speaks to you or needs an answer.',
+    'The pass is the counter where finished food waits to be served. To give a cook a job, tap the cook and then tap the job. To insist, hold the job button down or use “Insist on a job”. Insisting can cost you some of the cook’s trust. The words under each job are your guess at how the cook will answer. A ● means a dish is ready to serve. The bar at the top shows the money taken tonight. The mark on the bar shows how much you need tonight to pay Saturday’s bill. Time slows down when someone speaks to you or needs an answer.',
   ],
   evening: [
     'The night',
@@ -445,9 +447,9 @@ function openGameMenu() {
       required(debug.querySelector('#debug-result')).textContent = 'This run could not be verified.';
     }
   });
-  debug.querySelector('#debug-import')?.addEventListener('click', () => {
+  debug.querySelector('#debug-import')?.addEventListener('click', async () => {
     dialog.close();
-    title();
+    await title();
     document.getElementById('file')?.click();
   });
   const privacy = required(dialog.querySelector('#record-controls a'));
@@ -747,7 +749,11 @@ async function title() {
     if (sheet?.open) sheet.close();
     try {
       const ex = JSON.parse(await f.text()) as Export & { minute?: number };
-      if (ex.game !== 'pass@19' || !canReplay(ex.game)) {
+      if (
+        ex.game !== 'pass@19' ||
+        !canReplay(ex.game) ||
+        (typeof ex.framework === 'string' && ex.framework !== FRAMEWORK_VERSION)
+      ) {
         status(
           'This file comes from a different version of The Pass. It cannot be loaded. Start a new game instead.',
         );
@@ -910,7 +916,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
   const boardScroll = app.querySelector('.board-body')?.scrollTop ?? 0;
   const editorScroll = app.querySelector('.board-editor-body')?.scrollTop ?? 0;
   let editor = '';
-  app.innerHTML = `<div class="board-page people-board">${topBar(`${planOf(st.night).title}, week ${planOf(st.night).week} · Doors open at ${clock(openAt(st.night))}`, 'board')}${tillBar(st)}<form id="board-form"><div class="board-body">${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<div class="board-rows">${rows
+  app.innerHTML = `<div class="board-page people-board">${topBar(`${planOf(st.night).title}, week ${planOf(st.night).week} · Doors open at ${clock(openAt(st.night))}`, 'board')}${tillBar(st)}<form id="board-form"><div class="board-body"><p class="kitchen-context">A station is a work area. The cold side prepares salads and other cold dishes. The rush is the busiest part of service, 18:30–20:30. The crew cooks and sends finished meals out; you decide whom to ask and when.</p>${bareNote}${parties ? `<div class="board-parties">${parties}</div>` : ''}<div class="board-rows">${rows
     .map((row) => {
       const answer = agreed.find((r) => r.cook === row.cook);
       const revised = changed;
@@ -958,9 +964,9 @@ function board(draft?: BoardRow[], editing: string | null = null) {
             label: slot.label,
           })),
           String(row.breakAt),
-        )}${chips(row, 'cover', 'Who takes over', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Nobody' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p></div><footer><button type="button" id="board-done" class="primary">Done</button></footer></section></div>`;
+        )}${chips(row, 'cover', 'Who takes over', [...covers.map((other) => ({ value: other.cook, label: nameOf(st, other.cook) })), { value: '', label: 'Nobody' }], row.cover ?? '')}</div><p class="board-gap">${esc(gap)}</p>${publicPrayerPlan(st, row.cook, row.breakAt) ? `<p class="plan-warning">${esc(publicPrayerPlan(st, row.cook, row.breakAt))}</p>` : ''}</div><footer><button type="button" id="board-done" class="primary">Done</button></footer></section></div>`;
       }
-      return `<section class="board-row" data-board-cook="${esc(row.cook)}"><h2>${esc(nameOf(st, row.cook))}</h2><p class="board-summary">${esc(summary)}</p><button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">Change</button>${answer?.answer ? `<div class="board-answer hand"><b>${revised ? 'Waiting for a new answer. Previous answer' : answer.accepted ? 'Agreed' : 'Refused or asked for a change'}.</b> “${esc(gloss(answer.answer))}”</div>` : ''}</section>`;
+      return `<section class="board-row" data-board-cook="${esc(row.cook)}"><h2>${esc(nameOf(st, row.cook))}</h2><p class="board-summary">${esc(summary)}</p>${publicPrayerPlan(st, row.cook, row.breakAt) ? `<p class="plan-warning">${esc(publicPrayerPlan(st, row.cook, row.breakAt))}</p>` : ''}<button class="board-change" type="button" aria-expanded="${editing === row.cook}" aria-controls="board-fields-${esc(row.cook)}">Change ${esc(nameOf(st, row.cook))}’s plan</button>${answer?.answer ? `<div class="board-answer"><p>${esc(agreementStatus(st, answer, revised))}</p><details><summary>Read ${esc(nameOf(st, row.cook))}’s full answer</summary><p class="hand">“${esc(gloss(answer.answer))}”</p></details></div>` : ''}</section>`;
     })
     .join(
       '',
@@ -1472,8 +1478,10 @@ function drawTop() {
         : performance.now() < readingUntil
           ? `${nameOf(s, s.said.filter((x) => x.who !== 'narrator').at(-1)?.who ?? 'selim')} is answering.`
           : playback.reason;
-    const label = till.querySelector('.till-label');
-    if (label) label.textContent = `Time is slowed. ${reason}`;
+    const note = document.createElement('p');
+    note.className = 'playback-note';
+    note.textContent = `Time is slowed. ${reason}`;
+    till.append(note);
   }
 }
 
@@ -1873,6 +1881,10 @@ function select(id: CookId | null) {
   seenHint.tap = true;
   drawScene();
   drawSheet();
+  // A file receipt can precede the crew row and require replacing its DOM node.
+  // Keep the chosen cook reachable for the next keyboard action.
+  if (id)
+    app.querySelector<HTMLButtonElement>(`[data-pick="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
 }
 
 function hintsFor(id: CookId) {
@@ -2011,7 +2023,7 @@ function drawSheet() {
     renderPanel(
       el,
       `${crewHeader()}<div class="card ink-in"><div class="hand">${esc(nameOf(st, rq.who))}: “${esc(gloss(requestText(st, rq)))}”</div>
-      <div class="row"><button id="yes">${esc(yes)}</button><button id="no">${esc(no)}</button></div></div>`,
+      <p class="request-warning">${esc(cookRequestWarning(st, rq.who))} ${esc(publicPrayerPlan(st, rq.who))}</p><div class="row"><button id="yes">${esc(yes)}</button><button id="no">${esc(no)}</button></div></div>`,
     );
     const answer = (choice: 'yes' | 'no') => {
       for (const b of el.querySelectorAll<HTMLButtonElement>('button')) b.disabled = true;
@@ -2077,12 +2089,13 @@ function drawSheet() {
     el,
     `${crewHeader()}
     <div class="station-duration">${esc(absent ? (m.left ? `${m.name} has ended their kitchen employment.` : `${m.name} has left. You can ask again at the next service.`) : `${peopleRun(st) && !stationOf(st, selected) ? `Now: ${doing}, ${WHERE[placeOf(selected)] ?? 'free'}. ` : ''}${pendingCoverLine(st, selected) ?? coverLine(st, selected) ?? stationRequestLine(st, selected) ?? ''}`)}</div>
-    <div class="verbs" role="group" aria-label="Ask for a job">${h.list
+    <p class="guess-context">The words under each job are the chef’s guess at the reply. Work and needs can change before the cook answers.</p><p class="request-warning">${esc(cookRequestWarning(st, selected))} ${esc(publicPrayerPlan(st, selected))}</p><div class="verbs" role="group" aria-label="Ask for a job">${h.list
       .map(
         (v) =>
           `<button data-v="${v.verb}" ${waiting || absent || !attentionAvailable(st, selected as CookId) ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' (now)' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
+    <details class="insist-choice"><summary>Insist on a job for ${esc(m.name)}</summary><p>Insisting puts pressure on ${esc(m.name)} and can cost their trust. They still choose how to answer.</p><div class="insist-jobs">${h.list.map((v) => `<button data-insist="${v.verb}" ${waiting || absent || !attentionAvailable(st, selected as CookId) ? 'disabled' : ''}>Insist: ${esc(m.name)}, ${VERB_LABEL[v.verb].toLowerCase()}</button>`).join('')}</div></details>
     ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
     ${
       st.version === 'pass@19' && !absent
@@ -2112,6 +2125,19 @@ function drawSheet() {
             .join('')
         : ''
     }
+    ${
+      st.version === 'pass@19' && selected === 'selim' && st.privateAccounts?.selim
+        ? `<details class="grill-guidance"><summary>Help Selim pass on the grill work</summary><p>Ask Selim to guide another cook for three minutes while they prepare waiting grill food. Selim stops cooking. The learner must answer a separate ordinary job request and leave their present station. Both requests can be refused. Food and customers keep waiting.</p>${st.crew
+            .filter((person) => person.id !== 'selim' && !person.left)
+            .map(
+              (person) =>
+                `<button data-grill-lesson="${esc(person.id)}" ${grillLessonAvailable(st, person.id) ? '' : 'disabled'}>Ask Selim to guide ${esc(person.name)} at the grill</button>`,
+            )
+            .join(
+              '',
+            )}<p class="soft">This needs a waiting grill order and both cooks in the kitchen, free to answer. A cook already working at the grill cannot be offered this lesson. After Selim answers, use the learner’s ordinary Grill control. Insisting uses the same pressure and trust cost as any job request.</p>${(st.grillLessons ?? []).map((lesson) => `<p>${esc(memberOf(st, lesson.learner).name)}: ${esc(lesson.state === 'practised' ? 'worked at the grill during guidance and afterwards as a portion finished' : lesson.state === 'demonstrated' ? 'worked at the grill during completed guidance' : lesson.state === 'waiting' || lesson.state === 'watching' ? 'guidance in progress; a separate grill request is still needed unless already answered' : lesson.state === 'no-food-work' ? 'guidance time ended without food work together' : lesson.state === 'interrupted' ? 'guidance interrupted' : 'Selim did not agree to guide now')}.${lesson.learnerInsisted ? ' The learner complied after you insisted.' : ''}</p>`).join('')}<p class="soft">Observed work does not establish mastery or complete Selim’s larger aim.</p></details>`
+        : ''
+    }
     ${kitchenEdition(st) && !absent ? '<div class="row"><button data-kitchen-task="room">Ask for fifteen minutes in the dining room</button><p class="soft">This cook cannot prepare food while working there.</p></div>' : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div>${!attentionAvailable(st, selected as CookId) ? '<p class="soft" role="status">Let this cook finish this part of their work before asking again. The kitchen keeps running.</p>' : ''}<div class="hint">${
       absent
@@ -2121,11 +2147,21 @@ function drawSheet() {
           : seenHint.job
             ? waiting
               ? 'They heard you.'
-              : 'Hold a job button to insist. If they already agreed, insisting puts more pressure on them.'
-            : 'Tap a job to ask. Hold it to insist.'
+              : 'Hold a job button, or open “Insist on a job” and choose a job. If they already agreed, insisting puts more pressure on them.'
+            : 'Tap a job to ask. Hold it to insist, or open “Insist on a job” for tap and keyboard controls.'
     }</div>`,
   );
   bindCrew(el);
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-grill-lesson]'))
+    b.onclick = () => {
+      const learner = b.dataset.grillLesson;
+      if (!learner || !grillLessonAvailable(st, learner)) return;
+      queueInput(st, { kind: 'grill-lesson', learner });
+      readingUntil = performance.now() + READING_MS;
+      writeSave();
+      select(learner);
+      drawAll(true);
+    };
   for (const b of el.querySelectorAll<HTMLButtonElement>('[data-kitchen-task]'))
     b.onclick = () => {
       if (!selected) return;
@@ -2152,6 +2188,8 @@ function drawSheet() {
     };
   }
   for (const b of el.querySelectorAll<HTMLButtonElement>('.verbs button')) bindHold(b);
+  for (const b of el.querySelectorAll<HTMLButtonElement>('[data-insist]'))
+    b.onclick = () => ask(b.dataset.insist as Verb, true);
   for (const b of el.querySelectorAll<HTMLButtonElement>('[data-contact]')) {
     const choice = b.dataset.contact as 'check-in' | 'follow-up' | 'invite';
     b.disabled =
