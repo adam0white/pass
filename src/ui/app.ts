@@ -91,7 +91,8 @@ import { actionableStaffing, availableStaffing } from './staffing.ts';
 import { journalWords, noCoverWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
 
-const SAVE = `pass-save-hf4-${FRAMEWORK_VERSION}`;
+const SAVE = 'pass-save';
+const SAVE_FORMAT = 1;
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2', 'pass-save-v3'];
 
 interface PartyStart {
@@ -105,6 +106,7 @@ let firstPartyStart = false;
 let partyHandover: PartyStart | null = null;
 
 interface Save {
+  format: number;
   framework?: string;
   hf4Engine?: ReturnType<typeof frameworkEngine>;
   plainNarration?: boolean;
@@ -158,6 +160,7 @@ function readSave(): Save | null {
     const raw = localStorage.getItem(SAVE);
     const sv = raw ? (JSON.parse(raw) as Save) : null;
     return sv &&
+      sv.format === SAVE_FORMAT &&
       sv.game === 'pass@19' &&
       sv.framework === FRAMEWORK_VERSION &&
       JSON.stringify(sv.hf4Engine) === JSON.stringify(frameworkEngine())
@@ -169,7 +172,13 @@ function readSave(): Save | null {
 }
 function oldSave(): boolean {
   try {
-    return OLD_SAVES.some((k) => localStorage.getItem(k) !== null);
+    return (
+      localStorage.getItem(SAVE) !== null ||
+      OLD_SAVES.some((k) => localStorage.getItem(k) !== null) ||
+      Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).some((k) =>
+        k?.startsWith('pass-save-hf4-'),
+      )
+    );
   } catch {
     return false;
   }
@@ -183,6 +192,7 @@ function writeSave() {
   }
   try {
     const sv: Save = {
+      format: SAVE_FORMAT,
       game: s.version,
       framework: FRAMEWORK_VERSION,
       hf4Engine: frameworkEngine(),
@@ -559,7 +569,7 @@ function title() {
     </div>
     <dialog id="other-ways-sheet" class="other-ways-sheet" aria-labelledby="other-ways-heading"><h2 id="other-ways-heading">Other ways to begin</h2><div class="actions">
       <button id="week-two">Begin at the second week</button><p class="soft">An experienced helper runs the first week for you. You take over on the Sunday after it.</p>
-      <button id="first-party">Begin at the first party</button><p class="soft">Choose the promises on Sunday and take the pass before the first party sits.</p>
+      <button id="first-party">Begin at the first party</button><p class="soft">Choose the promises on Sunday and start serving before the first party arrives.</p>
       ${turnBack}<button id="close-other-ways">Back</button>
     </div></dialog>
     <input type="file" id="file" accept="application/json" hidden />
@@ -678,7 +688,7 @@ function title() {
       const ex = JSON.parse(await f.text()) as Export & { minute?: number };
       if (ex.game !== 'pass@19' || !canReplay(ex.game)) {
         status(
-          `This file comes from an older version of The Pass (${ex.game ?? 'unknown'}). This version is pass@19. The file cannot be loaded. Start a new game instead.`,
+          'This file comes from a different version of The Pass. It cannot be loaded. Start a new game instead.',
         );
         return;
       }
@@ -2821,6 +2831,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 export const _debug = {
+  readSave,
+  oldSave,
   refresh: () => enter(),
   draw: () => drawAll(),
   step: (n: number) => {

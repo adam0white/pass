@@ -442,8 +442,10 @@ function predicted(
   suggestion: Suggestion,
 ): { resolution: SuggestionResolution; confidence: number } {
   const c = needCommunity(observer),
-    at = c.run.now,
-    revision = 1;
+    // Self-preview forks the live run, whose current input lane is already closed.
+    // Another-person preview creates an imagined actor at exactly the present time.
+    at = c.run.now + (observer === target ? 1 : 0),
+    revision = observer === target ? c.run.nextOfferRevision : 1;
   const inputs: Input[] = [
     {
       id: 'pass:hypothetical:offers',
