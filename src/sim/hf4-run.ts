@@ -143,6 +143,10 @@ export class KitchenRun {
   get now() {
     return this.at;
   }
+  /** A self-preview must follow the live offer revisions without reserving one. */
+  get nextOfferRevision() {
+    return this.ingress.serial + 1;
+  }
   get active(): readonly KitchenActivity[] {
     return structuredClone(this.state.active);
   }

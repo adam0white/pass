@@ -1368,7 +1368,8 @@ export function hints(s: GameState, id: CookId, insist = false): Hint[] {
   return verbsTonight(s).map((verb) => {
     const offers = offersFor(s, id, verb);
     const sug = suggestion(verb, insist);
-    if (!m.founder || isHF4(s.chef)) {
+    // Nevin's established cooks are known. New hires use the chef's growing impression.
+    if (!m.founder) {
       const g = predictAs(s.chef, p, offers, sug, { now: s.minute });
       return {
         verb,
