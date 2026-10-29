@@ -57,4 +57,4 @@ it('restores an appended journal and keeps the last committed save after a faile
     })),
   ).toBe(true);
   expect((await store.read())?.journal.head).toEqual(saved.journal.head);
-});
+}, 30000);

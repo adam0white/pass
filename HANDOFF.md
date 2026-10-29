@@ -10,6 +10,8 @@ The existing People dialog shows the chef's live self affect and learned outcome
 
 Older engine saves refuse with a plain start-new-game message and remain stored. This edition makes no 3.x compatibility or cross-game journey claim. All historical replay-hash tests and their pins stay unchanged; no replay pin was weakened or updated. HF's current engine identity, archive codec and recorded wording intentionally differ from 4.8.1; current replay/restore equality is tested under 4.12.0.
 
+CI runner deadlines: journal recovery receives 30 seconds; the existing two-service clearing/replay control receives 300 seconds. The initial CI run exceeded their 5/120-second deadlines while all other assertions passed. Their inputs and assertions are unchanged.
+
 Hosted review is waived by coordinator ruling 2026-10-29T09:25Z. This task runs no hosted or extra independent review. Technical delivery does not accept game readiness or authorize a new player round.
 
 ## Current host follow-through — 2026-10-29

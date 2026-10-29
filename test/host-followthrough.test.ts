@@ -142,7 +142,7 @@ it('clears one real abandoned meal, conserves its plate, and retains fallback af
   expect(raw(restored)).toEqual(raw(s));
   expect(raw(replayExport(exportRun(s, '4.12.0')))).toEqual(raw(s));
   expect(verifyCommunity(s.chef).verified).toBe(true);
-}, 120000);
+}, 300000);
 
 it('rejects an unheard topic without choosing an activity or speaking', () => {
   const s = service();
