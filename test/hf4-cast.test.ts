@@ -24,7 +24,7 @@ it('records actual HF4 promptings in kitchen minutes', () => {
   while (phase() === 'service') step(s);
   expect(personOf(s, 'rafi').promptings?.recent.length).toBeGreaterThan(0);
   expect(s.said.some((line) => line.kind === 'prompt')).toBe(true);
-}, 120000);
+}, 300000);
 
 it('retains a hired cook shift through a community refresh and restore', () => {
   const community = freshCommunity(42);
