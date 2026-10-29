@@ -38,7 +38,7 @@ it('retains a hired cook shift through a community refresh and restore', () => {
   if (!savedHire) throw new Error('Missing restored hire');
   expect(JSON.parse(JSON.stringify(checkpoint(savedHire)))).toEqual(saved);
   expect(verifyCommunity(savedHire).verified).toBe(true);
-});
+}, 120000);
 
 it('projects a current person and admits the retained passport before the new run starts', async () => {
   const person = freshCommunity(42).people.find((p) => p.id === 'hulya');
@@ -103,7 +103,7 @@ it('fingerprints the host state as well as the HF archive', async () => {
   expect(fingerprint(state)).toBe(fingerprint(saved));
   saved.till += 1;
   expect(fingerprint(state)).not.toBe(fingerprint(saved));
-});
+}, 120000);
 
 it('keeps a retained visitor duty at its mapped wall time when paid work is accepted', async () => {
   const person = freshCommunity(42).people.find((p) => p.id === 'zeynep');

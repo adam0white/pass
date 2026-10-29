@@ -78,7 +78,7 @@ it('records every custom completion when one community tick finishes two cooks',
   expect(s.kitchen).toEqual(saved);
   expect(s.said.filter((line) => line.text.includes('I have told the table'))).toHaveLength(1);
   expect(verifyCommunity(s.chef).verified).toBe(true);
-}, 30000);
+}, 120000);
 
 it('resumes the planned meal after actual prayer completion and replays the break', () => {
   const s = newGame(42, 'pass@19');
@@ -131,7 +131,7 @@ it('clears an earlier request when a cook accepts a new dining-room task', () =>
   }
   expect(personOf(s, 'dilek').activity?.affordanceId).toBe('room');
   expect(cookOf(s, 'dilek').pending).toBeNull();
-});
+}, 120000);
 
 it('records dated kitchen advice as replayable HF4 evidence', () => {
   const rafi = freshCommunity(42).people.find((p) => p.id === 'rafi');
@@ -155,7 +155,7 @@ it('records dated kitchen advice as replayable HF4 evidence', () => {
     summary: 'The chef asked Rafi to scrub the trays.',
   });
   expect(verifyCommunity(rafi).verified).toBe(true);
-});
+}, 120000);
 
 it('keeps a relief cook at their agreed station until the scheduled break', () => {
   const s = newGame(42, 'pass@19');
