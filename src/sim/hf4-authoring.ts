@@ -2,6 +2,7 @@
 import { DEFAULT_NORMS, type Offer, type PersonAuthoring, type RunSpec } from '@adam0white/human-framework';
 import { castForGame } from '@adam0white/lab-client';
 import { HF4_HOST, MINUTE_MS } from './hf4-run.ts';
+import { SELIM_PRAYER_WINDOW } from './public-calendar.ts';
 
 const DAY = 86_400_000 as const;
 export const HF4_OPENING = 9 * 60 * MINUTE_MS;
@@ -248,10 +249,19 @@ export function kitchenPerson(id: string): PersonAuthoring {
     );
   if (id === 'selim') {
     commitments.push(
-      commitment('selim:maghrib', 'worship', 'maghrib', 1115, 1160, ['pray'], 0.6, {
-        toId: 'self',
-        normId: 'salah',
-      }),
+      commitment(
+        'selim:maghrib',
+        'worship',
+        'maghrib',
+        SELIM_PRAYER_WINDOW.from,
+        SELIM_PRAYER_WINDOW.until,
+        ['pray'],
+        0.6,
+        {
+          toId: 'self',
+          normId: 'salah',
+        },
+      ),
     );
     commitments.push(
       commitment('selim:plates', 'abstain', 'my rule about the plates', 1110, 1230, [], 0.5, {

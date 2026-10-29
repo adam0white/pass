@@ -241,3 +241,55 @@
     grid-template-columns: minmax(0, 1fr) 440px;
   }
 }
+
+/* The board uses its full reading width. The editor appears only when requested. */
+@media (min-width: 900px) {
+  .people-board #board-form {
+    display: flex;
+  }
+  .people-board .board-body,
+  .people-board #board-form > .actions {
+    max-width: 960px;
+    align-self: center;
+  }
+  .people-board .board-editor-backdrop {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    background: #0005;
+    align-items: center;
+    justify-content: center;
+  }
+  .people-board .board-editor {
+    width: min(600px, calc(100vw - 48px));
+    max-height: calc(100dvh - 80px);
+  }
+}
+.people-board .board-change {
+  position: static;
+  width: auto;
+  margin: 6px 0;
+}
+.people-board .board-summary,
+.people-board .board-row h2 {
+  margin-right: 0;
+}
+.people-board .board-answer {
+  font-size: 15px;
+  line-height: 1.4;
+}
+.board-answer summary,
+.insist-choice summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 10px;
+}
+.people-board .board-answer p {
+  margin: 0;
+}
+.plan-warning,
+.kitchen-context {
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 8px 0;
+}

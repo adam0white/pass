@@ -99,6 +99,8 @@ import {
   attentionAvailable,
   clearTable,
   FOLLOWUP_EDITION,
+  type GrillLesson,
+  grillLesson,
   heardTopic,
   KITCHEN_EDITION,
   type KitchenWorld,
@@ -110,6 +112,9 @@ import {
   kitchenOffers,
   kitchenStarted,
   kitchenTask,
+  noteLessonFood,
+  noteLessonLearner,
+  noteLessonWork,
   recordPrivateAccount,
   reserveAttention,
   roomDelivery,
@@ -199,6 +204,7 @@ export interface StaffingDecision {
   cover?: CookId;
 }
 export type Input =
+  | { at: number; kind: 'grill-lesson'; learner: string }
   | { at: number; kind: 'kitchen-task'; who: string; task: 'room' | 'conversation' }
   | { at: number; kind: 'clear-table'; who: string; ticket: number }
   | { at: number; kind: 'replacement' }
@@ -437,6 +443,8 @@ export interface GameState {
   /** Persisted narration choice; absence preserves pre-adoption narration. */
   plainNarration?: boolean;
   kitchen?: KitchenWorld;
+  /** Actual demonstration/practice receipts, retained beyond a night or journal. */
+  grillLessons?: GrillLesson[];
   /** Player-heard private accounts survive the rolling journal and night reset. */
   privateAccounts?: Record<string, { at: number; text: string }>;
   version: string;
@@ -1513,6 +1521,7 @@ export function queueInput(s: GameState, input: NewInput): void {
     input.kind === 'cast-talk' ||
     input.kind === 'kitchen-task' ||
     input.kind === 'clear-table' ||
+    input.kind === 'grill-lesson' ||
     input.kind === 'replacement' ||
     input.kind === 'cast-release' ||
     (chefEdition(s) &&
@@ -1795,6 +1804,9 @@ function apply(s: GameState, inp: Input) {
       return;
     case 'pace':
       if (promisesOn(s) && s.applied === 1 && inp.value === 'nevin') s.pace = 'nevin';
+      return;
+    case 'grill-lesson':
+      grillLesson(s, inp.learner);
       return;
     case 'board':
       if (hasBoard(s) && s.phase === 'board') agreeBoard(s, inp.rows);
@@ -2491,6 +2503,8 @@ function cookMinute(s: GameState, c: CookState) {
     return;
   }
   reserveAttention(s, c.id, rec.suggestion?.verdict ?? '');
+  if (aff.id === 'grill' && voice?.verb === 'grill')
+    noteLessonLearner(s, c.id, rec.suggestion?.verdict ?? '', !!voice.s.insist);
   c.made = 0;
   if (hasCover(s)) {
     c.cover =
@@ -2856,6 +2870,7 @@ function produce(s: GameState) {
       if (!dark) {
         s.work.grill += r;
         c.made += r / GRILL_WORK;
+        noteLessonWork(s, c.id, r / GRILL_WORK);
       }
     } else if (st === 'cold') {
       s.work.cold += r;
@@ -2903,6 +2918,7 @@ function produce(s: GameState) {
     ) {
       s.work.grill -= GRILL_WORK;
       t.doneGrill += 1;
+      noteLessonFood(s, t.id);
     }
     while (t.doneCold < t.cold - reserved('cold') && s.work.cold >= COLD_WORK && takeIngredient(s, 'cold')) {
       s.work.cold -= COLD_WORK;
@@ -3716,6 +3732,7 @@ export function replay(
       inp.kind === 'cast-talk' ||
       inp.kind === 'kitchen-task' ||
       inp.kind === 'clear-table' ||
+      inp.kind === 'grill-lesson' ||
       inp.kind === 'replacement' ||
       inp.kind === 'cast-release' ||
       (chefEdition(s) &&

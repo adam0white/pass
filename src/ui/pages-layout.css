@@ -402,3 +402,90 @@ body {
 .evening-page .jar-reply {
   scroll-margin-block: 8px;
 }
+
+/* Full public words wrap; service controls and guesses remain inside their own rows. */
+.people-board > .lab-topbar {
+  height: auto;
+  min-height: 56px;
+  flex: 0 0 auto;
+}
+.people-board .bar-words {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  padding-block: 6px;
+}
+.people-service > .state-strip {
+  position: static;
+  width: auto;
+  max-width: none;
+}
+@media (min-width: 900px) {
+  .people-service.kitchen-service,
+  .people-service.kitchen-service.early-service {
+    grid-template-areas: "top top" "state sheet" "stock sheet" "rail sheet" "scene sheet" "causes sheet" "caption sheet";
+    grid-template-rows: 56px auto auto auto minmax(0, 1fr) auto 80px;
+  }
+}
+.people-service .crew {
+  height: auto;
+  min-height: 56px;
+}
+.people-service .crew button {
+  flex: 1 0 0;
+  min-width: 72px;
+  width: auto;
+  height: auto;
+}
+.people-service .verbs button,
+.people-service .verbs:has(button:nth-child(7)) button {
+  height: auto;
+  overflow: visible;
+}
+.people-service.inspecting .sheet {
+  overflow-y: auto;
+}
+.people-service.inspecting .verbs {
+  flex: none;
+  overflow: visible;
+}
+.request-warning:empty {
+  display: none;
+}
+.request-warning,
+.guess-context,
+.insist-choice {
+  flex: none;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 4px 0;
+}
+.insist-jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.insist-jobs button {
+  min-height: 44px;
+  font-size: 14px;
+}
+
+.people-service .playback-note {
+  margin: 0;
+  padding: 2px 10px 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.people-service .till-bar {
+  height: auto;
+  min-height: 36px;
+}
+@media (max-width: 899px) {
+  .people-service.kitchen-service.early-service {
+    grid-template-rows: 44px auto auto auto 120px auto 48px minmax(80px, 1fr);
+  }
+  .people-service.kitchen-service.early-service.inspecting {
+    grid-template-rows: 44px auto auto auto clamp(100px, 20dvh, 140px) auto 48px minmax(80px, 1fr);
+  }
+}
