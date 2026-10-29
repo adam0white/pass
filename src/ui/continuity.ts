@@ -11,6 +11,8 @@ import {
   type PersonaEnvelope,
   type PersonaLife,
   personaChannel,
+  portablePassport,
+  portableWriteBlockers,
   validatePersona,
   watchPersonaCheckpoint,
 } from '@adam0white/lab-client';
@@ -81,7 +83,7 @@ export function continuity(
   const source = () => ({
     game: 'pass',
     build: lab.build().c ?? 'local',
-    engine: '4.7.0',
+    engine: '4.8.1',
     rules: 'pass-19',
   });
   const emit = () => window.dispatchEvent(new Event('pass-continuity'));
@@ -105,7 +107,7 @@ export function continuity(
     const s = getState();
     return s
       ? {
-          ...exportRun(s, s.version === 'pass@19' ? '4.7.0' : FRAMEWORK_VERSION),
+          ...exportRun(s, s.version === 'pass@19' ? '4.8.1' : FRAMEWORK_VERSION),
           continuity: data(),
           oneCast: structuredClone(rows),
         }
@@ -249,7 +251,13 @@ export function continuity(
     importedHistory = chapter.inputs.length > 0;
     await gate();
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
-    report('The cooks remember their earlier experiences. Their other jobs and family duties still apply.');
+    if (chapter.blocked.length) {
+      const names = chapter.blocked.map((item) => canonicalCast(item.castId).name).join(', ');
+      const admitted = chapter.inputs.length ? 'The other cooks remember their earlier experiences. ' : '';
+      report(`${admitted}${names} could not join from their saved stories. Those stories remain saved.`);
+    } else if (chapter.inputs.length) {
+      report('The cooks remember their earlier experiences. Their other jobs and family duties still apply.');
+    }
     return next;
   }
   async function chooseRecording(_value: boolean) {
@@ -262,6 +270,15 @@ export function continuity(
     if (!s || (s.version !== 'pass@13' && !kitchenEdition(s)) || !shelf.enabled || fileOrigin || localOnly)
       return;
     const minute = s.minute;
+    const blockedWrites: string[] = [];
+    const canWritePortable = (cast: (typeof CAST)[number]) => {
+      const blockers = portableWriteBlockers(cast.castId, 'pass');
+      if (!blockers.length) return true;
+      const notice = `${cast.name}: this saved story cannot be shared until ${blockers.join(', ')} is ready. The saved story remains where it is.`;
+      blockedWrites.push(notice);
+      report(blockedWrites.join(' '));
+      return false;
+    };
     for (const cast of CAST) {
       const id = keyOf(cast.castId),
         p = s.people.find((p) => p.id === id),
@@ -269,6 +286,7 @@ export function continuity(
       if (!p) continue;
       if (!p.body.alive) {
         if (parent && !parent.terminal) {
+          if (isHF4(p) && portablePassport(parent) && !canWritePortable(cast)) continue;
           const terminal = await closePersonaBranch(parent, source(), p.now);
           if (epoch !== generation || getState() !== s) return;
           await shelf.request({ action: 'put', envelope: terminal });
@@ -284,6 +302,7 @@ export function continuity(
       if (!['evening', 'sunday', 'end'].includes(s.phase) || !s.releasedCast?.includes(id) || p.activity)
         continue;
       try {
+        if (isHF4(p) && !canWritePortable(cast)) continue;
         const transfer = isHF4(p) ? await hf4KitchenTransfer(p) : await kitchenTransfer(snapshot(p));
         if (
           epoch !== generation ||
@@ -337,6 +356,7 @@ export function continuity(
         );
       }
     }
+    if (blockedWrites.length) report(blockedWrites.join(' '));
   }
   const checkpoint = () => {
     chain = chain

@@ -63,8 +63,8 @@ export interface KitchenWorld {
     }[];
   };
 }
-const words = (s: GameState, who: string, text: string) =>
-  s.said.push({ at: s.minute, who, kind: 'answer', text });
+const words = (s: GameState, who: string, text: string, at = s.minute) =>
+  s.said.push({ at, who, kind: 'answer', text });
 const task = (
   id: string,
   label: string,
@@ -322,6 +322,36 @@ const personalReply = (who: string, kind: 'later' | 'private') => {
   };
   return replies[who]?.[kind === 'later' ? 0 : 1] ?? 'I cannot stop to talk now, Chef.';
 };
+/** Host consequences of an actual completion. HF4 calls this from its receipt drain. */
+export function kitchenCompleted(s: GameState, who: string, action: string, at: number) {
+  const world = s.kitchen;
+  if (!world || !['room', 'conversation', 'explain-wait', 'no-replies'].includes(action)) return;
+  if (action === 'conversation') {
+    const entry = world.conversations.findLast(
+      (x) => x.who === who && x.completed === undefined && ['assented', 'complied'].includes(x.verdict),
+    );
+    if (entry) entry.completed = at;
+  }
+  if (action === 'explain-wait') {
+    const entry = world.guests.findLast((x) => x.who === who && x.outcome === 'heard');
+    if (entry) {
+      const table = s.tickets.find((t) => t.id === entry.ticket);
+      entry.outcome = table?.status === 'walked' ? 'left-before-reply' : 'explained';
+      words(
+        s,
+        who,
+        table?.status === 'walked'
+          ? 'The table left before I finished explaining the wait.'
+          : table?.status === 'served'
+            ? 'Their food left the pass while I was explaining the wait.'
+            : 'I have told the table we will keep the order we agreed. They can wait or leave.',
+        at,
+      );
+    }
+  }
+  cookOf(s, who).idleUntil = at;
+}
+
 export function kitchenMinute(s: GameState) {
   const world = s.kitchen;
   if (!world) return;
@@ -356,7 +386,8 @@ export function kitchenMinute(s: GameState) {
     if (!a) continue;
     const custom = ['room', 'conversation', 'explain-wait', 'no-replies'].includes(a.affordanceId);
     if (custom) tick(p, s.minute);
-    if (custom && s.minute >= a.endsAt) {
+    if (custom && isHF4(p) && p.activity?.startedAt !== a.startedAt) continue;
+    if (!isHF4(p) && custom && s.minute >= a.endsAt) {
       observeNarration(s, p, 'completed');
       finish(p, {
         affordanceId: a.affordanceId,
@@ -365,29 +396,7 @@ export function kitchenMinute(s: GameState) {
         at: s.minute,
         ...(a.affordanceId === 'room' ? { material: 3 } : {}),
       });
-      if (a.affordanceId === 'conversation') {
-        const entry = world.conversations.findLast(
-          (x) => x.who === c.id && x.completed === undefined && ['assented', 'complied'].includes(x.verdict),
-        );
-        if (entry) entry.completed = s.minute;
-      }
-      if (a.affordanceId === 'explain-wait') {
-        const entry = world.guests.findLast((x) => x.who === c.id && x.outcome === 'heard');
-        if (entry) {
-          const table = s.tickets.find((t) => t.id === entry.ticket);
-          entry.outcome = table?.status === 'walked' ? 'left-before-reply' : 'explained';
-          words(
-            s,
-            c.id,
-            table?.status === 'walked'
-              ? 'The table left before I finished explaining the wait.'
-              : table?.status === 'served'
-                ? 'Their food left the pass while I was explaining the wait.'
-                : 'I have told the table we will keep the order we agreed. They can wait or leave.',
-          );
-        }
-      }
-      c.idleUntil = s.minute;
+      kitchenCompleted(s, c.id, a.affordanceId, s.minute);
       continue;
     }
     if (

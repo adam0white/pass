@@ -1,5 +1,12 @@
 import { expect, it } from 'vitest';
-import { checkpoint, freshCommunity, perceive, verifyCommunity } from '../src/sim/hf4-person.ts';
+import {
+  checkpoint,
+  decide,
+  freshCommunity,
+  perceive,
+  tick,
+  verifyCommunity,
+} from '../src/sim/hf4-person.ts';
 import {
   boardDefaults,
   cloneState,
@@ -11,6 +18,62 @@ import {
   restoreState,
   step,
 } from '../src/sim/kitchen.ts';
+
+it('records every custom completion when one community tick finishes two cooks', () => {
+  const s = newGame(42, 'pass@19');
+  if (!s.kitchen) throw new Error('Missing kitchen');
+  // World-only opportunities before opening. Both activities must actually start through HF.
+  for (const [who, action] of [
+    ['selim', 'conversation'],
+    ['dilek', 'explain-wait'],
+  ] as const) {
+    const person = personOf(s, who);
+    const rec = decide(
+      person,
+      [
+        {
+          id: action,
+          action,
+          label: 'talk at the pass',
+          duration: 3,
+          effort: 0.12,
+          advertises: { belonging: 0.2, autonomy: 0.1 },
+          material: 6,
+        },
+      ],
+      { suggestion: { voiceId: 'chef', affordanceId: action, strength: 0.5 } },
+    );
+    expect(person.activity?.affordanceId).toBe(action);
+    const verdict = rec.suggestion?.verdict;
+    expect(verdict).toBe('assented');
+    if (!verdict) throw new Error('Missing actual answer');
+    if (action === 'conversation') s.kitchen.conversations.push({ who, at: s.minute, verdict });
+    else {
+      const ticket = s.tickets[0];
+      if (!ticket) throw new Error('Missing authored table');
+      s.kitchen.guests.push({
+        ticket: ticket.id,
+        who,
+        at: s.minute,
+        action,
+        verdict,
+        outcome: 'heard',
+      });
+    }
+  }
+  const restored = restoreState(JSON.parse(JSON.stringify(cloneState(s))));
+  tick(s.chef, s.minute + 4);
+  tick(restored.chef, restored.minute + 4);
+  expect(s.kitchen.conversations[0]?.completed).toBeGreaterThan(s.minute);
+  expect(s.kitchen.guests[0]?.outcome).toBe('explained');
+  expect(s.said.filter((line) => line.text.includes('I have told the table'))).toHaveLength(1);
+  expect(JSON.parse(JSON.stringify(cloneState(restored)))).toEqual(JSON.parse(JSON.stringify(cloneState(s))));
+  const saved = JSON.parse(JSON.stringify(s.kitchen));
+  tick(s.chef, s.minute + 5);
+  expect(s.kitchen).toEqual(saved);
+  expect(s.said.filter((line) => line.text.includes('I have told the table'))).toHaveLength(1);
+  expect(verifyCommunity(s.chef).verified).toBe(true);
+}, 30000);
 
 it('resumes the planned meal after actual prayer completion and replays the break', () => {
   const s = newGame(42, 'pass@19');

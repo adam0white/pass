@@ -54,6 +54,7 @@ import {
   type Affordance,
   acquaintPerson,
   adoptVoiceTrust,
+  arriveStagedVisitor,
   begin,
   checkpoint,
   communityRun,
@@ -87,6 +88,7 @@ import {
   setKitchenWorld,
   snapshot,
   socialEvent,
+  stageRetainedVisitor,
   tick,
 } from './hf4-person.ts';
 import { type KitchenCheckpoint, MINUTE_MS } from './hf4-run.ts';
@@ -96,6 +98,7 @@ import {
   heardTopic,
   KITCHEN_EDITION,
   type KitchenWorld,
+  kitchenCompleted,
   kitchenEdition,
   kitchenMinute,
   kitchenNight,
@@ -427,6 +430,7 @@ export interface GameState {
   night: number;
   phase: 'board' | 'service' | 'evening' | 'sunday' | 'end' | 'return';
   castChapter?: KitchenChapter;
+  visitorDecisions?: Record<string, { chosen: string | null; checkpoint: KitchenCheckpoint }>;
   releasedCast?: string[];
   crewContact?: { night: number; who: CookId; topic: 'check-in' | 'follow-up' }[];
   returnChapter?: import('./continuation.ts').ReturnChapter;
@@ -697,6 +701,8 @@ function bindHF4World(s: GameState) {
       for (const work of completed.filter((c) => c.sequence > (s.hf4Settled ?? 0))) {
         const c = s.cooks.find((c) => c.id === work.person);
         if (c) c.made = 0;
+        if (c && work.status === 'completed')
+          kitchenCompleted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS));
         const row = s.board?.rows.find((r) => r.cook === work.person && r.accepted);
         if (
           c &&
@@ -1529,7 +1535,12 @@ function apply(s: GameState, inp: Input) {
         return;
       const initial =
           isHF4(s.chef) && s.castChapter?.portable?.[inp.who]
-            ? personFromCommunity(s.chef, inp.who)
+            ? stageRetainedVisitor(
+                s.seed,
+                inp.who,
+                required(s.castChapter.portable[inp.who]),
+                communityRun(s.chef).now,
+              )
             : s.castChapter?.actors[inp.who],
         t = hireTemplate(inp.who);
       if (!initial || !t || initial.now !== s.minute || initial.activity) return;
@@ -1559,11 +1570,28 @@ function apply(s: GameState, inp: Input) {
         { now: s.minute },
       );
       if (choice.chosenAffordanceId !== 'kitchen-job') {
+        if (isHF4(p)) {
+          s.visitorDecisions ??= {};
+          s.visitorDecisions[inp.who] = { chosen: choice.chosenAffordanceId, checkpoint: checkpoint(p) };
+        }
         say(s, p.id, 'I’ll keep my own plans today. My own story stays as it was in the notebook.', 'answer');
         return;
       }
-      acceptKitchenShift(p, s.minute);
-      s.people.push(p);
+      const accepted =
+        isHF4(s.chef) && s.castChapter?.portable?.[inp.who]
+          ? arriveStagedVisitor(
+              s.chef,
+              p,
+              required(s.castChapter.portable[inp.who]),
+              required(CAST.find((c) => c.castId.split('.')[2] === inp.who)).castId,
+            )
+          : p;
+      if (isHF4(p) && p !== accepted) {
+        s.visitorDecisions ??= {};
+        s.visitorDecisions[inp.who] = { chosen: choice.chosenAffordanceId, checkpoint: checkpoint(p) };
+      }
+      acceptKitchenShift(accepted, s.minute);
+      s.people.push(accepted);
       s.crew.push({
         id: t.id,
         castId: required(CAST.find((c) => c.castId.split('.')[2] === t.id)).castId,
@@ -1577,13 +1605,13 @@ function apply(s: GameState, inp: Input) {
       s.cooks.push(blankCook(t.id));
       const cook = cookOf(s, t.id);
       cook.here = true;
-      cook.trustAtOpen = trustOf(p);
+      cook.trustAtOpen = trustOf(accepted);
       if (facts?.startsAtHome)
         cook.pending = { s: { voiceId: CHEF, affordanceId: 'eat', strength: 0.5 }, verb: 'eat', quiet: true };
-      glimpsePerson(s.chef, p, s.minute, 1);
+      glimpsePerson(s.chef, accepted, s.minute, 1);
       say(
         s,
-        p.id,
+        accepted.id,
         'I’ll take the paid kitchen work. I still keep my own promises, and I still leave at my usual time.',
         'answer',
       );

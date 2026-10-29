@@ -10,7 +10,7 @@ import { NARRATION_EDITION } from '../sim/narration-edition.ts';
 
 import { frameworkEngine, visibleFatigue } from '../sim/hf4-person.ts';
 
-const FRAMEWORK_VERSION = '4.7.0';
+const FRAMEWORK_VERSION = '4.8.1';
 
 import { PRIVACY_URL } from '@adam0white/lab-client';
 import { telemetryToggle } from '@adam0white/lab-kit';

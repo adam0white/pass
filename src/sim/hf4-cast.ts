@@ -10,7 +10,14 @@ import {
 } from '@adam0white/lab-client';
 import { CAST, digest, type KitchenChapter, keyOf } from './cast-chapter.ts';
 import { HF4_ACTIONS, HF4_OPENING } from './hf4-authoring.ts';
-import { checkpoint, communityRun, freshCommunity, isHF4, type Person } from './hf4-person.ts';
+import {
+  checkpoint,
+  communityRun,
+  freshCommunity,
+  isHF4,
+  type Person,
+  stageRetainedVisitor,
+} from './hf4-person.ts';
 
 const same = (a: unknown, b: unknown) => canonicalPersona(a) === canonicalPersona(b);
 export async function prepareHF4KitchenChapter(
@@ -78,6 +85,8 @@ export async function prepareHF4KitchenChapter(
   }
   // Admission is validated before the shelf changes ownership. No actor replacement or private archive edit.
   freshCommunity(seed, portable);
+  for (const [id, admission] of Object.entries(portable))
+    if (!['selim', 'dilek', 'rafi'].includes(id)) stageRetainedVisitor(seed, id, admission, 1045 * 60_000);
   return {
     version: 'pass-cast/2',
     plainNarration: true,

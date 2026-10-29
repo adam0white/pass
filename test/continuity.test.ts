@@ -11,6 +11,8 @@ import { newGame } from '../src/sim/kitchen.ts';
 
 const mocks = vi.hoisted(() => ({
   shelf: { ready: Promise.resolve(true), enabled: true, request: vi.fn(), setEnabled: vi.fn() },
+  blockers: vi.fn((): string[] => []),
+  close: vi.fn(),
   lab: {
     trackRun: vi.fn(() => vi.fn()),
     setPersonaRecording: vi.fn(),
@@ -22,11 +24,17 @@ const mocks = vi.hoisted(() => ({
     playerId: 'fixture',
   },
 }));
-vi.mock('@adam0white/lab-client', async (original) => ({
-  ...(await original<typeof import('@adam0white/lab-client')>()),
-  personaChannel: () => mocks.shelf,
-  watchPersonaCheckpoint: vi.fn(),
-}));
+vi.mock('@adam0white/lab-client', async (original) => {
+  const actual = await original<typeof import('@adam0white/lab-client')>();
+  mocks.close.mockImplementation(actual.closePersonaBranch);
+  return {
+    ...actual,
+    personaChannel: () => mocks.shelf,
+    portableWriteBlockers: mocks.blockers,
+    closePersonaBranch: mocks.close,
+    watchPersonaCheckpoint: vi.fn(),
+  };
+});
 vi.mock('@adam0white/lab-kit', () => ({ personaControls: () => document.createElement('section') }));
 vi.mock('../src/ui/lab.ts', () => ({ lab: mocks.lab }));
 
@@ -34,6 +42,7 @@ import { continuity } from '../src/ui/continuity.ts';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.blockers.mockReturnValue([]);
   vi.stubGlobal('window', new EventTarget());
   mocks.shelf.enabled = true;
   mocks.shelf.request.mockResolvedValue(null);
@@ -260,3 +269,96 @@ it('preserves a historical Neighbours source when its incomplete passport is ref
   expect(head).toEqual(before);
   expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'putBatch')).toBe(false);
 });
+
+it('names skipped people and preserves their saved heads when the batch cannot claim them', async () => {
+  const source = await envelope();
+  const before = structuredClone(source);
+  mocks.shelf.request.mockImplementation(async (request) => {
+    if (request.action === 'prepareBatch')
+      return {
+        expectedHeads: Object.fromEntries(
+          (await import('@adam0white/lab-client'))
+            .castForGame('pass')
+            .map((cast) => [cast.castId, cast.castId === source.castId ? source.revision : null]),
+        ),
+        inputs: [],
+        blocked: [
+          { castId: source.castId, reason: 'Hülya: saved history is read-only until another game is ready.' },
+        ],
+      };
+    if (request.action === 'putBatch') {
+      expect(request.envelopes).toEqual([]);
+      return null;
+    }
+    return null;
+  });
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  const game = await c.fresh(42);
+  expect(game.castChapter?.inputs).toEqual([]);
+  expect(c.message).toContain('Hülya');
+  expect(c.message).toMatch(/saved|history|story/i);
+  expect(source).toEqual(before);
+  expect(c.data().ownedHeads).toEqual({});
+}, 30000);
+
+// Synthetic peer status checks the host guard; it does not claim live peer readiness.
+it.each([false, true])(
+  'keeps a blocked current portable head unchanged, terminal=%s',
+  async (terminal) => {
+    const { hf4KitchenTransfer } = await import('../src/sim/hf4-cast.ts');
+    const state = newGame(42, 'pass@19');
+    const person = required(state.people.find((p) => p.id === 'selim'));
+    const transfer = await hf4KitchenTransfer(person);
+    const castId = 'hf.cast.selim.pass',
+      branchId = 'guard-fixture';
+    const parent = await createPersona({
+      format: 'hf-persona/1',
+      castId,
+      castRevision: '1',
+      branchId,
+      parentRevision: null,
+      source: { game: 'pass', build: 'fixture', engine: '4.8.1', rules: 'pass-19' },
+      transfer: { ...transfer, life: initialPersonaLife(castId, branchId, 0) },
+      limitations: transfer.limitations,
+    });
+    const before = structuredClone(parent);
+    state.phase = 'evening';
+    state.releasedCast = ['selim'];
+    person.activity = null;
+    if (terminal) person.body.alive = false;
+    mocks.blockers.mockReturnValue(['repair']);
+    const c = continuity(() => state, vi.fn(), vi.fn());
+    await c.restore({
+      envelope: null,
+      oneCast: [],
+      ownedHeads: { [castId]: parent },
+      recordingGroup: [parent],
+    });
+    await c.checkpoint();
+    expect(mocks.close).not.toHaveBeenCalled();
+    expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put' || r.action === 'putBatch')).toBe(
+      false,
+    );
+    expect(c.data().ownedHeads?.[castId]).toEqual(before);
+    expect(c.message).toContain('Selim');
+    expect(c.message).toContain('repair');
+  },
+  30000,
+);
+
+// Synthetic ready peers exercise the permitted host path; no live readiness is implied.
+it('writes an eligible current portable checkpoint when the peer gate is open', async () => {
+  const state = newGame(42, 'pass@19');
+  const person = required(state.people.find((p) => p.id === 'selim'));
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  person.activity = null;
+  mocks.blockers.mockReturnValue([]);
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'put');
+  expect(puts).toHaveLength(1);
+  expect(required(puts[0])[0].envelope.castId).toBe('hf.cast.selim.pass');
+  expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
+}, 30000);

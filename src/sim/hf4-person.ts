@@ -8,6 +8,7 @@ import type {
   PortableAdmission,
   StepResult,
 } from '@adam0white/human-framework';
+import { validatePortablePerson } from '@adam0white/human-framework';
 import type {
   Affordance,
   DecisionRecord,
@@ -16,7 +17,13 @@ import type {
   SuggestionResolution,
 } from '@adam0white/human-framework-legacy';
 import * as historical from '@adam0white/human-framework-legacy';
-import { type KitchenOffer, kitchenOffer, kitchenPeople, kitchenSpec } from './hf4-authoring.ts';
+import {
+  type KitchenOffer,
+  kitchenOffer,
+  kitchenPeople,
+  kitchenPerson,
+  kitchenSpec,
+} from './hf4-authoring.ts';
 import { type KitchenCheckpoint, KitchenRun, type KitchenWorld, MINUTE_MS } from './hf4-run.ts';
 
 export * from '@adam0white/human-framework-legacy';
@@ -106,7 +113,9 @@ function refresh(c: Community) {
   if (c.settled) c.run.clearCompleted();
 }
 export function freshCommunity(seed: number, portable: Record<string, PortableAdmission> = {}) {
-  const authored = kitchenPeople();
+  const authored = kitchenPeople().filter(
+    (a) => !portable[a.id] || ['selim', 'dilek', 'rafi'].includes(a.id),
+  );
   for (const a of authored)
     if (portable[a.id]) {
       a.state.heldNorms = [];
@@ -133,12 +142,109 @@ export function freshCommunity(seed: number, portable: Record<string, PortableAd
   refresh(c);
   return c;
 }
+
+/** Stage a visitor's real job decision in an isolated Run at the opening board. */
+export function stageRetainedVisitor(
+  seed: number,
+  id: string,
+  portable: PortableAdmission,
+  now: number,
+): Person {
+  const authored = kitchenPerson(id);
+  authored.state.heldNorms = [];
+  authored.state.agenda.commitments = [];
+  authored.portable = clone(portable);
+  const spec = kitchenSpec(seed);
+  spec.start = now;
+  const person = {
+    id,
+    name: authored.identity.name,
+    now: Math.floor(now / MINUTE_MS),
+    traits: clone(authored.state.traits),
+    lexicon: { plainEnglish: true },
+  } as unknown as Person;
+  const c: Community = {
+    run: new KitchenRun(spec, []),
+    people: [person],
+    last: new Map(),
+    world: { available: () => true, outcome: () => ({ exposures: [], observedProgress: [] }) },
+  };
+  const at = spec.start + 1;
+  c.run.advance(
+    at,
+    [c.run.input('person.arrived', { authored, arrivalEvidenceId: `pass:offer:${id}` }, at)],
+    c.world,
+  );
+  communities.set(person, c);
+  refresh(c);
+  return person;
+}
+
+/** Admit the actual staged result only after that visitor chose paid work. */
+export function arriveStagedVisitor(
+  host: Person,
+  staged: Person,
+  source: PortableAdmission,
+  castId: string,
+): Person {
+  interrupt(staged, staged.now, 'opening work decision');
+  const stage = needCommunity(staged);
+  const view = stage.run.inspect({
+    perspective: { kind: 'host' },
+    people: [staged.id],
+    select: ['persona'],
+    portable: { person: staged.id, castId, castRevision: source.person.castRevision },
+  }).people[0];
+  const projected = view?.parts.find((part) => part.select === 'persona')?.value;
+  if (!projected || !('format' in projected) || projected.version !== 2)
+    throw new Error('Could not retain the visitor decision.');
+  const c = needCommunity(host);
+  const at = Math.max(stage.run.now, c.run.now + 1);
+  const authored = kitchenPerson(staged.id);
+  authored.state.heldNorms = [];
+  authored.state.agenda.commitments = [];
+  authored.portable = {
+    person: validatePortablePerson(projected),
+    mapping: { ...clone(source.mapping), offsetMs: at - projected.retained.at },
+  };
+  c.run.advance(
+    at,
+    [c.run.input('person.arrived', { authored, arrivalEvidenceId: `pass:opening:${staged.id}` }, at)],
+    c.world,
+  );
+  const person = {
+    id: staged.id,
+    name: authored.identity.name,
+    now: host.now,
+    traits: clone(authored.state.traits),
+    lexicon: { plainEnglish: true },
+  } as unknown as Person;
+  communities.set(person, c);
+  c.people.push(person);
+  refresh(c);
+  return person;
+}
+
 export function checkpoint(p: Person): KitchenCheckpoint {
   return needCommunity(p).run.checkpoint();
 }
 export function restoreCommunity(saved: KitchenCheckpoint, readings: readonly Person[] = []) {
   const c = freshCommunity(saved.archive.initial.spec.seed);
   c.run = KitchenRun.restore(saved);
+  c.people = c.people.filter((p) => p.id in saved.archive.current.people);
+  for (const id of Object.keys(saved.archive.current.people)) {
+    if (c.people.some((p) => p.id === id)) continue;
+    const a = kitchenPerson(id);
+    const p = {
+      id,
+      name: a.identity.name,
+      now: Math.floor(saved.archive.current.at / MINUTE_MS),
+      traits: clone(a.state.traits),
+      lexicon: { plainEnglish: true },
+    } as unknown as Person;
+    communities.set(p, c);
+    c.people.push(p);
+  }
   for (const p of readings)
     if (p.activity?.suggestion)
       c.last.set(p.id, { suggestion: clone(p.activity.suggestion) } as DecisionRecord);
