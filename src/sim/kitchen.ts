@@ -1816,7 +1816,7 @@ function apply(s: GameState, inp: Input) {
               say(
                 s,
                 inp.cover,
-                `Nobody will work at ${VERB_WORD[own.station]} while I work at ${VERB_WORD[decision.station]} until ${clock(decision.until)}.`,
+                `Nobody will work at ${VERB_WORD[own.station]} while I work at ${VERB_WORD[decision.station]} until ${publicClock(s, decision.until)}.`,
                 'answer',
               );
             }
@@ -2291,7 +2291,7 @@ function arrive(s: GameState, t: Ticket) {
       say(
         s,
         'narrator',
-        `Table ${t.table} comes first, as promised. Their food must go out by ${clock(booking.servedBy)}.`,
+        `Table ${t.table} comes first, as promised. Their food must go out by ${publicClock(s, booking.servedBy)}.`,
         'call',
       );
     } else if (booking.promised) {
@@ -2299,7 +2299,7 @@ function arrive(s: GameState, t: Ticket) {
       say(
         s,
         'narrator',
-        `I promised table ${t.table} ${p?.signature.words}. It is my next portion, due by ${clock(booking.servedBy)}.`,
+        `I promised table ${t.table} ${p?.signature.words}. It is my next portion, due by ${publicClock(s, booking.servedBy)}.`,
         'call',
       );
     }
@@ -3108,6 +3108,9 @@ const clock = (m: number) => {
   const d = ((m % 1440) + 1440) % 1440;
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
 };
+// Format only the spoken deadline; retain exact HF timestamps and durations.
+const publicClock = (s: GameState, minute: number) =>
+  clock(s.version === 'pass@19' ? Math.ceil(minute) : minute);
 
 function evening(s: GameState, c: CookState): string {
   const rq = s.request;
@@ -3751,7 +3754,7 @@ function coverUntil(s: GameState): number {
 
 function stationPromise(s: GameState, station: Station): string {
   const until = coverUntil(s);
-  const end = clock(until);
+  const end = publicClock(s, until);
   return until === nightStart(s.night) + RUSH_TO
     ? `I will work at ${VERB_WORD[station]} until the rush slows down at ${end}.`
     : `I will work at ${VERB_WORD[station]} until ${end}.`;
@@ -3759,14 +3762,14 @@ function stationPromise(s: GameState, station: Station): string {
 
 export function stationRequestLine(s: GameState, _id: CookId): string | null {
   return hasCover(s)
-    ? `Ask the cook to work at a station until ${clock(coverUntil(s))}. Another request can change it.`
+    ? `Ask the cook to work at a station until ${publicClock(s, coverUntil(s))}. Another request can change it.`
     : 'A station request lasts for one 25-minute stretch. Then the cook chooses again.';
 }
 
 export function coverLine(s: GameState, id: CookId): string | null {
   const cover = cookOf(s, id).cover;
   return hasCover(s) && cover && s.minute < cover.until
-    ? `I will work at ${VERB_WORD[cover.station]} until ${clock(cover.until)}.`
+    ? `I will work at ${VERB_WORD[cover.station]} until ${publicClock(s, cover.until)}.`
     : null;
 }
 
@@ -4028,7 +4031,7 @@ function takeStation(
       s,
       c.id,
       accepted
-        ? `${says} I will work at ${VERB_WORD[station]} until ${clock(until)}.`
+        ? `${says} I will work at ${VERB_WORD[station]} until ${publicClock(s, until)}.`
         : `${says} I have not agreed to that part.`,
       'answer',
     );
@@ -4066,7 +4069,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
     const reply = takeStation(s, c, row.station, until, true);
     row.accepted = reply.accepted;
     row.answer = row.accepted
-      ? `${reply.says} I will work at ${VERB_WORD[row.station] ?? row.station} until ${clock(until)}. Then I will take a twenty-minute meal break. After that, I will work at ${VERB_WORD[row.station]} until closing time.`
+      ? `${reply.says} I will work at ${VERB_WORD[row.station] ?? row.station} until ${publicClock(s, until)}. Then I will take a twenty-minute meal break. After that, I will work at ${VERB_WORD[row.station]} until closing time.`
       : `${reply.says} I have not agreed to that station. Try another station, or open with nobody there.`;
     // Keep the actual HF answer rather than replacing a no with a generic yes.
     say(s, id, row.answer, 'answer');
@@ -4116,7 +4119,7 @@ function agreeBoard(s: GameState, rows: BoardRow[]) {
           : undefined) ?? answer.says)
       : 'No.';
     const line = row.coverAccepted
-      ? `${says} I will take over ${VERB_WORD[row.station]} from ${nameOf(s, row.cook)} at ${clock(row.breakAt)}, for twenty minutes.`
+      ? `${says} I will take over ${VERB_WORD[row.station]} from ${nameOf(s, row.cook)} at ${publicClock(s, row.breakAt)}, for twenty minutes.`
       : `${says} I haven’t agreed to take over that station.`;
     row.answer += ` ${nameOf(s, row.cover)}: “${line}”`;
     say(s, row.cover, line, 'answer');
@@ -4166,7 +4169,7 @@ function raiseStaffing(s: GameState, who: CookId, station: Station, until: numbe
   say(
     s,
     who,
-    `${reason} Someone needs to work at ${VERB_WORD[station] ?? station} until ${clock(until)}.`,
+    `${reason} Someone needs to work at ${VERB_WORD[station] ?? station} until ${publicClock(s, until)}.`,
     'call',
   );
 }
@@ -4202,7 +4205,7 @@ function rotaMinute(s: GameState, c: CookState): boolean {
     say(
       s,
       c.id,
-      `This is my planned meal break. I will be back at ${VERB_WORD[row.station]} at ${clock(end)}.`,
+      `This is my planned meal break. I will be back at ${VERB_WORD[row.station]} at ${publicClock(s, end)}.`,
       'journal',
     );
     if (row.cover && row.coverAccepted && inKitchen(s, row.cover)) {
@@ -4383,7 +4386,7 @@ export function cookingStep(s: GameState): {
       equipmentWait ??
       (s.minute >= readyAt
         ? `Table ${t.table}: I am ready to ${act}.`
-        : `Table ${t.table}: I will ${act} at ${clock(readyAt)}.`),
+        : `Table ${t.table}: I will ${act} at ${publicClock(s, readyAt)}.`),
   };
 }
 

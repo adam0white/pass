@@ -244,7 +244,8 @@ const esc = (x: string) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string,
   );
 const clock = (m: number) => {
-  const d = ((m % 1440) + 1440) % 1440;
+  const whole = Math.ceil(m);
+  const d = ((whole % 1440) + 1440) % 1440;
   return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`;
 };
 /** A hand-drawn line: a few jittered points between two ends, deterministic per key. */
@@ -1926,13 +1927,15 @@ function drawSheet() {
     return;
   }
   if (staffing) {
+    const minutes = Math.max(1, Math.ceil(staffing.until - st.minute));
+    const durationWords = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
     const queued = st.inputs
       .slice(st.applied)
       .some((input) => input.kind === 'staff' && input.id === staffing.id);
     sheetKey = `staff${staffing.id}${st.inputs.length}`;
     renderPanel(
       el,
-      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>Nobody will work at the ${esc(VERB_LABEL[staffing.station].toLowerCase())} for about ${Math.max(1, staffing.until - st.minute)} minutes, until ${clock(staffing.until)}.</div><div class="soft">${staffingOptions(st, staffing).length ? 'Choose who to ask.' : esc(noCoverWords(`the ${VERB_LABEL[staffing.station].toLowerCase()}`))}</div><div class="staffing-options">${staffingOptions(
+      `${crewHeader()}<div class="card staffing-card"><div><b>${esc(nameOf(st, staffing.who))}</b>: ${esc(staffing.reason)}</div><div>Nobody will work at the ${esc(VERB_LABEL[staffing.station].toLowerCase())} for about ${durationWords}, until ${clock(staffing.until)}.</div><div class="soft">${staffingOptions(st, staffing).length ? 'Choose who to ask.' : esc(noCoverWords(`the ${VERB_LABEL[staffing.station].toLowerCase()}`))}</div><div class="staffing-options">${staffingOptions(
         st,
         staffing,
       )

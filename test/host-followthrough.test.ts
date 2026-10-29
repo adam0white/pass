@@ -53,6 +53,12 @@ it('keeps private words unheard until an actual conversation completes, then off
   }
   expect(s.said.filter((line) => line.text === PRIVATE_CLUES.dilek)).toHaveLength(1);
   expect(privateConversationAvailable(s, 'dilek')).toBe(false);
+  // Source-causal presentation control: real HF settlement remains fractional,
+  // while the actual coverage call uses a whole-minute public clock.
+  expect(s.staffing?.some((gap) => !Number.isInteger(gap.until))).toBe(true);
+  const calls = s.said.filter((line) => line.kind === 'call' && line.text.includes('Someone needs to work'));
+  expect(calls.length).toBeGreaterThan(0);
+  expect(calls.every((line) => !/\d{2}:\d{2}\.\d/.test(line.text))).toBe(true);
   expect(heardTopics(s, 'dilek').some((topic) => topic.text === PRIVATE_CLUES.dilek)).toBe(true);
   expect(heardTopics(s, 'selim').some((topic) => topic.text === PRIVATE_CLUES.dilek)).toBe(false);
   expect(raw(restored)).toEqual(raw(s));
