@@ -401,7 +401,7 @@ export function kitchenCompleted(s: GameState, who: string, action: string, at: 
       'narrator',
       lesson.state === 'demonstrated'
         ? `Selim finished his guidance while ${memberOf(s, lesson.learner).name} worked at the grill${lesson.learnerInsisted ? ' after you insisted on that work' : ''}. This records actual work together, not mastery.`
-        : 'Selim’s time for guidance ended without food work together. No completed demonstration is recorded.',
+        : 'Selim’s time for guidance ended. No shared food work was confirmed. No completed demonstration is recorded.',
       at,
     );
   }
