@@ -92,6 +92,7 @@ function refresh(c: Community) {
       review: clone(x.review),
       activity: activity
         ? {
+            hf4ActivityId: activity.id,
             affordanceId: activity.offer.id,
             action: activity.offer.actionId,
             startedAt: activity.start / MINUTE_MS,
@@ -100,6 +101,10 @@ function refresh(c: Community) {
             effort: activity.offer.demands.effort,
             affordance: legacyOffer(activity.offer),
             suggestion: c.last.get(p.id)?.suggestion,
+            ...((p.activity as (NonNullable<Person['activity']> & { hf4ActivityId?: string }) | null)
+              ?.hf4ActivityId === activity.id && p.activity?.protest
+              ? { protest: true }
+              : {}),
           }
         : null,
     });
@@ -245,9 +250,20 @@ export function restoreCommunity(saved: KitchenCheckpoint, readings: readonly Pe
     communities.set(p, c);
     c.people.push(p);
   }
-  for (const p of readings)
+  for (const p of readings) {
     if (p.activity?.suggestion)
       c.last.set(p.id, { suggestion: clone(p.activity.suggestion) } as DecisionRecord);
+    const target = c.people.find((person) => person.id === p.id);
+    const active = c.run.active.find((activity) => activity.person === p.id);
+    if (
+      target &&
+      active &&
+      (p.activity as (NonNullable<Person['activity']> & { hf4ActivityId?: string }) | null)?.hf4ActivityId ===
+        active.id &&
+      p.activity?.protest
+    )
+      target.activity = clone(p.activity);
+  }
   refresh(c);
   return c;
 }
@@ -287,6 +303,7 @@ export function decide(
 ): DecisionRecord {
   if (!isHF4(p)) return historical.decide(p, offers, options);
   const c = needCommunity(p),
+    previousActivityId = c.run.active.find((a) => a.person === p.id)?.id,
     received = options.suggestion
       ? {
           kind: 'ordinary' as const,
@@ -303,6 +320,13 @@ export function decide(
   const d = decision(result, p);
   c.last.set(p.id, d);
   refresh(c);
+  if (
+    p.activity &&
+    p.activity.affordanceId === d.chosenAffordanceId &&
+    c.run.active.find((a) => a.person === p.id)?.id !== previousActivityId &&
+    ['complied', 'commanded'].includes(d.suggestion?.verdict ?? '')
+  )
+    p.activity.protest = true;
   return d;
 }
 export function begin(p: Person, a: Affordance, d: DecisionRecord) {

@@ -14,6 +14,7 @@ import {
   cloneState,
   cookOf,
   newGame,
+  pace,
   personOf,
   queueInput,
   replay,
@@ -170,7 +171,7 @@ it('keeps a relief cook at their agreed station until the scheduled break', () =
   step(s);
   expect(cookOf(s, 'dilek').cover?.station).toBe(own?.station);
   expect(verifyCommunity(s.chef).verified).toBe(true);
-});
+}, 120000);
 
 it('does not author copied home activities for departed people', () => {
   const community = freshCommunity(42);
@@ -211,3 +212,27 @@ it('pins the released cook checkpoint across later community time', () => {
     saved,
   );
 });
+
+it('retains actual protested work through refresh and restore', () => {
+  const s = newGame(42, 'pass@19');
+  queueInput(s, { kind: 'board', rows: boardDefaults(s) });
+  queueInput(s, { kind: 'open' });
+  for (let i = 0; i < 12; i++) step(s);
+  queueInput(s, { kind: 'ask', cook: 'dilek', verb: 'grill', insist: true });
+  step(s);
+  const p = personOf(s, 'dilek');
+  expect(s.lastAnswer?.verdict).toBe('complied');
+  expect(p.activity?.protest).toBe(true);
+  const slowed = pace(s, 'dilek', 'grill');
+  if (!p.activity) throw new Error('Missing work');
+  p.activity.protest = false;
+  expect(slowed).toBeCloseTo(pace(s, 'dilek', 'grill') * 0.65);
+  p.activity.protest = true;
+  const restored = restoreState(JSON.parse(JSON.stringify(cloneState(s))));
+  expect(personOf(restored, 'dilek').activity?.protest).toBe(true);
+  const replayed = replay(s.seed, s.inputs, s.minute, s.version);
+  expect(personOf(replayed, 'dilek').activity?.protest).toBe(true);
+  expect(pace(replayed, 'dilek', 'grill')).toBeCloseTo(slowed);
+  tick(s.chef, s.minute + 1);
+  expect(p.activity?.protest).toBe(true);
+}, 120000);

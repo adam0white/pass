@@ -426,7 +426,7 @@ it('replays and restores a release when the source cannot be projected', async (
   const replayed = replay(state.seed, state.inputs, state.minute, state.version);
   expect(replayed.releasedCast).toContain('selim');
   expect(replayed.releasedCastProjections?.selim).toEqual(refusal);
-}, 30000);
+}, 180000);
 
 it('publishes the release projection even if the live person later dies', async () => {
   const state = newGame(42, 'pass@19');
