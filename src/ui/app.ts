@@ -16,9 +16,9 @@ import { NARRATION_EDITION } from '../sim/narration-edition.ts';
  * request is open). The save is the chef's notebook: the seed, the input log, and the Sunday pages to turn back to.
  */
 
-import { frameworkEngine, visibleFatigue } from '../sim/hf4-person.ts';
+import { communityRun, frameworkEngine, visibleFatigue } from '../sim/hf4-person.ts';
 
-const FRAMEWORK_VERSION = '4.8.1';
+const FRAMEWORK_VERSION = '4.12.0';
 
 import { PRIVACY_URL } from '@adam0white/lab-client';
 import { telemetryToggle } from '@adam0white/lab-kit';
@@ -76,6 +76,7 @@ import {
   queueInput,
   replay,
   requestText,
+  restoreJournalState,
   type Said,
   staffingOptions,
   stationOf,
@@ -86,6 +87,7 @@ import {
   type Verb,
 } from '../sim/kitchen.ts';
 import { zeynepDepartureStatus } from '../sim/one-cast.ts';
+import { Autosave, indexedJournalStorage } from './autosave.ts';
 import { boardReplies, breakSlots, sameBoard } from './board.ts';
 import { automaticClockPlayback, inspectingCook, SPEED_NAMES } from './clock.ts';
 import { type ContinuitySave, continuity, guardedContinuity } from './continuity.ts';
@@ -93,6 +95,7 @@ import { portionEdition } from './editions.ts';
 import { openFeedback } from './feedback.ts';
 import { handoverContext, handoverHands, sundayOpenLabel } from './first-party.ts';
 import { lab, mountNotice } from './lab.ts';
+import { liveReadingWords } from './live-readings.ts';
 import { endingTally } from './notebook.ts';
 import { closingChoices, offerUnavailable, serviceAccount } from './people-offers.ts';
 import { unseenSpeech } from './speech.ts';
@@ -101,7 +104,8 @@ import { journalWords, noCoverWords, serviceStatus, tableAboutToLeave } from './
 import { gloss, lira } from './words.ts';
 
 const SAVE = 'pass-save';
-const SAVE_FORMAT = 2;
+const JOURNAL_SAVE = 'pass-save-journal-v1';
+const SAVE_FORMAT = 3;
 const OLD_SAVES = ['pass-save-v1', 'pass-save-v2', 'pass-save-v3'];
 
 interface PartyStart {
@@ -128,6 +132,8 @@ interface Save {
   seed: number;
   inputs: Input[];
   minute: number;
+  state: GameState;
+  hf4Host: ReturnType<ReturnType<typeof communityRun>['journalHost']>;
   /** Sunday pages: how many inputs had been given when each week's Sunday opened. */
   pages: { week: number; k: number }[];
 }
@@ -166,10 +172,12 @@ const cast = continuity(
 
 // ---------- save ----------
 
+const autosave = new Autosave<Save>(indexedJournalStorage<Save>());
+let savedRecord: Awaited<ReturnType<typeof autosave.read>> = null;
+
 function readSave(): Save | null {
   try {
-    const raw = localStorage.getItem(SAVE);
-    const sv = raw ? (JSON.parse(raw) as Save) : null;
+    const sv = savedRecord?.host;
     return sv &&
       sv.format === SAVE_FORMAT &&
       sv.game === 'pass@19' &&
@@ -184,7 +192,9 @@ function readSave(): Save | null {
 function oldSave(): boolean {
   try {
     return (
+      savedRecord !== null ||
       localStorage.getItem(SAVE) !== null ||
+      localStorage.getItem(JOURNAL_SAVE) !== null ||
       OLD_SAVES.some((k) => localStorage.getItem(k) !== null) ||
       Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).some((k) =>
         k?.startsWith('pass-save-hf4-'),
@@ -194,46 +204,49 @@ function oldSave(): boolean {
     return false;
   }
 }
-function writeSave() {
-  if (!s) return;
+function writeSave(): Promise<boolean> {
+  if (!s) return Promise.resolve(true);
   if (s.phase === 'sunday' && s.sunday && !pages.some((p) => p.week === s?.sunday?.week)) {
     // The page is turned at the moment Sunday opens: count only the inputs that brought us here.
     const k = s.inputs.length - Object.keys(s.sunday.chosen).length;
     pages.push({ week: s.sunday.week, k });
   }
-  try {
-    const sv: Save = {
-      format: SAVE_FORMAT,
-      game: s.version,
-      framework: FRAMEWORK_VERSION,
-      hf4Engine: frameworkEngine(),
-      plainNarration: s.plainNarration === true,
-      seed: s.seed,
-      inputs: s.inputs,
-      minute: s.minute,
-      pages,
-      firstPartyStart,
-      partyHandover,
-      continuity: cast.data(),
-      returnChapter: s.returnChapter,
-      castChapter: s.castChapter,
-    };
-    if (!filePlay) localStorage.setItem(SAVE, JSON.stringify(sv));
-    lab.captureSave(structuredClone(sv));
-    return true;
-  } catch {
-    return false;
-  }
+  let captured: Save | undefined;
+  return autosave
+    .write(() => {
+      if (!s) return null;
+      const sv: Save = {
+        format: SAVE_FORMAT,
+        game: s.version,
+        framework: FRAMEWORK_VERSION,
+        hf4Engine: frameworkEngine(),
+        plainNarration: s.plainNarration === true,
+        seed: s.seed,
+        inputs: s.inputs,
+        minute: s.minute,
+        state: structuredClone(s),
+        hf4Host: communityRun(s.chef).journalHost(),
+        pages,
+        firstPartyStart,
+        partyHandover,
+        continuity: cast.data(),
+        returnChapter: s.returnChapter,
+        castChapter: s.castChapter,
+      };
+      captured = structuredClone(sv);
+      return filePlay ? null : { run: communityRun(s.chef), host: captured };
+    })
+    .then((ok) => {
+      if (ok && captured) lab.captureSave(captured);
+      return ok;
+    });
 }
 function clearSave() {
   filePlay = false;
   pages = [];
   firstPartyStart = false;
   partyHandover = null;
-  try {
-    localStorage.removeItem(SAVE);
-    // Historical notebooks remain stored when this edition starts a separate game.
-  } catch {}
+  // A successful write replaces the current journal. Older notebooks remain stored.
 }
 
 // ---------- helpers ----------
@@ -321,7 +334,15 @@ function openGameMenu() {
   const dialog = document.createElement('dialog');
   dialog.className = 'game-menu-dialog';
   dialog.setAttribute('aria-label', 'Game menu');
-  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title)}, week ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (saved === false ? 'This device could not save your game. You can keep a copy of it through Feedback.' : filePlay ? 'The game is paused. You are playing a file. Your saved game stays on this device. Keep a copy of this run through Feedback before leaving.' : 'The game is paused while this menu is open.') : 'No game has started.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
+  dialog.innerHTML = `<div class="menu-heading"><h2>Game menu <small>${s ? `· ${esc(planOf(s.night).title)}, week ${planOf(s.night).week} · ${clock(s.minute)}` : '· The Pass'}</small></h2><button id="menu-close" aria-label="Close menu">×</button></div><p id="save-result" role="status">${s ? (filePlay ? 'The game is paused. You are playing a file. Your saved game stays on this device. Keep a copy of this run through Feedback before leaving.' : 'Saving your game…') : 'No game has started.'}</p><div class="menu-rows"><button id="send-run">Feedback</button><button id="full-screen">Full screen</button><button id="menu-new">New game</button><div id="menu-new-confirm" hidden><p>Start a new game? This replaces your saved game.</p><button id="menu-new-yes">Start new game</button><button id="menu-new-no">Cancel</button></div><a href="https://human.adamwhite.work/games/">All games</a></div><div id="record-controls"><a href="${PRIVACY_URL}" target="_blank" rel="noopener">Lab privacy</a></div><button class="primary" id="menu-back">Resume</button>`;
+  void saved.then((ok) => {
+    const status = dialog.querySelector('#save-result');
+    if (status && !ok)
+      status.textContent =
+        'This device could not save your game. You can keep a copy of it through Feedback.';
+    else if (status && s && !filePlay)
+      status.textContent = 'The game is saved and paused while this menu is open.';
+  });
   let replacing = false;
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -347,9 +368,10 @@ function openGameMenu() {
       clearSave();
       s = fresh;
       cast.track();
-      writeSave();
+      const saved = await writeSave();
       dialog.close();
       enter();
+      if (!saved) openGameMenu();
     } catch (error) {
       console.error('New game failed', error);
       button.disabled = false;
@@ -446,6 +468,16 @@ function openPeople() {
   dialog.setAttribute('aria-label', 'People');
   dialog.innerHTML =
     '<h2>People</h2><p>You do not have to have these conversations or make these work offers.</p><button id="people-close">Resume</button>';
+  if (s.version === 'pass@19') {
+    const section = document.createElement('section');
+    section.setAttribute('aria-label', 'My current condition');
+    for (const line of liveReadingWords(s.chef, s.chef)) {
+      const p = document.createElement('p');
+      p.textContent = line;
+      section.append(p);
+    }
+    dialog.append(section);
+  }
   dialog.querySelector('#people-close')?.addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => {
     dialog.remove();
@@ -553,7 +585,12 @@ export async function start() {
   title();
 }
 
-function title() {
+async function title() {
+  try {
+    savedRecord = await autosave.read();
+  } catch {
+    savedRecord = null;
+  }
   lab.screen('title');
   cancelAnimationFrame(raf);
   const save = readSave();
@@ -622,7 +659,10 @@ function title() {
   document.getElementById('cont')?.addEventListener('click', async () => {
     if (!save) return;
     try {
-      const restored = await validateReplayFile(save);
+      const record = await autosave.read();
+      if (!record) throw new Error('Missing saved journal.');
+      const { state: restored, run, cursor } = restoreJournalState(save.state, save.hf4Host, record.journal);
+      autosave.adopt(run, record.journal, cursor);
       await cast.restore(guardedContinuity(restored, save.continuity), false, true, restored);
       firstPartyStart = save.firstPartyStart ?? false;
       partyHandover = save.partyHandover ?? null;
@@ -657,8 +697,10 @@ function title() {
           filePlay = false;
           s = restored;
           cast.track();
-          writeSave();
-          enterWithStatus();
+          const saved = await writeSave();
+          enterWithStatus(
+            saved ? '' : 'This device could not save your game. You can keep a copy through Feedback.',
+          );
         })().catch(() => status('That Sunday could not be loaded.'));
       });
     });
@@ -678,8 +720,12 @@ function title() {
             : newGame(seed, 'pass@19'));
         cast.track();
         if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
-        writeSave();
-        enterWithStatus(cast.message);
+        const saved = await writeSave();
+        enterWithStatus(
+          saved
+            ? cast.message
+            : 'This device could not save your game. You can keep a copy through Feedback.',
+        );
       })().catch((error: unknown) => {
         console.error('New game failed', error);
         status(

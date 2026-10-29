@@ -127,6 +127,63 @@ export function kitchenSpec(seed: number): RunSpec {
         roles: { chef: 'chef' },
         prefer: 'name',
         actions: plainActions,
+        wordings: {
+          'suggestion.resolved': [
+            'I {verdict}.{reason}',
+            'Chef, I {verdict}.{reason}',
+            'I {verdict} now.{reason}',
+            'For now, I {verdict}.{reason}',
+          ],
+          'verdict.assented': ['will do that', 'can do that', 'am willing to do that', 'agree to that'],
+          'verdict.complied': [
+            'will do that if you insist',
+            'will follow your request',
+            'will do as you ask',
+            'will do it because you insist',
+          ],
+          'verdict.deferred': [
+            'will {alternative} first',
+            'need to {alternative} first',
+            'want to {alternative} first',
+            'plan to {alternative} first',
+          ],
+          'verdict.modified': [
+            'would rather {alternative}',
+            'prefer to {alternative}',
+            'want to {alternative} instead',
+            'plan to {alternative} instead',
+          ],
+          'verdict.refused': [
+            'will not do that',
+            'do not agree to that',
+            'will decline that',
+            'do not want to do that',
+          ],
+          'verdict.cannot': [
+            'cannot do that',
+            'cannot manage that',
+            'am unable to do that',
+            'cannot take that on',
+          ],
+          'verdict.commanded': [
+            'will follow your order',
+            'will do as ordered',
+            'will do what you ordered',
+            'will obey that order',
+          ],
+          'reason.busy': [
+            'Let me finish what I am doing first.',
+            'I am busy with something else.',
+            'I need to finish this first.',
+            'I am doing something else now.',
+          ],
+          'reason.forecast:body': [
+            'That would leave me too tired.',
+            'I would be too tired later.',
+            'I need to keep some energy.',
+            'That would leave me too tired later.',
+          ],
+        },
       },
       calendar: {
         id: 'pass-calendar',

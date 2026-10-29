@@ -68,7 +68,7 @@ it('keeps private words unheard until an actual conversation completes, then off
   expect(s.kitchen?.conversations.at(-1)?.source).toEqual({ at: topic.at, text: topic.text });
   expect(contactAvailable(s, 'dilek', 'follow-up')).toBe(false);
   expect(s.said.some((line) => line.who === 'chef' && line.text.includes(topic.text))).toBe(true);
-  expect(raw(replayExport(exportRun(s, '4.8.1')))).toEqual(raw(s));
+  expect(raw(replayExport(exportRun(s, '4.12.0')))).toEqual(raw(s));
   expect(verifyCommunity(s.chef).verified).toBe(true);
   // Presentation retention control: evict the rolling speech log, leaving actual
   // completed work and HF untouched. This edited-log fixture makes no host replay claim.
@@ -140,7 +140,7 @@ it('clears one real abandoned meal, conserves its plate, and retains fallback af
   expect(interrupted.kitchen?.clearings?.at(-1)?.outcome).toBe('interrupted');
   expect(interrupted.plates.dirty.find((plate) => plate.abandonedTicket === ticket.id)?.at).toBe(fallback);
   expect(raw(restored)).toEqual(raw(s));
-  expect(raw(replayExport(exportRun(s, '4.8.1')))).toEqual(raw(s));
+  expect(raw(replayExport(exportRun(s, '4.12.0')))).toEqual(raw(s));
   expect(verifyCommunity(s.chef).verified).toBe(true);
 }, 120000);
 

@@ -12,6 +12,7 @@
  * customers as people, spatial movement.
  */
 
+import type { DeepReadonly, RunJournalArchive } from '@adam0white/human-framework';
 import { required } from '../required.ts';
 import {
   isLastOfWeek,
@@ -82,6 +83,7 @@ import {
   releaseCommitment,
   restore,
   restoreCommunity,
+  restoreCommunityFromJournal,
   reviewed,
   reviewLine,
   type Suggestion,
@@ -92,7 +94,7 @@ import {
   stageRetainedVisitor,
   tick,
 } from './hf4-person.ts';
-import { type KitchenCheckpoint, MINUTE_MS } from './hf4-run.ts';
+import { type KitchenCheckpoint, KitchenRun, MINUTE_MS } from './hf4-run.ts';
 import {
   attentionAvailable,
   clearTable,
@@ -3670,6 +3672,25 @@ export function restoreState(json: GameState): GameState {
     people: json.people.map((p) => restore(p)),
     chef: restore(json.chef),
   };
+}
+
+/** Restore a native autosave from its matching host snapshot and HF journal. */
+export function restoreJournalState(
+  json: GameState,
+  host: Omit<KitchenCheckpoint, 'archive'>,
+  journal: DeepReadonly<RunJournalArchive>,
+) {
+  if (json.version !== 'pass@19' || json.seed !== journal.opening.initial.spec.seed)
+    throw new Error('Invalid saved kitchen.');
+  const { run, cursor } = KitchenRun.restoreJournal(host, journal);
+  const c = restoreCommunityFromJournal(run, json.seed, [...json.people, json.chef]);
+  const state = {
+    ...structuredClone(json),
+    people: json.people.map((p) => personFromCommunity(required(c.people[0]), p.id)),
+    chef: personFromCommunity(required(c.people[0]), 'chef'),
+  };
+  bindHF4World(state);
+  return { state, run, cursor };
 }
 
 /** Rebuild a run from its seed and input log, stepping service minutes until `until` (or the last input). */

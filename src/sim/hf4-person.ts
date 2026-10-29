@@ -234,8 +234,13 @@ export function checkpoint(p: Person): KitchenCheckpoint {
   return needCommunity(p).run.checkpoint();
 }
 export function restoreCommunity(saved: KitchenCheckpoint, readings: readonly Person[] = []) {
-  const c = freshCommunity(saved.archive.initial.spec.seed);
-  c.run = KitchenRun.restore(saved);
+  return restoreCommunityFromJournal(KitchenRun.restore(saved), saved.archive.initial.spec.seed, readings);
+}
+
+export function restoreCommunityFromJournal(run: KitchenRun, seed: number, readings: readonly Person[] = []) {
+  const saved = run.checkpoint();
+  const c = freshCommunity(seed);
+  c.run = run;
   c.people = c.people.filter((p) => p.id in saved.archive.current.people);
   for (const id of Object.keys(saved.archive.current.people)) {
     if (c.people.some((p) => p.id === id)) continue;
@@ -285,15 +290,18 @@ function submit(p: Person, kind: Input['kind'], payload: any, minute = p.now) {
   refresh(c);
   return result;
 }
-const rendered = (result: DeepReadonly<StepResult>) =>
-  result.events.flatMap((e) => e.narration.map((n) => n.text)).join(' ');
+const rendered = (events: DeepReadonly<StepResult>['events'], person: string) =>
+  events
+    .filter((e) => e.person === person && e.data.kind === 'suggestion-resolved')
+    .flatMap((e) => e.narration.map((n) => n.text))
+    .join(' ');
 function decision(result: DeepReadonly<StepResult>, p: Person): DecisionRecord {
   const event = [...result.events].reverse().find((e) => e.person === p.id && e.data.kind === 'decision');
   if (!event || event.data.kind !== 'decision')
     throw new Error('HF did not return the requested kitchen decision.');
   const d = clone(event.data.decision) as unknown as DecisionRecord;
   d.at /= MINUTE_MS;
-  if (d.suggestion) d.suggestion.says = rendered(result) || d.suggestion.reason;
+  if (d.suggestion) d.suggestion.says = rendered(result.events, p.id) || d.suggestion.reason;
   return d;
 }
 export function decide(
@@ -493,7 +501,11 @@ function predicted(
     throw new Error('HF did not return a hypothetical kitchen answer.');
   const resolution = {
     ...clone(event.data.decision.suggestion),
-    says: event.narration.map((n) => n.text).join(' ') || event.data.decision.suggestion.reason,
+    says:
+      result.possibilities
+        .filter((e) => e.data.kind === 'suggestion-resolved')
+        .flatMap((e) => e.narration.map((n) => n.text))
+        .join(' ') || event.data.decision.suggestion.reason,
   } as SuggestionResolution;
   const confidence = result.impression?.cues.length
     ? Math.min(...result.impression.cues.map((c) => c.confidence))

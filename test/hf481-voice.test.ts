@@ -21,7 +21,7 @@ it('voices agreed board answers once and keeps familiar cooks in ink', () => {
   const answer = s.board?.rows.find((row) => row.cook === 'selim');
   expect(answer?.accepted).toBe(true);
   expect(hints(s, 'selim').every((hint) => !hint.guess)).toBe(true);
-  expect(answer?.answer).toMatch(/^Yes, Chef\./);
+  expect(answer?.answer).toMatch(/^(I |Chef, I |For now, I )/);
   expect(answer?.answer).not.toMatch(/assented|decided|I will work at.*I will work at.*I will work at/);
 }, 60000);
 
@@ -54,16 +54,12 @@ it('sharpens an observer preview after repeated looks and retains that learning 
   expect(communityRun(s.chef).verify().verified).toBe(true);
 }, 60000);
 
-it('gives reluctant assent a cook voice and names each unpaid alternative plainly', () => {
+it('uses the framework-rendered answer for current cooks', () => {
   const p = personOf(newGame(42, 'pass@19'), 'selim');
-  const base = {
+  const resolution = {
     verdict: 'modified',
-    decidedBy: { kind: 'term', source: 'material', margin: 1 },
+    reason: 'busy',
+    says: 'I will finish my meal first. I am busy with something else.',
   } as Parameters<typeof suggestionWords>[1];
-  const lines = ['break', 'eat', 'home'].map((verb) => suggestionWords(p, base, verb));
-  expect(new Set(lines.map((line) => line?.short)).size).toBe(3);
-  expect(lines.every((line) => !line?.text.includes('paid work'))).toBe(true);
-  expect(suggestionWords(p, { ...base, verdict: 'complied' }, 'grill')?.text).toBe(
-    'All right, Chef. If you insist.',
-  );
+  expect(suggestionWords(p, resolution, 'grill')?.text).toBe(resolution.says);
 }, 60000);

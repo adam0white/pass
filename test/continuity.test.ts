@@ -327,7 +327,7 @@ it.each([false, true])(
       castRevision: '1',
       branchId,
       parentRevision: null,
-      source: { game: 'pass', build: 'fixture', engine: '4.8.1', rules: 'pass-19' },
+      source: { game: 'pass', build: 'fixture', engine: '4.12.0', rules: 'pass-19' },
       transfer: { ...transfer, life: initialPersonaLife(castId, branchId, 0) },
       limitations: transfer.limitations,
     });

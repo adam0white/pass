@@ -1,3 +1,4 @@
+import { readRunHistory } from '@adam0white/human-framework';
 import { describe, expect, it } from 'vitest';
 import { HF4_OPENING, kitchenOffer, kitchenPeople, kitchenSpec } from '../src/sim/hf4-authoring.ts';
 import { KitchenRun, MINUTE_MS } from '../src/sim/hf4-run.ts';
@@ -15,15 +16,15 @@ const work = () =>
   });
 
 describe('Pass HF4 community run boundary', () => {
-  it('continues the same run after restoring a format 5 archive with clipped diagnostics', () => {
+  it('continues the same run after restoring a format 7 archive with clipped diagnostics', () => {
     const live = fresh();
     for (let i = 0; i < 70; i++) {
       const at = live.nextInputTime(540);
       live.advance(at, [live.input('offers.received', { person: 'selim', revision: i + 1, offers: [] }, at)]);
     }
     const saved = json(live.checkpoint());
-    expect(saved.archive.version).toBe(5);
-    expect(saved.archive.history.length).toBeGreaterThan(64);
+    expect(saved.archive.version).toBe(7);
+    expect(readRunHistory(saved.archive).length).toBeGreaterThan(64);
     expect(saved.archive.current.events).toHaveLength(64);
     const restored = KitchenRun.restore(saved);
     const at = live.nextInputTime(540);
@@ -40,14 +41,18 @@ describe('Pass HF4 community run boundary', () => {
     live.decide('selim', [work()], 540);
     expect(live.active.map((a) => a.offer.id)).toEqual(['grill']);
     const file = json(live.checkpoint());
-    expect(file.archive.history.every((transaction) => transaction.fidelity.mode === 'daily')).toBe(true);
+    expect(readRunHistory(file.archive).every((transaction) => transaction.fidelity.mode === 'daily')).toBe(
+      true,
+    );
     const restored = KitchenRun.restore(file);
     const until = live.now + 6 * MINUTE_MS;
     live.advance(until);
     restored.advance(until);
     expect(json(restored.checkpoint())).toEqual(json(live.checkpoint()));
     expect(
-      restored.checkpoint().archive.history.every((transaction) => transaction.fidelity.mode === 'daily'),
+      readRunHistory(restored.checkpoint().archive).every(
+        (transaction) => transaction.fidelity.mode === 'daily',
+      ),
     ).toBe(true);
     expect(live.active).toEqual([]);
     const verified = live.verify();
