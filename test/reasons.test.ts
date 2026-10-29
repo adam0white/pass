@@ -161,7 +161,7 @@ it('a body forecast on a break says the body reason, even when legacy reason say
 
 it.each([
   ['effort', 'I’d rather take the lighter job, Chef.', 'I prefer the lighter job'],
-  ['material', 'Let me finish this job first, Chef.', 'let me finish this job'],
+  ['material', 'I’d rather keep doing paid work, Chef.', 'I prefer paid work'],
 ])('phrases the actual %s source in kitchen words', (source, text, short) => {
   expect(
     suggestionWords(

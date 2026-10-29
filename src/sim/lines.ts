@@ -5,6 +5,7 @@
  * time, who was pushed), never at random, and a line is not repeated for the same cook.
  */
 import type { Activity, Person, SuggestionResolution } from '@adam0white/human-framework-legacy';
+import { isHF4 } from './hf4-person.ts';
 import { hashUnit } from './rng.ts';
 
 export const VERB_WORD: Record<string, string> = {
@@ -381,8 +382,9 @@ export function suggestionWords(
   verb: string,
   activity: Activity | null = p.activity,
 ): { text: string; short: string } | null {
-  if (r.verdict === 'assented') return { text: 'Yes, Chef.', short: 'yes' };
-  if (r.verdict === 'complied') return { text: 'All right, Chef. If you insist.', short: 'if I must' };
+  if (isHF4(p) && r.verdict === 'assented') return { text: 'Yes, Chef.', short: 'yes' };
+  if (isHF4(p) && r.verdict === 'complied')
+    return { text: 'All right, Chef. If you insist.', short: 'if I must' };
   if (r.verdict === 'refused' && r.reason === 'rule:my rule about the plates' && p.id === 'selim')
     return {
       text: 'I have worked on Nevin’s grill for twenty years. I don’t wash the dishes in the rush.',
@@ -424,6 +426,7 @@ export function suggestionWords(
   if (source === 'effort')
     return { text: 'I’d rather take the lighter job, Chef.', short: 'I prefer the lighter job' };
   if (source === 'material') {
+    if (!isHF4(p)) return { text: 'I’d rather keep doing paid work, Chef.', short: 'I prefer paid work' };
     if (verb === 'eat') return { text: 'I’ll eat after this job, Chef.', short: 'after this job' };
     if (verb === 'break')
       return { text: 'Let me finish this job first, Chef.', short: 'let me finish this job' };

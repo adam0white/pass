@@ -3935,7 +3935,9 @@ function coverOffers(s: GameState, id: CookId, station: Station, duration: numbe
   const current = personOf(s, id).activity?.affordanceId;
   return offersFor(s, id, station)
     .filter((a) => !current || a.id !== current || a.id === station)
-    .map((a) => (a.id === station ? { ...a, duration, followedBy: undefined } : a));
+    .map((a) =>
+      a.id === station ? { ...a, duration, ...(a.followedBy ? { followedBy: undefined } : {}) } : a,
+    );
 }
 
 /** HF decides the requested station for the agreed interval; cover is the existing cover state. */
@@ -3959,7 +3961,7 @@ function takeStation(
           ...a,
           // HF weighs the whole night's work. Execution ends the first span at the agreed meal break.
           duration: Math.max(1, s.phase === 'board' ? closeAt(s.night) - s.minute - 20 : until - s.minute),
-          followedBy: undefined,
+          ...(a.followedBy ? { followedBy: undefined } : {}),
         }
       : a,
   );
