@@ -1,3 +1,4 @@
+import { readRunHistory } from '@adam0white/human-framework';
 import { expect, it } from 'vitest';
 import { kitchenOffer } from '../src/sim/hf4-authoring.ts';
 import {
@@ -99,8 +100,8 @@ it('resumes the planned meal after actual prayer completion and replays the brea
     step(restored);
   }
   expect(personOf(s, 'selim').body.satiety).toBeGreaterThan(before);
-  const receipts = checkpoint(s.chef)
-    .archive.history.flatMap((t) => t.inputs)
+  const receipts = readRunHistory(checkpoint(s.chef).archive)
+    .flatMap((t) => t.inputs)
     .filter((input) => input.kind === 'action.resolved');
   expect(
     receipts.some(
@@ -148,7 +149,7 @@ it('records dated kitchen advice as replayable HF4 evidence', () => {
       summary: 'The chef asked Rafi to scrub the trays.',
     },
   ]);
-  const inputs = checkpoint(rafi).archive.history.flatMap((t) => t.inputs);
+  const inputs = readRunHistory(checkpoint(rafi).archive).flatMap((t) => t.inputs);
   const observation = inputs.find((input) => input.kind === 'observation.received');
   expect(observation?.payload.percepts[0]).toMatchObject({
     occurredAt: 32_340_000,
@@ -180,7 +181,7 @@ it('does not author copied home activities for departed people', () => {
   const community = freshCommunity(42);
   const chef = community.people.find((p) => p.id === 'chef');
   if (!chef) throw new Error('Missing chef');
-  const before = checkpoint(chef).archive.history.length;
+  const before = readRunHistory(checkpoint(chef).archive).length;
   livedHours(
     chef,
     [
@@ -193,8 +194,8 @@ it('does not author copied home activities for departed people', () => {
     chef.now + 15,
     ['selim'],
   );
-  const inputs = checkpoint(chef)
-    .archive.history.slice(before)
+  const inputs = readRunHistory(checkpoint(chef).archive)
+    .slice(before)
     .flatMap((transaction) => transaction.inputs);
   expect(inputs.some((input) => 'person' in input.payload && input.payload.person === 'selim')).toBe(false);
   expect(inputs.some((input) => 'person' in input.payload && input.payload.person === 'dilek')).toBe(true);
@@ -251,7 +252,7 @@ it('passes the remaining rush forecast to HF station offers', () => {
   );
   expect(kitchenOffer('dilek', { ...offer, followedBy: undefined }).expected.followedBy).toEqual([]);
   decide(personOf(s, 'dilek'), [offer]);
-  const inputs = checkpoint(s.chef).archive.history.flatMap((transaction) => transaction.inputs);
+  const inputs = readRunHistory(checkpoint(s.chef).archive).flatMap((transaction) => transaction.inputs);
   const received = inputs.findLast(
     (input) => input.kind === 'offers.received' && input.payload.offers.length,
   );

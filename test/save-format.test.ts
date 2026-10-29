@@ -40,18 +40,3 @@ it('shows refusal for a save under any historical framework key', () => {
   data.set('pass-save-hf4-5.0.0', '{}');
   expect(saveApi.oldSave()).toBe(true);
 });
-
-it('reads a compatible save from the stable key', () => {
-  const save = {
-    format: 2,
-    game: 'pass@19',
-    framework: '4.8.1',
-    hf4Engine: frameworkEngine(),
-    seed: 42,
-    inputs: [],
-    minute: 0,
-    pages: [],
-  };
-  data.set('pass-save', JSON.stringify(save));
-  expect(saveApi.readSave()).toEqual(save);
-});

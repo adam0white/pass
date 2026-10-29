@@ -5,6 +5,7 @@ import {
   createRun,
   type DeepReadonly,
   exportRun,
+  exportRunJournal,
   type HostRequest,
   type Input,
   type InspectQuery,
@@ -16,9 +17,12 @@ import {
   type Result,
   type Run,
   type RunArchive,
+  type RunJournalArchive,
+  type RunJournalCursor,
   type RunSpec,
   replay,
   restoreRun,
+  restoreRunJournal,
   type StepResult,
   step,
 } from '@adam0white/human-framework';
@@ -99,6 +103,24 @@ export class KitchenRun {
     )
       throw new Error('Keep this file. This kitchen needs a new game.');
     const run = admitted(restoreRun(value.archive));
+    return KitchenRun.fromRun(value, run);
+  }
+
+  static restoreJournal(value: Omit<KitchenCheckpoint, 'archive'>, journal: DeepReadonly<RunJournalArchive>) {
+    const recovered = admitted(restoreRunJournal(journal));
+    const archive = exportRun(recovered.run);
+    const run = KitchenRun.fromRun({ ...value, archive }, recovered.run);
+    return { run, cursor: recovered.cursor };
+  }
+
+  private static fromRun(value: KitchenCheckpoint, run: Run): KitchenRun {
+    if (
+      value.schema !== 'pass-hf4/1' ||
+      value.archive.host.id !== HF4_HOST.id ||
+      value.archive.host.edition !== HF4_HOST.edition ||
+      value.archive.host.schema !== HF4_HOST.schema
+    )
+      throw new Error('Keep this file. This kitchen needs a new game.');
     const data = value.archive.current.world.hostState as unknown as Omit<KitchenRunState, 'revision'>;
     if (
       !data ||
@@ -163,6 +185,17 @@ export class KitchenRun {
     return {
       schema: 'pass-hf4/1',
       archive: exportRun(this.run),
+      ...(this.pending ? { pending: this.pending } : {}),
+      ingress: { ...this.ingress },
+      offers: [...this.offers].map(([id, offers]) => [id, structuredClone(offers)]),
+    };
+  }
+  journal(cursor?: RunJournalCursor) {
+    return admitted(exportRunJournal(this.run, cursor));
+  }
+  journalHost(): Omit<KitchenCheckpoint, 'archive'> {
+    return {
+      schema: 'pass-hf4/1',
       ...(this.pending ? { pending: this.pending } : {}),
       ingress: { ...this.ingress },
       offers: [...this.offers].map(([id, offers]) => [id, structuredClone(offers)]),

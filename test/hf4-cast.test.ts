@@ -52,7 +52,7 @@ it('projects a current person and admits the retained passport before the new ru
     castRevision: '1',
     branchId,
     parentRevision: null,
-    source: { game: 'pass', build: 'fixture', engine: '4.8.1', rules: 'pass-19' },
+    source: { game: 'pass', build: 'fixture', engine: '4.12.0', rules: 'pass-19' },
     transfer: { ...transfer, life: initialPersonaLife(castId, branchId, 0) },
     limitations: transfer.limitations,
   });
@@ -117,7 +117,7 @@ it('keeps a retained visitor duty at its mapped wall time when paid work is acce
     castRevision: '2',
     branchId,
     parentRevision: null,
-    source: { game: 'pass', build: 'fixture', engine: '4.8.1', rules: 'pass-19' },
+    source: { game: 'pass', build: 'fixture', engine: '4.12.0', rules: 'pass-19' },
     transfer: { ...transfer, life: initialPersonaLife(castId, branchId, 0) },
     limitations: transfer.limitations,
   });

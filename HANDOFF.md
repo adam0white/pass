@@ -1,5 +1,19 @@
 # Pass handoff
 
+## HF 4.12 adoption — 2026-10-29
+
+What remains: exact source and merged CI, clean deployment and live release verification. Adam accepts game readiness separately. Delivery receipt: `~/code/.lab-scratch/codex/pass-hf412.md`.
+
+Current graph: published HF 4.12.0, immutable client 0.5.12 and kit 0.5.29. Read upstream CHANGELOG from the actual current pin 4.8.1 through 4.12.0. New runs remain pass@19. Accepted history inspection uses `readRunHistory`; full native exports remain complete archive format 7. Native autosave uses HF's append-only journal with a matching host snapshot, chunks and committed head in one IndexedDB transaction. The cursor advances only after storage succeeds. Recovery executes the full journal. Each write appends only new chunks. Recovery still reads and executes the full history; no constant-cost recovery is claimed. An aborted transaction preserves the previous save and can retry from its committed cursor.
+
+The existing People dialog shows the chef's live self affect and learned outcomes in words only. Other cooks' hidden affect and expectations remain unobserved. Kitchen verdicts and selected reason sentences now belong to the HF phrasebook. The current answer path uses the framework's recorded suggestion rendering instead of the host's index-based narration selection. Historical narration remains test-only. Pass uses no newborn or retelling input.
+
+Older engine saves refuse with a plain start-new-game message and remain stored. This edition makes no 3.x compatibility or cross-game journey claim. All historical replay-hash tests and their pins stay unchanged; no replay pin was weakened or updated. HF's current engine identity, archive codec and recorded wording intentionally differ from 4.8.1; current replay/restore equality is tested under 4.12.0.
+
+CI runner deadlines: journal recovery receives 30 seconds; the existing two-service clearing/replay control receives 300 seconds. The initial CI run exceeded their 5/120-second deadlines while all other assertions passed. Their inputs and assertions are unchanged.
+
+Hosted review is waived by coordinator ruling 2026-10-29T09:25Z. This task runs no hosted or extra independent review. Technical delivery does not accept game readiness or authorize a new player round.
+
 ## Current host follow-through — 2026-10-29
 
 What remains: one hosted Codex review, exact source and merged CI, clean managed deployment and live controls. Source controls are not delivery. Adam accepts readiness separately; owner/player retests remain paused, review 2026-11-03. No player round, friends' playtest or Show HN was run.
