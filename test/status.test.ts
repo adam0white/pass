@@ -1,4 +1,4 @@
-import { begin, decide } from '@adam0white/human-framework';
+import { begin, decide } from '@adam0white/human-framework-legacy';
 import { describe, expect, it } from 'vitest';
 import { NIGHT_PLANS, nightStart } from '../src/sim/campaign.ts';
 import type { Station } from '../src/sim/cooks.ts';
@@ -44,6 +44,16 @@ describe('serviceStatus', () => {
     s.tickets = [ticket()];
     expect(serviceStatus(s)).toEqual({
       text: 'The grill has nobody in tonight’s plan.',
+      needsResponse: false,
+    });
+  });
+  it('explains an unfillable pass@19 station gap without prompting', () => {
+    const s = setup();
+    s.version = 'pass@19';
+    s.tickets = [ticket()];
+    for (const cook of s.cooks) cook.gone = true;
+    expect(serviceStatus(s)).toEqual({
+      text: 'Nobody can cover the grill now. The cooks are unavailable or unwilling. Time runs at your chosen speed until someone can help.',
       needsResponse: false,
     });
   });

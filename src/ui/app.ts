@@ -8,7 +8,10 @@ import { NARRATION_EDITION } from '../sim/narration-edition.ts';
  * request is open). The save is the chef's notebook: the seed, the input log, and the Sunday pages to turn back to.
  */
 
-import { FRAMEWORK_VERSION, readPerson } from '@adam0white/human-framework';
+import { frameworkEngine, visibleFatigue } from '../sim/hf4-person.ts';
+
+const FRAMEWORK_VERSION = '4.8.1';
+
 import { PRIVACY_URL } from '@adam0white/lab-client';
 import { telemetryToggle } from '@adam0white/lab-kit';
 import {
@@ -40,7 +43,6 @@ import {
   coverLine,
   type Export,
   fingerprint,
-  GAME_VERSION,
   type GameState,
   gasOut,
   type Hint,
@@ -89,8 +91,8 @@ import { actionableStaffing, availableStaffing } from './staffing.ts';
 import { journalWords, noCoverWords, serviceStatus, tableAboutToLeave } from './status.ts';
 import { gloss, lira } from './words.ts';
 
-const SAVE = 'pass-save-v3';
-const OLD_SAVES = ['pass-save-v1', 'pass-save-v2'];
+const SAVE = `pass-save-hf4-${FRAMEWORK_VERSION}`;
+const OLD_SAVES = ['pass-save-v1', 'pass-save-v2', 'pass-save-v3'];
 
 interface PartyStart {
   party: string;
@@ -103,6 +105,8 @@ let firstPartyStart = false;
 let partyHandover: PartyStart | null = null;
 
 interface Save {
+  framework?: string;
+  hf4Engine?: ReturnType<typeof frameworkEngine>;
   plainNarration?: boolean;
   continuity?: ContinuitySave;
   returnChapter?: Export['returnChapter'];
@@ -153,7 +157,12 @@ function readSave(): Save | null {
   try {
     const raw = localStorage.getItem(SAVE);
     const sv = raw ? (JSON.parse(raw) as Save) : null;
-    return sv && canReplay(sv.game) ? sv : null;
+    return sv &&
+      sv.game === 'pass@19' &&
+      sv.framework === FRAMEWORK_VERSION &&
+      JSON.stringify(sv.hf4Engine) === JSON.stringify(frameworkEngine())
+      ? sv
+      : null;
   } catch {
     return null;
   }
@@ -175,6 +184,8 @@ function writeSave() {
   try {
     const sv: Save = {
       game: s.version,
+      framework: FRAMEWORK_VERSION,
+      hf4Engine: frameworkEngine(),
       plainNarration: s.plainNarration === true,
       seed: s.seed,
       inputs: s.inputs,
@@ -199,7 +210,7 @@ function clearSave() {
   partyHandover = null;
   try {
     localStorage.removeItem(SAVE);
-    for (const k of OLD_SAVES) localStorage.removeItem(k);
+    // Historical notebooks remain stored when this edition starts a separate game.
   } catch {}
 }
 
@@ -421,7 +432,7 @@ function openPeople() {
   if (s?.version === 'pass@13' || (s && kitchenEdition(s))) {
     const actions = document.createElement('section');
     if (s.night === 1 && s.phase === 'board')
-      for (const id of Object.keys(s.castChapter?.actors ?? {})) {
+      for (const id of Object.keys(s.castChapter?.portable ?? s.castChapter?.actors ?? {})) {
         if (s.crew.some((m) => m.id === id) || s.inputs.some((i) => i.kind === 'cast-invite' && i.who === id))
           continue;
         const invite = document.createElement('button');
@@ -638,8 +649,8 @@ function title() {
         s =
           returning ??
           (secondWeek
-            ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined, 'pass@18')
-            : newGame(seed, 'pass@18'));
+            ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined, 'pass@19')
+            : newGame(seed, 'pass@19'));
         cast.track();
         if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
         writeSave();
@@ -665,9 +676,9 @@ function title() {
     if (sheet?.open) sheet.close();
     try {
       const ex = JSON.parse(await f.text()) as Export & { minute?: number };
-      if (!canReplay(ex.game)) {
+      if (ex.game !== 'pass@19' || !canReplay(ex.game)) {
         status(
-          `This file comes from an older version of The Pass (${ex.game ?? 'unknown'}). This version is ${GAME_VERSION}. The file cannot be loaded. Start a new game instead.`,
+          `This file comes from an older version of The Pass (${ex.game ?? 'unknown'}). This version is pass@19. The file cannot be loaded. Start a new game instead.`,
         );
         return;
       }
@@ -723,6 +734,7 @@ function replayNight(sv: Save): number {
     'pass@16',
     'pass@17',
     'pass@18',
+    'pass@19',
   ].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
@@ -749,6 +761,7 @@ function replayNight(sv: Save): number {
         'pass@16',
         'pass@17',
         'pass@18',
+        'pass@19',
       ].includes(sv.game);
     }
   }
@@ -787,7 +800,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     oven: 'oven',
   };
   const earlyBooking =
-    st.version === 'pass@18' && st.night <= 3
+    ['pass@18', 'pass@19'].includes(st.version) && st.night <= 3
       ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>`
       : '';
   const parties =
@@ -993,7 +1006,7 @@ function board(draft?: BoardRow[], editing: string | null = null) {
       oven: 'oven',
     };
     const earlyBooking =
-      st.version === 'pass@18' && st.night <= 3
+      ['pass@18', 'pass@19'].includes(st.version) && st.night <= 3
         ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>`
         : '';
     const parties =
@@ -1193,11 +1206,11 @@ function service() {
     });
   }
   if (peopleRun(s))
-    app.innerHTML = `<div class="service people-service ${kitchenEdition(s) ? 'kitchen-service' : ''} ${s.version === 'pass@18' ? 'early-service' : ''}">
+    app.innerHTML = `<div class="service people-service ${kitchenEdition(s) ? 'kitchen-service' : ''} ${['pass@18', 'pass@19'].includes(s.version) ? 'early-service' : ''}">
     ${topBar('', 'service')}<div class="state-strip" id="till"></div>
     ${kitchenEdition(s) ? '<aside id="kitchen-stock" class="soft"></aside>' : ''}
     <div class="rail" id="rail"></div><div class="scene" id="scene"></div>
-    ${s.version === 'pass@18' ? '<aside class="service-board"><div id="status" role="status"></div><div id="service-account" tabindex="0" aria-label="Served and lost tables"></div></aside>' : ''}
+    ${['pass@18', 'pass@19'].includes(s.version) ? '<aside class="service-board"><div id="status" role="status"></div><div id="service-account" tabindex="0" aria-label="Served and lost tables"></div></aside>' : ''}
     <div class="caption" id="caption" role="status"></div><div class="sheet" id="sheet"></div>
   </div>`;
   document.getElementById('scene')?.addEventListener('click', (e) => {
@@ -1451,10 +1464,9 @@ function drawRail() {
               : reg.name
             : `table ${t.table}`;
         const patience = t.patience + (booking?.promised ? 0 : st.apron ? 12 : 0);
-        const cause =
-          st.version === 'pass@18'
-            ? `<div class="st">Waiting ${wait} min · leaves after ${clock(t.at + patience)} · ${lira(t.price)} at risk.</div><div class="st">${esc(t.doneGrill < t.grill ? 'Waiting for the grill.' : t.doneCold < t.cold ? 'Waiting for the cold side.' : t.doneOven < t.oven ? 'Waiting for the oven.' : 'Waiting for a clean plate or delivery.')}</div>`
-            : '';
+        const cause = ['pass@18', 'pass@19'].includes(st.version)
+          ? `<div class="st">Waiting ${wait} min · leaves after ${clock(t.at + patience)} · ${lira(t.price)} at risk.</div><div class="st">${esc(t.doneGrill < t.grill ? 'Waiting for the grill.' : t.doneCold < t.cold ? 'Waiting for the cold side.' : t.doneOven < t.oven ? 'Waiting for the oven.' : 'Waiting for a clean plate or delivery.')}</div>`
+          : '';
         const option =
           ((!peopleRun(st) && st.version === 'pass@6') ||
             (!peopleRun(st) && st.version === 'pass@7') ||
@@ -1672,8 +1684,7 @@ function ovenFill(heat: number): string {
 function figure(id: CookId, x: number, y: number): string {
   if (!s) return '';
   const p = personOf(s, id);
-  const body = readPerson(p).body;
-  const tired = body.perceived.fatigue;
+  const tired = visibleFatigue(s.chef, p);
   const lean = Math.min(16, tired * 18) * (id === 'dilek' ? -1 : 1);
   const a = p.activity;
   const protest = !!a?.protest;
@@ -1760,7 +1771,7 @@ function drawCaption() {
       : fresh && a
         ? `<span class="hand">${esc(a.text)}</span>`
         : '';
-  const receipts = ['pass@17', 'pass@18'].includes(s.version)
+  const receipts = ['pass@17', 'pass@18', 'pass@19'].includes(s.version)
     ? s.said
         .filter(
           (line) =>
@@ -1994,7 +2005,7 @@ function drawSheet() {
           `<button data-v="${v.verb}" ${waiting || absent || !attentionAvailable(st, selected as CookId) ? 'disabled' : ''}>${queued && st.inputs.slice(st.applied).some((i) => i.kind === 'ask' && i.cook === selected && i.verb === v.verb) ? 'asked…' : VERB_LABEL[v.verb]}${v.verb === stationOf(st, selected as CookId) ? ' (now)' : ''}<span class="h ${v.verdict === 'refused' ? 'no' : ''} ${v.guess ? 'guess' : ''}">${absent ? 'left the kitchen' : `${esc(gloss(v.short))}${v.guess ? '?' : ''}`}</span><span class="fill"></span></button>`,
       )
       .join('')}</div>
-    ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
+    ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
     ${kitchenEdition(st) && !absent ? '<div class="row"><button data-kitchen-task="room">Ask for fifteen minutes in the dining room</button><p class="soft">This cook cannot prepare food while working there.</p></div>' : ''}
     <div class="panel-reply" role="status">${answer ? `“${esc(gloss(answer.text))}”` : ''}</div>${!attentionAvailable(st, selected as CookId) ? '<p class="soft" role="status">Let this cook finish this part of their work before asking again. The kitchen keeps running.</p>' : ''}<div class="hint">${
       absent

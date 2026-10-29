@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto';
-import { type Affordance, begin, decide, finish, promise, snapshot, tick } from '@adam0white/human-framework';
+import {
+  type Affordance,
+  begin,
+  decide,
+  finish,
+  promise,
+  snapshot,
+  tick,
+} from '@adam0white/human-framework-legacy';
 import { canonicalPersona, createPersona } from '@adam0white/lab-client';
 import { describe, expect, it } from 'vitest';
 import { required } from '../src/required.ts';

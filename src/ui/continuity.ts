@@ -1,5 +1,5 @@
 /** Whole kitchen ownership and pinned exports. Title entry is read-only; files never acquire ownership. */
-import { ENGINE_VERSION, FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework';
+import { FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework-legacy';
 import {
   anchorPersonaLife,
   canonicalCast,
@@ -11,18 +11,15 @@ import {
   type PersonaEnvelope,
   type PersonaLife,
   personaChannel,
+  portablePassport,
+  portableWriteBlockers,
   validatePersona,
   watchPersonaCheckpoint,
 } from '@adam0white/lab-client';
 import { personaControls } from '@adam0white/lab-kit';
-import {
-  CAST,
-  digest,
-  keyOf,
-  kitchenTransfer,
-  prepareKitchenChapter,
-  validateKitchenChapter,
-} from '../sim/cast-chapter.ts';
+import { CAST, digest, keyOf, kitchenTransfer, validateKitchenChapter } from '../sim/cast-chapter.ts';
+import { hf4KitchenTransfer, prepareHF4KitchenChapter } from '../sim/hf4-cast.ts';
+import { isHF4 } from '../sim/hf4-person.ts';
 import { type Export, exportRun, type GameState, newGame } from '../sim/kitchen.ts';
 import { kitchenEdition } from '../sim/kitchen-edition.ts';
 import { lab } from './lab.ts';
@@ -86,8 +83,8 @@ export function continuity(
   const source = () => ({
     game: 'pass',
     build: lab.build().c ?? 'local',
-    engine: ENGINE_VERSION,
-    rules: 'pass-13',
+    engine: '4.8.1',
+    rules: 'pass-19',
   });
   const emit = () => window.dispatchEvent(new Event('pass-continuity'));
   const report = (s: string) => {
@@ -109,8 +106,19 @@ export function continuity(
   const run = (): ContinuityExport | null => {
     const s = getState();
     return s
-      ? { ...exportRun(s, FRAMEWORK_VERSION), continuity: data(), oneCast: structuredClone(rows) }
+      ? {
+          ...exportRun(s, s.version === 'pass@19' ? '4.8.1' : FRAMEWORK_VERSION),
+          continuity: data(),
+          oneCast: structuredClone(rows),
+        }
       : null;
+  };
+  const releaseProjection = (s: GameState, id: string) => {
+    const saved = s.releasedCastProjections?.[id];
+    if (!saved) throw new Error('The release checkpoint is missing. Keep the original notebook.');
+    if ('unavailable' in saved)
+      throw new Error('The release source cannot be saved. Keep the original notebook.');
+    return saved;
   };
   const track = () => {
     stopTracking?.();
@@ -170,7 +178,11 @@ export function continuity(
           (head.terminal
             ? person.body.alive
             : !state.releasedCast?.includes(person.id) ||
-              receipt?.checkpointDigest !== (await digest(snapshot(person))))
+              receipt?.checkpointDigest !==
+                (isHF4(person)
+                  ? (await hf4KitchenTransfer(person, releaseProjection(state, person.id))).checkpoint
+                      .checkpointDigest
+                  : await digest(snapshot(person))))
         )
           throw new Error('Saved receipt does not match the played kitchen checkpoint.');
       }
@@ -221,7 +233,7 @@ export function continuity(
         typeof location !== 'undefined' &&
         ['localhost', '127.0.0.1'].includes(location.hostname))
     ) {
-      const next = newGame(seed, 'pass@18');
+      const next = newGame(seed, 'pass@19');
       reset();
       localOnly = true;
       await gate();
@@ -231,12 +243,12 @@ export function continuity(
       shelf,
       CAST.map((c) => c.castId),
       source(),
-      (inputs) => prepareKitchenChapter(inputs, seed),
+      (inputs) => prepareHF4KitchenChapter(inputs, seed),
       { isCurrent: () => epoch === generation },
     );
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
     if (chapter) chapter.initial.claims = structuredClone(chapter.claims);
-    const next = chapter ? newGame(seed, 'pass@18', chapter.initial) : newGame(seed, 'pass@18');
+    const next = chapter ? newGame(seed, 'pass@19', chapter.initial) : newGame(seed, 'pass@19');
     reset();
     if (!chapter) {
       await gate();
@@ -247,7 +259,13 @@ export function continuity(
     importedHistory = chapter.inputs.length > 0;
     await gate();
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
-    report('The cooks remember their earlier experiences. Their other jobs and family duties still apply.');
+    if (chapter.blocked.length) {
+      const names = chapter.blocked.map((item) => canonicalCast(item.castId).name).join(', ');
+      const admitted = chapter.inputs.length ? 'The other cooks remember their earlier experiences. ' : '';
+      report(`${admitted}${names} could not join from their saved stories. Those stories remain saved.`);
+    } else if (chapter.inputs.length) {
+      report('The cooks remember their earlier experiences. Their other jobs and family duties still apply.');
+    }
     return next;
   }
   async function chooseRecording(_value: boolean) {
@@ -260,13 +278,23 @@ export function continuity(
     if (!s || (s.version !== 'pass@13' && !kitchenEdition(s)) || !shelf.enabled || fileOrigin || localOnly)
       return;
     const minute = s.minute;
+    const blockedWrites: string[] = [];
+    const canWritePortable = (cast: (typeof CAST)[number]) => {
+      const blockers = portableWriteBlockers(cast.castId, 'pass');
+      if (!blockers.length) return true;
+      const notice = `${cast.name}: this saved story cannot be shared until ${blockers.join(', ')} is ready. The saved story remains where it is.`;
+      blockedWrites.push(notice);
+      report(blockedWrites.join(' '));
+      return false;
+    };
     for (const cast of CAST) {
       const id = keyOf(cast.castId),
         p = s.people.find((p) => p.id === id),
         parent = heads[cast.castId];
       if (!p) continue;
-      if (!p.body.alive) {
+      if (!p.body.alive && !(isHF4(p) && s.releasedCast?.includes(id))) {
         if (parent && !parent.terminal) {
+          if (isHF4(p) && portablePassport(parent) && !canWritePortable(cast)) continue;
           const terminal = await closePersonaBranch(parent, source(), p.now);
           if (epoch !== generation || getState() !== s) return;
           await shelf.request({ action: 'put', envelope: terminal });
@@ -279,16 +307,23 @@ export function continuity(
         }
         continue;
       }
-      if (!['evening', 'sunday', 'end'].includes(s.phase) || !s.releasedCast?.includes(id) || p.activity)
+      if (
+        !s.releasedCast?.includes(id) ||
+        (!isHF4(p) && (!['evening', 'sunday', 'end'].includes(s.phase) || p.activity))
+      )
         continue;
       try {
-        const raw = snapshot(p),
-          transfer = await kitchenTransfer(raw);
+        if (isHF4(p) && !canWritePortable(cast)) continue;
+        const transfer = isHF4(p)
+          ? await hf4KitchenTransfer(p, releaseProjection(s, id))
+          : await kitchenTransfer(snapshot(p));
         if (
           epoch !== generation ||
           getState() !== s ||
           s.minute !== minute ||
-          (await digest(snapshot(p))) !== transfer.checkpoint.checkpointDigest
+          (isHF4(p)
+            ? (await hf4KitchenTransfer(p, releaseProjection(s, id))).checkpoint.checkpointDigest
+            : await digest(snapshot(p))) !== transfer.checkpoint.checkpointDigest
         )
           return;
         const old = parent?.transfer.checkpoint as { checkpointDigest?: string } | undefined;
@@ -334,6 +369,7 @@ export function continuity(
         );
       }
     }
+    if (blockedWrites.length) report(blockedWrites.join(' '));
   }
   const checkpoint = () => {
     chain = chain

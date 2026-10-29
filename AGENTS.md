@@ -6,7 +6,7 @@ The simplify increment ends with source changes, focused tests and replay tests,
 
 Use managed worktrees. Run `npm run check:lane` before every signed commit. Keep signing enabled and include `Co-Authored-By: Codex <noreply@openai.com>`. Rebase on origin before each push. Preserve deterministic replay and legacy tests.
 
-Current stack: HF package 3.0.0 / Person engine 2.23.0; immutable lab-client 0.4.15 / lab-kit 0.5.17; shared Node 26.12.0 / pnpm 12.14.0; Worker compatibility_date 2026-10-25.
+Current stack: HF 4.7.0 for pass@19; immutable lab-client 0.5.3 / lab-kit 0.5.21. Historical editions retain HF package 3.0.0 / Person engine 2.23.0. Shared Node 26.12.0 / pnpm 12.14.0; Worker compatibility_date 2026-10-25.
 
 ## Current policy clarification — 2026-10-25
 

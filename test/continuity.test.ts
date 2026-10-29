@@ -7,10 +7,22 @@ import {
 import { beforeEach, expect, it, vi } from 'vitest';
 import { required } from '../src/required.ts';
 import { freshActor, kitchenTransfer } from '../src/sim/cast-chapter.ts';
-import { newGame } from '../src/sim/kitchen.ts';
+import { hf4ReleaseProjection } from '../src/sim/hf4-cast.ts';
+import { tick } from '../src/sim/hf4-person.ts';
+import {
+  boardDefaults,
+  cloneState,
+  newGame,
+  queueInput,
+  replay,
+  restoreState,
+  step,
+} from '../src/sim/kitchen.ts';
 
 const mocks = vi.hoisted(() => ({
   shelf: { ready: Promise.resolve(true), enabled: true, request: vi.fn(), setEnabled: vi.fn() },
+  blockers: vi.fn((): string[] => []),
+  close: vi.fn(),
   lab: {
     trackRun: vi.fn(() => vi.fn()),
     setPersonaRecording: vi.fn(),
@@ -22,11 +34,17 @@ const mocks = vi.hoisted(() => ({
     playerId: 'fixture',
   },
 }));
-vi.mock('@adam0white/lab-client', async (original) => ({
-  ...(await original<typeof import('@adam0white/lab-client')>()),
-  personaChannel: () => mocks.shelf,
-  watchPersonaCheckpoint: vi.fn(),
-}));
+vi.mock('@adam0white/lab-client', async (original) => {
+  const actual = await original<typeof import('@adam0white/lab-client')>();
+  mocks.close.mockImplementation(actual.closePersonaBranch);
+  return {
+    ...actual,
+    personaChannel: () => mocks.shelf,
+    portableWriteBlockers: mocks.blockers,
+    closePersonaBranch: mocks.close,
+    watchPersonaCheckpoint: vi.fn(),
+  };
+});
 vi.mock('@adam0white/lab-kit', () => ({ personaControls: () => document.createElement('section') }));
 vi.mock('../src/ui/lab.ts', () => ({ lab: mocks.lab }));
 
@@ -34,6 +52,7 @@ import { continuity } from '../src/ui/continuity.ts';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.blockers.mockReturnValue([]);
   vi.stubGlobal('window', new EventTarget());
   mocks.shelf.enabled = true;
   mocks.shelf.request.mockResolvedValue(null);
@@ -71,7 +90,7 @@ it('title and local reload do not claim a new chapter; file receipt stays nonown
     false,
   );
 });
-it('preflights all seven expected heads once before accepting a fresh batch', async () => {
+it('refuses an old incomplete passport before claiming any heads', async () => {
   const e = await envelope();
   mocks.shelf.request.mockImplementation(async (r) => {
     if (r.action === 'prepareBatch')
@@ -89,11 +108,9 @@ it('preflights all seven expected heads once before accepting a fresh batch', as
     return null;
   });
   const c = continuity(() => null, vi.fn(), vi.fn());
-  const s = await c.fresh(42);
-  expect(s.castChapter?.inputs[0]?.parent.revision).toBe(e.revision);
+  await expect(c.fresh(42)).rejects.toThrow('omits the full retained history');
   const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'putBatch');
-  expect(puts).toHaveLength(1);
-  expect(Object.keys(required(puts[0])[0].expectedHeads)).toHaveLength(7);
+  expect(puts).toHaveLength(0);
   expect(mocks.lab.telemetryOn).toBe(false);
   expect(mocks.lab.allowPersonaRecording.mock.calls.every(([allow]) => !allow)).toBe(true);
 });
@@ -235,7 +252,7 @@ it('failed fresh admission preserves the running notebook receipts and recording
   expect(mocks.lab.telemetryOn).toBe(false);
 });
 
-it('re-enters the actual Pass-stamped claim of a current Neighbours source', async () => {
+it('preserves a historical Neighbours source when its incomplete passport is refused', async () => {
   const { readFileSync } = await import('node:fs');
   const { castForGame } = await import('@adam0white/lab-client');
   let head: PersonaEnvelope = JSON.parse(
@@ -257,9 +274,170 @@ it('re-enters the actual Pass-stamped claim of a current Neighbours source', asy
     return null;
   });
   const c = continuity(() => null, vi.fn(), vi.fn());
-  await c.fresh(42);
-  expect(head.source.game).toBe('pass');
-  expect(head.source.engine).toBe('2.23.0');
-  expect(head.transfer.castPassport).toBe('neighbours-cast/1');
-  await expect(c.fresh(42)).resolves.toMatchObject({ version: 'pass@18' });
+  const before = structuredClone(head);
+  await expect(c.fresh(42)).rejects.toThrow('omits the full retained history');
+  expect(head).toEqual(before);
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'putBatch')).toBe(false);
 });
+
+it('names skipped people and preserves their saved heads when the batch cannot claim them', async () => {
+  const source = await envelope();
+  const before = structuredClone(source);
+  mocks.shelf.request.mockImplementation(async (request) => {
+    if (request.action === 'prepareBatch')
+      return {
+        expectedHeads: Object.fromEntries(
+          (await import('@adam0white/lab-client'))
+            .castForGame('pass')
+            .map((cast) => [cast.castId, cast.castId === source.castId ? source.revision : null]),
+        ),
+        inputs: [],
+        blocked: [
+          { castId: source.castId, reason: 'Hülya: saved history is read-only until another game is ready.' },
+        ],
+      };
+    if (request.action === 'putBatch') {
+      expect(request.envelopes).toEqual([]);
+      return null;
+    }
+    return null;
+  });
+  const c = continuity(() => null, vi.fn(), vi.fn());
+  const game = await c.fresh(42);
+  expect(game.castChapter?.inputs).toEqual([]);
+  expect(c.message).toContain('Hülya');
+  expect(c.message).toMatch(/saved|history|story/i);
+  expect(source).toEqual(before);
+  expect(c.data().ownedHeads).toEqual({});
+}, 120000);
+
+// Synthetic peer status checks the host guard; it does not claim live peer readiness.
+it.each([false, true])(
+  'keeps a blocked current portable head unchanged, terminal=%s',
+  async (terminal) => {
+    const { hf4KitchenTransfer } = await import('../src/sim/hf4-cast.ts');
+    const state = newGame(42, 'pass@19');
+    const person = required(state.people.find((p) => p.id === 'selim'));
+    const transfer = await hf4KitchenTransfer(person);
+    const castId = 'hf.cast.selim.pass',
+      branchId = 'guard-fixture';
+    const parent = await createPersona({
+      format: 'hf-persona/1',
+      castId,
+      castRevision: '1',
+      branchId,
+      parentRevision: null,
+      source: { game: 'pass', build: 'fixture', engine: '4.8.1', rules: 'pass-19' },
+      transfer: { ...transfer, life: initialPersonaLife(castId, branchId, 0) },
+      limitations: transfer.limitations,
+    });
+    const before = structuredClone(parent);
+    state.phase = 'evening';
+    state.releasedCast = ['selim'];
+    person.activity = null;
+    if (terminal) person.body.alive = false;
+    mocks.blockers.mockReturnValue(['repair']);
+    const c = continuity(() => state, vi.fn(), vi.fn());
+    await c.restore({
+      envelope: null,
+      oneCast: [],
+      ownedHeads: { [castId]: parent },
+      recordingGroup: [parent],
+    });
+    await c.checkpoint();
+    expect(mocks.close).not.toHaveBeenCalled();
+    expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put' || r.action === 'putBatch')).toBe(
+      false,
+    );
+    expect(c.data().ownedHeads?.[castId]).toEqual(before);
+    expect(c.message).toContain('Selim');
+    expect(c.message).toContain('repair');
+  },
+  30000,
+);
+
+// Synthetic ready peers exercise the permitted host path; no live readiness is implied.
+it('writes an eligible current portable checkpoint when the peer gate is open', async () => {
+  const state = newGame(42, 'pass@19');
+  const person = required(state.people.find((p) => p.id === 'selim'));
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  person.activity = null;
+  state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
+  mocks.blockers.mockReturnValue([]);
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'put');
+  expect(puts).toHaveLength(1);
+  expect(required(puts[0])[0].envelope.castId).toBe('hf.cast.selim.pass');
+  expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
+}, 120000);
+
+it('publishes the preserved release checkpoint after the live kitchen advances and reloads it', async () => {
+  const { hf4KitchenTransfer } = await import('../src/sim/hf4-cast.ts');
+  const state = newGame(42, 'pass@19');
+  const person = required(state.people.find((p) => p.id === 'selim'));
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
+  const release = await hf4KitchenTransfer(person);
+  tick(person, person.now + 10);
+  state.phase = 'service';
+  expect((await hf4KitchenTransfer(person)).checkpoint.checkpointDigest).not.toBe(
+    release.checkpoint.checkpointDigest,
+  );
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  const saved = required(c.data().ownedHeads?.['hf.cast.selim.pass']);
+  expect(saved.transfer.checkpoint).toEqual(release.checkpoint);
+  await expect(c.restore(c.data(), false, true, state)).resolves.toBeUndefined();
+}, 120000);
+
+it('does not publish an HF4 release without its preserved checkpoint', async () => {
+  const state = newGame(42, 'pass@19');
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
+}, 120000);
+
+it('replays and restores a release when the source cannot be projected', async () => {
+  const state = newGame(42, 'pass@19');
+  queueInput(state, { kind: 'board', rows: boardDefaults(state) });
+  queueInput(state, { kind: 'open' });
+  while (state.phase === 'service') step(state);
+  queueInput(state, { kind: 'cast-release', who: 'selim' });
+  expect(state.releasedCast).toContain('selim');
+  const refusal = required(state.releasedCastProjections?.selim);
+  expect(refusal).toHaveProperty('unavailable');
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
+  expect(c.message).toContain('Selim');
+  expect(c.message).toContain('cannot be saved');
+  const restored = restoreState(JSON.parse(JSON.stringify(cloneState(state))));
+  expect(restored.releasedCast).toContain('selim');
+  expect(restored.releasedCastProjections?.selim).toEqual(refusal);
+  const replayed = replay(state.seed, state.inputs, state.minute, state.version);
+  expect(replayed.releasedCast).toContain('selim');
+  expect(replayed.releasedCastProjections?.selim).toEqual(refusal);
+}, 180000);
+
+it('publishes the release projection even if the live person later dies', async () => {
+  const state = newGame(42, 'pass@19');
+  const person = required(state.people.find((p) => p.id === 'selim'));
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
+  person.body.alive = false;
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
+  expect(c.data().ownedHeads?.['hf.cast.selim.pass']?.terminal).toBeFalsy();
+}, 120000);

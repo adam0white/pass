@@ -1,5 +1,10 @@
 /** Return visits start after a locally replayed departure. The shelf is never read during replay. */
-import { type Person, restore, snapshot, validatePersonaProjection } from '@adam0white/human-framework';
+import {
+  type Person,
+  restore,
+  snapshot,
+  validatePersonaProjection,
+} from '@adam0white/human-framework-legacy';
 import { canonicalPersona, type PersonaEnvelope, validatePersona } from '@adam0white/lab-client';
 import { validateKitchenChapter } from './cast-chapter.ts';
 import { canReplay, cloneState, type Export, type GameState, personOf, replay } from './kitchen.ts';

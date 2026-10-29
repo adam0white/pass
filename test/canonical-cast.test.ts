@@ -1,4 +1,4 @@
-import { MINUTES_PER_YEAR } from '@adam0white/human-framework';
+import { MINUTES_PER_YEAR } from '@adam0white/human-framework-legacy';
 import { castForGame } from '@adam0white/lab-client';
 import { describe, expect, it } from 'vitest';
 import { required } from '../src/required.ts';

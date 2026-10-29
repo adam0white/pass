@@ -39,6 +39,11 @@ describe('board presentation choices', () => {
       expect(typeof row.coverAccepted).toBe('boolean');
     }
   });
+  it('keeps pass@19 opening relief as an explicit player choice', () => {
+    const s = newGame(42, 'pass@19');
+    s.previousBoard = boardDefaults(s).slice(0, -1);
+    expect(openingBoard(s).every((row) => row.cover === null)).toBe(true);
+  }, 120000);
   it('previews real answers without changing a notebook and matches the committed answers', () => {
     const s = tuesday();
     const before = cloneState(s);

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { diffChronicle, promise, promptingLine } from '@adam0white/human-framework';
+import { diffChronicle, promise, promptingLine } from '@adam0white/human-framework-legacy';
 import { expect, it } from 'vitest';
 import { replayExport } from '../src/sim/continuation.ts';
 import { advance } from '../src/sim/host-policy.ts';

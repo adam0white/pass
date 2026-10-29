@@ -1,5 +1,5 @@
 /** Synthetic semantic controls; these are not real browser-journey evidence. */
-import { ENGINE_VERSION, releaseCommitment, snapshot } from '@adam0white/human-framework';
+import { ENGINE_VERSION, releaseCommitment, snapshot } from '@adam0white/human-framework-legacy';
 import { createPersona, initialPersonaLife, preparePersonaLife } from '@adam0white/lab-client';
 import { expect, it } from 'vitest';
 import { required } from '../src/required.ts';

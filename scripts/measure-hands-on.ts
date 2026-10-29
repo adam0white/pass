@@ -3,7 +3,7 @@
 // after inputs, as the browser would before stepping. Priority is a form decision, not an act.
 // Instinct uses the same default playback timing as attentive; it compares quality,
 // not browser Fast duration. Close exertion is sampled before evening recovery.
-import { restore, snapshot, tick } from '@adam0white/human-framework';
+import { restore, snapshot, tick } from '@adam0white/human-framework-legacy';
 import * as kitchen from '../src/sim/kitchen.ts';
 import { clockPlayback } from '../src/ui/clock.ts';
 
