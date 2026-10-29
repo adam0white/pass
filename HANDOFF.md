@@ -1,5 +1,20 @@
 # Pass handoff
 
+## Current host follow-through — 2026-10-29
+
+What remains: one hosted Codex review, exact source and merged CI, clean managed deployment and live controls. Source controls are not delivery. Adam accepts readiness separately; owner/player retests remain paused, review 2026-11-03. No player round, friends' playtest or Show HN was run.
+
+Current graph is HF4.8.1, client0.5.7 and kit0.5.24. Ordinary starts remain pass@19. Save format2 refuses format1 clearly and leaves its original stored. Historical engines remain replay-test dependencies, not an alternate current engine or public selector.
+
+The existing public check-in remains. Current service also offers a three-minute private invitation to an actual employee. HF may choose current work or a bodily need instead. Only that accepted conversation's actual completed activity discloses the existing account. Interruption reveals nothing. A cook's supported heard statements are selectable by exact source and recipient; private words need prior actual disclosure. Reading slows service; menus pause.
+
+An existing cook can clear an actual abandoned plated meal for three minutes. That cook leaves production. Completion returns its one plate through the existing washing flow, removing exactly its scheduled fallback. Interruption retains the fallback. No arrival, price, patience, food quantity or no-input rule was retuned. File play preserves an occupied native save byte-for-byte; file progress is retained by exporting before leaving.
+
+Voice request evidence exists in HF4.8.1. Pass has no observed experienced-valence (`felt`) source or request-to-later-outcome link. The public action-settled receipt exposes request/activity/outcome evidence IDs, not experienced valence. Do not derive it from answer, body, approval or private inference. The All/HF4 contract director owns an authority-bound public outcome-to-request evidence route; the games-deferred Pass host owner owns stable request identity/linkage and later adoption. Recheck 2026-10-30. This is a data/contract gap, not an absent API. Group affiliation and individual commitments still do not supply shared obligation, actual satisfier or reassignment; All/HF4 owns that generic contract and evidence-driven attention semantics, recheck 2026-11-03. Keep the last-cook convention and work-interval attention boundary. No click cap or local shared-duty cognition.
+
+Plan and current source/QA/review/delivery receipts: `~/code/.lab-scratch/games-deferred/recovery-pass-followthrough-plan.md` and `recovery-pass-followthrough-report.md`. Canonical inventory/ledger edits belong to root.
+
+
 ## HF 4 port — 2026-10-28
 
 The `pass@19` source uses HF 4.7.0, lab-client 0.5.3 and lab-kit 0.5.21. A none-policy game reached an ending and its complete export matched both cold restore and host replay; HF replay verified the archive. Earlier editions retain the HF 3 runtime. HF 3 shelf passports refuse before claim and remain available as source files. Ordinary request answers do not create promise evidence or directly adjust advising-voice trust in the new edition.

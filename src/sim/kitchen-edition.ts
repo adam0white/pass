@@ -6,7 +6,17 @@
  */
 
 import { PRIVATE_CLUES } from './cast-scenes.ts';
-import { type Affordance, begin, decide, finish, interrupt, isHF4, type Person, tick } from './hf4-person.ts';
+import {
+  type Affordance,
+  begin,
+  communityRun,
+  decide,
+  finish,
+  interrupt,
+  isHF4,
+  type Person,
+  tick,
+} from './hf4-person.ts';
 import {
   cookOf,
   type FoodStation,
@@ -18,6 +28,7 @@ import {
   personOf,
   plan,
 } from './kitchen.ts';
+import { suggestionWords } from './lines.ts';
 import { NARRATION_EDITION, observeNarration, PANEL_EDITION } from './narration-edition.ts';
 
 export const KITCHEN_EDITION = 'pass@14';
@@ -50,7 +61,18 @@ export interface KitchenWorld {
     at: number;
     verdict: string;
     completed?: number;
+    interrupted?: number;
+    activity?: string;
+    private?: true;
     source?: { at?: number; night?: number; text: string };
+  }[];
+  foregroundAt?: Record<string, number>;
+  clearings?: {
+    ticket: number;
+    who: string;
+    activity: string;
+    at: number;
+    outcome: 'clearing' | 'returned' | 'interrupted';
   }[];
   followup?: {
     attention: Record<string, { until: number; activity: string }>;
@@ -73,7 +95,7 @@ const task = (
   extra: Partial<Affordance> = {},
 ): Affordance => ({ id, action: id, label, duration, effort: 0.12, advertises, ...extra });
 const locked = (s: GameState, who: string) =>
-  ['no-replies', 'resign', 'conversation', 'explain-wait'].includes(
+  ['no-replies', 'resign', 'conversation', 'explain-wait', 'clear-table'].includes(
     personOf(s, who).activity?.affordanceId ?? '',
   );
 export function kitchenNight(s: GameState) {
@@ -191,7 +213,12 @@ export function kitchenStarted(s: GameState, who: string, id: string) {
     );
   }
 }
-export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversation' | 'follow-up') {
+export function kitchenTask(
+  s: GameState,
+  who: string,
+  kind: 'room' | 'conversation' | 'follow-up' | 'private',
+  topic?: string,
+) {
   if (
     !kitchenEdition(s) ||
     !s.kitchen ||
@@ -204,7 +231,8 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
   )
     return;
   const p = personOf(s, who);
-  const source = kind === 'follow-up' ? heardTopic(s, who) : undefined;
+  if (kind === 'private' && !privateConversationAvailable(s, who)) return;
+  const source = kind === 'follow-up' ? heardTopic(s, who, topic) : undefined;
   if (kind === 'follow-up' && !source) return;
   if (p.activity?.affordanceId === kind) {
     words(s, who, 'I am already doing that, Chef.');
@@ -231,6 +259,7 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
   const rec = decide(p, offers, {
     now: s.minute,
     suggestion: { voiceId: 'chef', affordanceId: aff.id, strength: 0.5 },
+    settleForeground: s.version === 'pass@19',
   });
   const verdict = rec.suggestion?.verdict ?? 'refused';
   if (kind !== 'room')
@@ -238,6 +267,7 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
       who,
       at: s.minute,
       verdict,
+      ...(kind === 'private' ? { private: true as const } : {}),
       ...(source
         ? {
             source: {
@@ -253,25 +283,37 @@ export function kitchenTask(s: GameState, who: string, kind: 'room' | 'conversat
     kind !== 'room'
       ? source
         ? `You said, “${source.text}” Would you like to talk about that, ${p.name}?`
-        : `How are you doing, ${p.name}?`
+        : kind === 'private'
+          ? `${p.name}, would you like three minutes to talk in private? Someone else will need to take your station.`
+          : `How are you doing, ${p.name}?`
       : `${p.name}, will you work in the dining room for fifteen minutes? Your station will need someone else.`,
   );
   const chosen = offers.find((o) => o.id === rec.chosenAffordanceId);
   if (!chosen || !start(s, who, chosen, rec, previous)) return;
+  if (s.version === 'pass@19' && p.activity) {
+    s.kitchen.foregroundAt ??= {};
+    s.kitchen.foregroundAt[who] = p.activity.startedAt;
+  }
   if (chosen.id !== aff.id) {
     reserveAttention(s, who, verdict);
     words(
       s,
       who,
-      `${rec.suggestion?.says ?? 'Not now, Chef.'} ${[PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
+      `${s.version === 'pass@19' && rec.suggestion ? (suggestionWords(p, rec.suggestion, aff.id, previous)?.text ?? 'Not now, Chef.') : (rec.suggestion?.says ?? 'Not now, Chef.')} ${[PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
     );
     return;
+  }
+  if (s.version === 'pass@19' && kind !== 'room') {
+    const entry = s.kitchen.conversations.at(-1);
+    if (entry) entry.activity = communityRun(p).active.find((a) => a.person === who)?.id;
   }
   words(
     s,
     who,
     kind !== 'room'
-      ? (source?.reply ?? ordinaryWords(who))
+      ? kind === 'private'
+        ? 'Yes. Let us step away from the stations for three minutes.'
+        : (source?.reply ?? ordinaryWords(who))
       : 'I will take the dining room for fifteen minutes. I cannot cook while I am there.',
   );
 }
@@ -322,15 +364,61 @@ const personalReply = (who: string, kind: 'later' | 'private') => {
   };
   return replies[who]?.[kind === 'later' ? 0 : 1] ?? 'I cannot stop to talk now, Chef.';
 };
+/** An interrupted task keeps its original world fallback and reveals no private account. */
+export function kitchenInterrupted(s: GameState, who: string, action: string, at: number, activity: string) {
+  if (s.version !== 'pass@19') return;
+  const conversation = s.kitchen?.conversations.find((entry) => entry.activity === activity);
+  if (conversation) conversation.interrupted = at;
+  const clearing = s.kitchen?.clearings?.find(
+    (entry) => entry.activity === activity && entry.outcome === 'clearing',
+  );
+  if (clearing && action === 'clear-table') {
+    clearing.outcome = 'interrupted';
+    words(s, who, 'I stopped clearing the abandoned meal. Its plate still needs to come back.', at);
+  }
+}
+
 /** Host consequences of an actual completion. HF4 calls this from its receipt drain. */
-export function kitchenCompleted(s: GameState, who: string, action: string, at: number) {
+export function kitchenCompleted(s: GameState, who: string, action: string, at: number, activity?: string) {
   const world = s.kitchen;
-  if (!world || !['room', 'conversation', 'explain-wait', 'no-replies'].includes(action)) return;
+  if (!world || !['room', 'conversation', 'explain-wait', 'no-replies', 'clear-table'].includes(action))
+    return;
+  if (action === 'clear-table') {
+    const entry = world.clearings?.find((x) => x.activity === activity && x.outcome === 'clearing');
+    if (entry) {
+      const index = s.plates.dirty.findIndex((d) => d.abandonedTicket === entry.ticket);
+      if (index < 0) entry.outcome = 'interrupted';
+      else {
+        s.plates.dirty.splice(index, 1);
+        if (plan(s).dish) s.plates.pile++;
+        else s.plates.clean++;
+        entry.outcome = 'returned';
+        words(
+          s,
+          who,
+          `I cleared the abandoned meal for table ${s.tickets.find((t) => t.id === entry.ticket)?.table}. The plate is back ${plan(s).dish ? 'at the dish station' : 'in the kitchen and washed'}.`,
+          at,
+        );
+      }
+    }
+  }
   if (action === 'conversation') {
     const entry = world.conversations.findLast(
-      (x) => x.who === who && x.completed === undefined && ['assented', 'complied'].includes(x.verdict),
+      (x) =>
+        x.who === who &&
+        x.completed === undefined &&
+        ['assented', 'complied'].includes(x.verdict) &&
+        (!x.activity || x.activity === activity),
     );
-    if (entry) entry.completed = at;
+    if (entry) {
+      entry.completed = at;
+      if (
+        entry.private &&
+        entry.activity === activity &&
+        !s.said.some((line) => line.who === who && line.text === PRIVATE_CLUES[who])
+      )
+        words(s, who, PRIVATE_CLUES[who] ?? '', at);
+    }
   }
   if (action === 'explain-wait') {
     const entry = world.guests.findLast((x) => x.who === who && x.outcome === 'heard');
@@ -384,7 +472,9 @@ export function kitchenMinute(s: GameState) {
     const p = personOf(s, c.id),
       a = p.activity;
     if (!a) continue;
-    const custom = ['room', 'conversation', 'explain-wait', 'no-replies'].includes(a.affordanceId);
+    const custom = ['room', 'conversation', 'explain-wait', 'no-replies', 'clear-table'].includes(
+      a.affordanceId,
+    );
     if (custom) tick(p, s.minute);
     if (custom && isHF4(p) && p.activity?.startedAt !== a.startedAt) continue;
     if (!isHF4(p) && custom && s.minute >= a.endsAt) {
@@ -454,7 +544,7 @@ export function kitchenMinute(s: GameState) {
 }
 
 /** A finite authored topic requires the exact speaker's actual retained utterance. */
-export function heardTopic(s: GameState, who: string) {
+function retainedTopic(s: GameState, who: string) {
   if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version))
     return undefined;
   if ([PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)) {
@@ -559,4 +649,168 @@ export function roomDelivery(s: GameState, ticket: number, table: number): boole
   world.deliveries.push({ ticket, who: worker.id, at: s.minute, arrives: s.minute + 2, outcome: 'carrying' });
   words(s, worker.id, `I am carrying the food from the pass to table ${table}.`);
   return false;
+}
+
+/** Scope: a private invitation uses the same three-minute HF choice as ordinary contact.
+ * Only an actual completion may disclose the existing account. Busy breaks stay private.
+ */
+export function privateConversationAvailable(s: GameState, who: string): boolean {
+  return (
+    s.version === 'pass@19' &&
+    s.phase === 'service' &&
+    !!PRIVATE_CLUES[who] &&
+    s.people.some((p) => p.id === who) &&
+    s.crew.some((m) => m.id === who && !m.left) &&
+    inKitchen(s, who) &&
+    !locked(s, who) &&
+    attentionAvailable(s, who) &&
+    !s.said.some((line) => line.who === who && line.text === PRIVATE_CLUES[who])
+  );
+}
+
+export interface HeardTopic {
+  id: string;
+  at?: number;
+  night?: number;
+  text: string;
+  reply: string;
+}
+/** Finite actual utterances, not biography lookup or a generated response to arbitrary text. */
+export function heardTopics(s: GameState, who: string): HeardTopic[] {
+  if (s.version !== 'pass@19') return [];
+  const topics: HeardTopic[] = [];
+  const prior = retainedTopic(s, who);
+  if (prior)
+    topics.push({
+      ...prior,
+      id:
+        prior.at === undefined
+          ? `report:${prior.night}`
+          : `said:${s.said.findIndex((line) => line.who === who && line.at === prior.at && line.text === prior.text)}`,
+    });
+  for (const [index, line] of [...s.said.entries()].reverse()) {
+    if (line.who !== who || topics.some((topic) => topic.text === line.text)) continue;
+    let reply: string | undefined;
+    if (line.text === PRIVATE_CLUES[who]) reply = personalReply(who, 'private');
+    else if (line.text === ordinaryWords(who)) reply = ordinaryFollowup(who);
+    else if (
+      line.at >= openAt(s.night) - 5 &&
+      line.text === 'I will take the dining room for fifteen minutes. I cannot cook while I am there.'
+    ) {
+      const deliveries =
+        s.kitchen?.followup?.deliveries.filter(
+          (d) => d.who === who && d.at >= line.at && d.at < line.at + 15 && d.outcome === 'served',
+        ) ?? [];
+      reply = deliveries.length
+        ? `I carried the food to table ${s.tickets.find((t) => t.id === deliveries[0]?.ticket)?.table}. I cannot prepare food at my station while I work in the dining room.`
+        : 'I agreed to work in the dining room. That does not mean a meal has reached a table yet. I cannot prepare food at my station while I work there.';
+    } else if (
+      line.at >= openAt(s.night) - 5 &&
+      line.text ===
+        'I will explain the wait. I am leaving the other tables for three minutes. The cooks will keep the orders they already have.'
+    ) {
+      const visit = s.kitchen?.guests.find(
+        (g) => g.who === who && g.at === line.at && g.action === 'explain-wait',
+      );
+      if (visit)
+        reply =
+          visit.outcome === 'explained'
+            ? 'I explained the wait. I did not promise to put that table ahead of the other orders.'
+            : visit.outcome === 'left-before-reply'
+              ? 'They left before I finished explaining. Speaking to them did not finish their order.'
+              : 'I agreed to explain the wait. That does not finish their order or put it ahead of the others.';
+    }
+    if (reply) topics.push({ id: `said:${index}`, at: line.at, text: line.text, reply });
+  }
+  return topics;
+}
+export function heardTopic(s: GameState, who: string, topic?: string) {
+  if (s.version === 'pass@19') {
+    const topics = heardTopics(s, who);
+    return topic === undefined ? topics[0] : topics.find((t) => t.id === topic);
+  }
+  return retainedTopic(s, who);
+}
+const ordinaryFollowup = (who: string) =>
+  ({
+    selim: 'Nevin knew these pans as well as I do. I miss working beside her.',
+    dilek: 'That loose handle rattles differently when the pan is hot. I listen for it while I work.',
+    rafi: 'I want to learn the cold side, but saying that does not mean I already know it.',
+    zeynep: 'My boys expect me home. I do not want paid work to become a promise I cannot keep to them.',
+    hulya: 'I was thinking of growing something on that ledge. I have not planted anything yet.',
+    murat: 'Telling you I am tired is easier than pretending until I get something wrong.',
+    sam: 'Writing it down helps me see what I still need to learn.',
+  })[who] ?? 'That is what I wanted you to hear.';
+
+/** Scope: one existing abandoned meal, one plate, actual work before earlier recovery.
+ * The original automatic return remains the fallback; no stock or payment is created.
+ */
+export function clearingAvailable(s: GameState, ticket: number): boolean {
+  return (
+    s.version === 'pass@19' &&
+    s.phase === 'service' &&
+    s.tickets.some((t) => t.id === ticket && t.status === 'walked' && t.platedAt !== undefined) &&
+    s.plates.dirty.some((d) => d.abandonedTicket === ticket && d.at > s.minute + 3) &&
+    !s.kitchen?.clearings?.some(
+      (c) =>
+        c.ticket === ticket &&
+        c.outcome === 'clearing' &&
+        communityRun(s.chef).active.some((a) => a.id === c.activity),
+    )
+  );
+}
+export function clearTable(s: GameState, who: string, ticket: number) {
+  if (
+    !clearingAvailable(s, ticket) ||
+    !s.kitchen ||
+    !s.people.some((p) => p.id === who) ||
+    !s.crew.some((m) => m.id === who && !m.left) ||
+    !inKitchen(s, who) ||
+    locked(s, who) ||
+    !attentionAvailable(s, who)
+  )
+    return;
+  const p = personOf(s, who),
+    previous = p.activity;
+  const aff = task(
+    'clear-table',
+    'clear the abandoned meal and return its plate',
+    3,
+    { competence: 0.1, meaning: 0.15 },
+    { material: 6, effort: 0.25, placeId: 'dining-room' },
+  );
+  const offers = [...offersFor(s, who), aff];
+  const rec = decide(p, offers, {
+    now: s.minute,
+    suggestion: { voiceId: 'chef', affordanceId: aff.id, strength: 0.5 },
+    settleForeground: true,
+  });
+  const table = s.tickets.find((t) => t.id === ticket)?.table;
+  words(
+    s,
+    'chef',
+    `${p.name}, will you clear the abandoned meal for table ${table} and bring its plate back? Your station will need someone else for three minutes.`,
+  );
+  const chosen = offers.find((o) => o.id === rec.chosenAffordanceId);
+  if (!chosen || !start(s, who, chosen, rec, previous)) return;
+  if (p.activity) {
+    s.kitchen.foregroundAt ??= {};
+    s.kitchen.foregroundAt[who] = p.activity.startedAt;
+  }
+  if (chosen.id !== aff.id) {
+    reserveAttention(s, who, rec.suggestion?.verdict ?? 'refused');
+    words(
+      s,
+      who,
+      rec.suggestion
+        ? (suggestionWords(p, rec.suggestion, aff.id, previous)?.text ?? 'Not now, Chef.')
+        : 'Not now, Chef.',
+    );
+    return;
+  }
+  const active = communityRun(p).active.find((a) => a.person === who);
+  if (!active) throw new Error('Missing accepted clearing activity.');
+  s.kitchen.clearings ??= [];
+  s.kitchen.clearings.push({ ticket, who, activity: active.id, at: s.minute, outcome: 'clearing' });
+  words(s, who, `I will clear the abandoned meal for table ${table}. I cannot cook while I do that.`);
 }

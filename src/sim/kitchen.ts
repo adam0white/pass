@@ -95,12 +95,14 @@ import {
 import { type KitchenCheckpoint, MINUTE_MS } from './hf4-run.ts';
 import {
   attentionAvailable,
+  clearTable,
   FOLLOWUP_EDITION,
   heardTopic,
   KITCHEN_EDITION,
   type KitchenWorld,
   kitchenCompleted,
   kitchenEdition,
+  kitchenInterrupted,
   kitchenMinute,
   kitchenNight,
   kitchenOffers,
@@ -195,10 +197,17 @@ export interface StaffingDecision {
 }
 export type Input =
   | { at: number; kind: 'kitchen-task'; who: string; task: 'room' | 'conversation' }
+  | { at: number; kind: 'clear-table'; who: string; ticket: number }
   | { at: number; kind: 'replacement' }
   | { at: number; kind: 'cast-invite'; who: string }
   | { at: number; kind: 'cast-release'; who: string }
-  | { at: number; kind: 'cast-talk'; who: string; choice: 'listen' | 'leave' | 'check-in' | 'follow-up' }
+  | {
+      at: number;
+      kind: 'cast-talk';
+      who: string;
+      choice: 'listen' | 'leave' | 'check-in' | 'follow-up' | 'invite';
+      topic?: string;
+    }
   | { at: number; kind: 'people-run' }
   | { at: number; kind: 'zeynep-release' }
   | { at: number; kind: 'board'; rows: BoardRow[] }
@@ -450,7 +459,7 @@ export interface GameState {
   crew: CrewMember[];
   cooks: CookState[];
   tickets: Ticket[];
-  plates: { clean: number; pile: number; dirty: { at: number }[] };
+  plates: { clean: number; pile: number; dirty: { at: number; abandonedTicket?: number }[] };
   oven: { heat: number };
   help?: {
     ticket: number;
@@ -715,7 +724,8 @@ function bindHF4World(s: GameState) {
           }
         }
         if (c && work.status === 'completed')
-          kitchenCompleted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS));
+          kitchenCompleted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS), work.activity);
+        else if (c) kitchenInterrupted(s, c.id, work.action, Math.ceil(work.at / MINUTE_MS), work.activity);
         const row = s.board?.rows.find((r) => r.cook === work.person && r.accepted);
         if (
           c &&
@@ -1169,7 +1179,8 @@ export function inKitchen(s: GameState, id: CookId): boolean {
   const c = cookOf(s, id);
   if (!c.here || c.gone) return false;
   const a = personOf(s, id).activity;
-  if (kitchenEdition(s) && ['room', 'explain-wait'].includes(a?.affordanceId ?? '')) return false;
+  if (kitchenEdition(s) && ['room', 'explain-wait', 'clear-table'].includes(a?.affordanceId ?? ''))
+    return false;
   return !a || (!OFF_LINE.includes(a.affordanceId) && a.affordanceId !== 'pray' && a.affordanceId !== 'skim');
 }
 
@@ -1494,6 +1505,7 @@ export function queueInput(s: GameState, input: NewInput): void {
     input.kind === 'cast-invite' ||
     input.kind === 'cast-talk' ||
     input.kind === 'kitchen-task' ||
+    input.kind === 'clear-table' ||
     input.kind === 'replacement' ||
     input.kind === 'cast-release' ||
     (chefEdition(s) &&
@@ -1694,6 +1706,9 @@ function apply(s: GameState, inp: Input) {
       });
       return;
     }
+    case 'clear-table':
+      clearTable(s, inp.who, inp.ticket);
+      return;
     case 'cast-talk': {
       if (
         kitchenEdition(s) &&
@@ -1706,7 +1721,10 @@ function apply(s: GameState, inp: Input) {
           [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) &&
             inp.choice === 'follow-up'
             ? 'follow-up'
-            : 'conversation',
+            : inp.choice === 'invite'
+              ? 'private'
+              : 'conversation',
+          inp.topic,
         );
         return;
       }
@@ -1746,6 +1764,8 @@ function apply(s: GameState, inp: Input) {
         ].includes(s.version) ||
         !p ||
         p.activity ||
+        (s.version === 'pass@19' &&
+          s.said.some((line) => line.who === inp.who && line.text === PRIVATE_CLUES[inp.who])) ||
         !inKitchen(s, inp.who) ||
         !s.crew.some((m) => m.id === inp.who && !m.left) ||
         s.inputs
@@ -2295,7 +2315,7 @@ function walk(s: GameState, t: Ticket) {
       [FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)) &&
     t.platedAt !== undefined
   )
-    s.plates.dirty.push({ at: s.minute + 18 });
+    s.plates.dirty.push({ at: s.minute + 18, ...(s.version === 'pass@19' ? { abandonedTicket: t.id } : {}) });
   t.status = 'walked';
   if (['pass@18', 'pass@19'].includes(s.version))
     say(
@@ -2376,10 +2396,19 @@ function cookMinute(s: GameState, c: CookState) {
   }
   observeNarration(s, p);
   tick(p, s.minute);
+  // A foreground request already received HF's choice in this minute. Do not
+  // immediately reconsider the new activity before any of its time can pass.
+  if (
+    isHF4(p) &&
+    p.activity &&
+    p.activity.startedAt >= s.minute &&
+    s.kitchen?.foregroundAt?.[c.id] === p.activity.startedAt
+  )
+    return;
   if (
     kitchenEdition(s) &&
     p.activity &&
-    ['room', 'conversation', 'explain-wait', 'no-replies'].includes(p.activity.affordanceId) &&
+    ['room', 'conversation', 'explain-wait', 'no-replies', 'clear-table'].includes(p.activity.affordanceId) &&
     !c.pending
   )
     return;
@@ -3654,6 +3683,7 @@ export function replay(
       inp.kind === 'cast-invite' ||
       inp.kind === 'cast-talk' ||
       inp.kind === 'kitchen-task' ||
+      inp.kind === 'clear-table' ||
       inp.kind === 'replacement' ||
       inp.kind === 'cast-release' ||
       (chefEdition(s) &&
