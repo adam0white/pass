@@ -3,6 +3,8 @@ import {
   checkpoint,
   decide,
   freshCommunity,
+  interrupt,
+  livedHours,
   perceive,
   tick,
   verifyCommunity,
@@ -168,4 +170,44 @@ it('keeps a relief cook at their agreed station until the scheduled break', () =
   step(s);
   expect(cookOf(s, 'dilek').cover?.station).toBe(own?.station);
   expect(verifyCommunity(s.chef).verified).toBe(true);
+});
+
+it('does not author copied home activities for departed people', () => {
+  const community = freshCommunity(42);
+  const chef = community.people.find((p) => p.id === 'chef');
+  if (!chef) throw new Error('Missing chef');
+  const before = checkpoint(chef).archive.history.length;
+  livedHours(
+    chef,
+    [
+      {
+        person: chef,
+        at: chef.now + 10,
+        affordance: { id: 'meal', action: 'meal', label: 'meal', duration: 2, effort: 0, advertises: {} },
+      },
+    ],
+    chef.now + 15,
+    ['selim'],
+  );
+  const inputs = checkpoint(chef)
+    .archive.history.slice(before)
+    .flatMap((transaction) => transaction.inputs);
+  expect(inputs.some((input) => 'person' in input.payload && input.payload.person === 'selim')).toBe(false);
+  expect(inputs.some((input) => 'person' in input.payload && input.payload.person === 'dilek')).toBe(true);
+});
+
+it('pins the released cook checkpoint across later community time', () => {
+  const s = newGame(42, 'pass@19');
+  const person = personOf(s, 'selim');
+  interrupt(person, s.minute, 'release fixture');
+  s.phase = 'evening';
+  queueInput(s, { kind: 'cast-release', who: 'selim' });
+  const saved = s.releasedCastProjections?.selim;
+  expect(saved).toBeDefined();
+  const original = JSON.stringify(saved);
+  tick(s.chef, s.minute + 30);
+  expect(JSON.stringify(s.releasedCastProjections?.selim)).toBe(original);
+  expect(restoreState(JSON.parse(JSON.stringify(cloneState(s)))).releasedCastProjections?.selim).toEqual(
+    saved,
+  );
 });

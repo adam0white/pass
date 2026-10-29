@@ -97,7 +97,7 @@ export async function prepareHF4KitchenChapter(
     portable,
   };
 }
-export async function hf4KitchenTransfer(p: Person) {
+export function hf4ReleaseProjection(p: Person) {
   if (!isHF4(p)) throw new Error('This person belongs to a historical chapter.');
   const cast = CAST.find((c) => c.castId.split('.')[2] === p.id);
   if (!cast) throw new Error('Unallocated kitchen person.');
@@ -120,13 +120,18 @@ export async function hf4KitchenTransfer(p: Person) {
   const person = view?.parts.find((x) => x.select === 'persona')?.value;
   if (!person || !('format' in person) || person.version !== 2)
     throw new Error('HF could not project this retained person.');
+  return { person, sourceAt: run.now };
+}
+
+export async function hf4KitchenTransfer(p: Person, saved?: ReturnType<typeof hf4ReleaseProjection>) {
+  const { person, sourceAt } = saved ?? hf4ReleaseProjection(p);
   const checkpointDigest = await digest(person);
   return {
     castPassport: 'hf-portable-person/2',
     portable: person,
     portableLimitations:
       'Supported history and responsibilities continue with explicit calendar and reference mapping. The source runtime and RNG stay archived.',
-    checkpoint: { checkpointDigest, sourceAt: run.now },
+    checkpoint: { checkpointDigest, sourceAt },
     limitations: [
       'This copy retains the body, traits, values, memories, held norms and duties supported by the framework passport. The full kitchen notebook keeps the source run.',
     ],

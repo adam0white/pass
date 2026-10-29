@@ -1,5 +1,5 @@
 /** Whole kitchen ownership and pinned exports. Title entry is read-only; files never acquire ownership. */
-import { ENGINE_VERSION, FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework-legacy';
+import { FRAMEWORK_VERSION, snapshot } from '@adam0white/human-framework-legacy';
 import {
   anchorPersonaLife,
   canonicalCast,
@@ -113,6 +113,13 @@ export function continuity(
         }
       : null;
   };
+  const releaseProjection = (s: GameState, id: string) => {
+    const saved = s.releasedCastProjections?.[id];
+    if (!saved) throw new Error('The release checkpoint is missing. Keep the original notebook.');
+    if ('unavailable' in saved)
+      throw new Error('The release source cannot be saved. Keep the original notebook.');
+    return saved;
+  };
   const track = () => {
     stopTracking?.();
     stopTracking = lab.trackRun(run, {
@@ -173,7 +180,8 @@ export function continuity(
             : !state.releasedCast?.includes(person.id) ||
               receipt?.checkpointDigest !==
                 (isHF4(person)
-                  ? (await hf4KitchenTransfer(person)).checkpoint.checkpointDigest
+                  ? (await hf4KitchenTransfer(person, releaseProjection(state, person.id))).checkpoint
+                      .checkpointDigest
                   : await digest(snapshot(person))))
         )
           throw new Error('Saved receipt does not match the played kitchen checkpoint.');
@@ -284,7 +292,7 @@ export function continuity(
         p = s.people.find((p) => p.id === id),
         parent = heads[cast.castId];
       if (!p) continue;
-      if (!p.body.alive) {
+      if (!p.body.alive && !(isHF4(p) && s.releasedCast?.includes(id))) {
         if (parent && !parent.terminal) {
           if (isHF4(p) && portablePassport(parent) && !canWritePortable(cast)) continue;
           const terminal = await closePersonaBranch(parent, source(), p.now);
@@ -299,17 +307,22 @@ export function continuity(
         }
         continue;
       }
-      if (!['evening', 'sunday', 'end'].includes(s.phase) || !s.releasedCast?.includes(id) || p.activity)
+      if (
+        !s.releasedCast?.includes(id) ||
+        (!isHF4(p) && (!['evening', 'sunday', 'end'].includes(s.phase) || p.activity))
+      )
         continue;
       try {
         if (isHF4(p) && !canWritePortable(cast)) continue;
-        const transfer = isHF4(p) ? await hf4KitchenTransfer(p) : await kitchenTransfer(snapshot(p));
+        const transfer = isHF4(p)
+          ? await hf4KitchenTransfer(p, releaseProjection(s, id))
+          : await kitchenTransfer(snapshot(p));
         if (
           epoch !== generation ||
           getState() !== s ||
           s.minute !== minute ||
           (isHF4(p)
-            ? (await hf4KitchenTransfer(p)).checkpoint.checkpointDigest
+            ? (await hf4KitchenTransfer(p, releaseProjection(s, id))).checkpoint.checkpointDigest
             : await digest(snapshot(p))) !== transfer.checkpoint.checkpointDigest
         )
           return;

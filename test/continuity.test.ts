@@ -7,7 +7,17 @@ import {
 import { beforeEach, expect, it, vi } from 'vitest';
 import { required } from '../src/required.ts';
 import { freshActor, kitchenTransfer } from '../src/sim/cast-chapter.ts';
-import { newGame } from '../src/sim/kitchen.ts';
+import { hf4ReleaseProjection } from '../src/sim/hf4-cast.ts';
+import { tick } from '../src/sim/hf4-person.ts';
+import {
+  boardDefaults,
+  cloneState,
+  newGame,
+  queueInput,
+  replay,
+  restoreState,
+  step,
+} from '../src/sim/kitchen.ts';
 
 const mocks = vi.hoisted(() => ({
   shelf: { ready: Promise.resolve(true), enabled: true, request: vi.fn(), setEnabled: vi.fn() },
@@ -353,6 +363,7 @@ it('writes an eligible current portable checkpoint when the peer gate is open', 
   state.phase = 'evening';
   state.releasedCast = ['selim'];
   person.activity = null;
+  state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
   mocks.blockers.mockReturnValue([]);
   const c = continuity(() => state, vi.fn(), vi.fn());
   await c.restore();
@@ -361,4 +372,72 @@ it('writes an eligible current portable checkpoint when the peer gate is open', 
   expect(puts).toHaveLength(1);
   expect(required(puts[0])[0].envelope.castId).toBe('hf.cast.selim.pass');
   expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
+}, 30000);
+
+it('publishes the preserved release checkpoint after the live kitchen advances and reloads it', async () => {
+  const { hf4KitchenTransfer } = await import('../src/sim/hf4-cast.ts');
+  const state = newGame(42, 'pass@19');
+  const person = required(state.people.find((p) => p.id === 'selim'));
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
+  const release = await hf4KitchenTransfer(person);
+  tick(person, person.now + 10);
+  state.phase = 'service';
+  expect((await hf4KitchenTransfer(person)).checkpoint.checkpointDigest).not.toBe(
+    release.checkpoint.checkpointDigest,
+  );
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  const saved = required(c.data().ownedHeads?.['hf.cast.selim.pass']);
+  expect(saved.transfer.checkpoint).toEqual(release.checkpoint);
+  await expect(c.restore(c.data(), false, true, state)).resolves.toBeUndefined();
+}, 30000);
+
+it('does not publish an HF4 release without its preserved checkpoint', async () => {
+  const state = newGame(42, 'pass@19');
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
+}, 30000);
+
+it('replays and restores a release when the source cannot be projected', async () => {
+  const state = newGame(42, 'pass@19');
+  queueInput(state, { kind: 'board', rows: boardDefaults(state) });
+  queueInput(state, { kind: 'open' });
+  while (state.phase === 'service') step(state);
+  queueInput(state, { kind: 'cast-release', who: 'selim' });
+  expect(state.releasedCast).toContain('selim');
+  const refusal = required(state.releasedCastProjections?.selim);
+  expect(refusal).toHaveProperty('unavailable');
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
+  expect(c.message).toContain('Selim');
+  expect(c.message).toContain('cannot be saved');
+  const restored = restoreState(JSON.parse(JSON.stringify(cloneState(state))));
+  expect(restored.releasedCast).toContain('selim');
+  expect(restored.releasedCastProjections?.selim).toEqual(refusal);
+  const replayed = replay(state.seed, state.inputs, state.minute, state.version);
+  expect(replayed.releasedCast).toContain('selim');
+  expect(replayed.releasedCastProjections?.selim).toEqual(refusal);
+}, 30000);
+
+it('publishes the release projection even if the live person later dies', async () => {
+  const state = newGame(42, 'pass@19');
+  const person = required(state.people.find((p) => p.id === 'selim'));
+  state.phase = 'evening';
+  state.releasedCast = ['selim'];
+  state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
+  person.body.alive = false;
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  await c.restore();
+  await c.checkpoint();
+  expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
+  expect(c.data().ownedHeads?.['hf.cast.selim.pass']?.terminal).toBeFalsy();
 }, 30000);

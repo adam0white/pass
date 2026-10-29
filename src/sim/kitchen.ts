@@ -49,6 +49,7 @@ import {
   STATIONS,
   type Station,
 } from './cooks.ts';
+import { hf4ReleaseProjection } from './hf4-cast.ts';
 import {
   type Activity,
   type Affordance,
@@ -432,6 +433,10 @@ export interface GameState {
   castChapter?: KitchenChapter;
   visitorDecisions?: Record<string, { chosen: string | null; checkpoint: KitchenCheckpoint }>;
   releasedCast?: string[];
+  releasedCastProjections?: Record<
+    string,
+    ReturnType<typeof hf4ReleaseProjection> | { unavailable: string; sourceAt: number }
+  >;
   crewContact?: { night: number; who: CookId; topic: 'check-in' | 'follow-up' }[];
   returnChapter?: import('./continuation.ts').ReturnChapter;
   board?: { rows: BoardRow[]; agreed: boolean };
@@ -769,6 +774,15 @@ export const plan = (s: GameState): NightPlan => planOf(s.night);
 export const openAt = (n: number) => nightStart(n) + OPEN;
 export const closeAt = (n: number) => nightStart(n) + CLOSE;
 
+function livedKitchenHours(s: GameState, tasks: Parameters<typeof livedHours>[1], until: number) {
+  livedHours(
+    s.chef,
+    tasks,
+    until,
+    s.crew.filter((m) => m.left).map((m) => m.id),
+  );
+}
+
 /** Live the day before a service: meals, an afternoon, arriving at 17:00. */
 function dayHours(s: GameState, day: number) {
   const d = day * 1440;
@@ -779,8 +793,8 @@ function dayHours(s: GameState, day: number) {
       { at: d + 840, affordance: offer('meal', { duration: 30, advertises: { food: 0.6, water: 0.6 } }) },
       { at: d + 1020, affordance: offer('wait', { duration: 20 }) },
     ];
-    livedHours(
-      s.chef,
+    livedKitchenHours(
+      s,
       times.flatMap((t) => people.map((person) => ({ ...t, person }))),
       d + 1040,
     );
@@ -844,7 +858,7 @@ function offDay(s: GameState, day: number) {
           norms: [{ normId: 'salah', relation: 'fulfills' }],
         }),
       });
-    livedHours(s.chef, tasks, d + 1920);
+    livedKitchenHours(s, tasks, d + 1920);
     return;
   }
   for (const p of chefEdition(s) ? [...livePeople(s), s.chef] : livePeople(s)) {
@@ -892,8 +906,8 @@ function nightHours(s: GameState, n: number) {
   const d = nightStart(n);
   if (isHF4(s.chef)) {
     const people = [...livePeople(s), s.chef];
-    livedHours(
-      s.chef,
+    livedKitchenHours(
+      s,
       people.flatMap((person) => [
         {
           person,
@@ -924,8 +938,8 @@ function sleepHours(s: GameState, n: number) {
   if (isHF4(s.chef)) {
     const people = [...livePeople(s), s.chef],
       at = Math.max(d + 1410, ...people.map((p) => p.now));
-    livedHours(
-      s.chef,
+    livedKitchenHours(
+      s,
       people.map((person) => ({
         person,
         at,
@@ -1637,7 +1651,28 @@ function apply(s: GameState, inp: Input) {
       for (const c of p.agenda.commitments)
         if (c.toId === CHEF && c.label === 'my shift' && c.status === 'pending') releaseCommitment(p, c.id);
       s.releasedCast ??= [];
-      s.releasedCast.push(p.id);
+      const alreadyReleased = s.releasedCast.includes(p.id);
+      if (!alreadyReleased) s.releasedCast.push(p.id);
+      if (isHF4(p) && !alreadyReleased) {
+        s.releasedCastProjections ??= {};
+        if (!s.releasedCastProjections[p.id]) {
+          try {
+            s.releasedCastProjections[p.id] = hf4ReleaseProjection(p);
+          } catch (error) {
+            s.releasedCastProjections[p.id] = {
+              unavailable:
+                error instanceof Error ? error.message : 'This history cannot be carried to another story.',
+              sourceAt: communityRun(p).now,
+            };
+            say(
+              s,
+              p.id,
+              'This saved history cannot be carried to another story. Keep this notebook.',
+              'answer',
+            );
+          }
+        }
+      }
       const m = s.crew.find((m) => m.id === p.id);
       if (m) m.left = { night: s.night, words: 'The chef has released me from my kitchen shifts.' };
       s.said.push({
@@ -3229,8 +3264,8 @@ function enterSunday(s: GameState) {
   sleepHours(s, n);
   const sunday = (pl.week - 1) * 7 + 6;
   if (isHF4(s.chef))
-    livedHours(
-      s.chef,
+    livedKitchenHours(
+      s,
       [...livePeople(s), s.chef].map((person) => ({
         person,
         at: sunday * 1440 + 600,
@@ -3511,7 +3546,7 @@ function leaveSunday(s: GameState) {
           norms: [{ normId: 'salah', relation: 'fulfills' }],
         }),
       });
-    livedHours(s.chef, tasks, sunday * 1440 + 1920);
+    livedKitchenHours(s, tasks, sunday * 1440 + 1920);
     const next = planOf(n + 1);
     for (let d = sunday + 1; d < next.day; d++) offDay(s, d);
     dayHours(s, next.day);

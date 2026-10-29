@@ -522,10 +522,11 @@ export function livedHours(
   p: Person,
   tasks: readonly { person: Person; affordance: Affordance; at: number }[],
   until: number,
+  departed: readonly string[] = [],
 ) {
   const c = needCommunity(p);
   const scheduled = new Set(tasks.map((t) => t.person.id)),
-    outside = c.people.filter((p) => !scheduled.has(p.id));
+    outside = c.people.filter((p) => !scheduled.has(p.id) && !departed.includes(p.id));
   const homeTasks = tasks
     .filter((t) => t.person.id === 'chef')
     .flatMap((t) => outside.map((person) => ({ ...t, person })));
