@@ -312,7 +312,9 @@ it('names skipped people and preserves their saved heads when the batch cannot c
   const game = await c.fresh(42);
   expect(game.castChapter?.inputs).toEqual([]);
   expect(c.message).toContain('Hülya');
-  expect(c.message).toMatch(/saved|history|story/i);
+  expect(c.message).toBe(
+    'Hülya could not bring their saved story into this kitchen. They start fresh here. Their story from the other game stays as it was.',
+  );
   expect(source).toEqual(before);
   expect(c.data().ownedHeads).toEqual({});
 }, 120000);
@@ -359,7 +361,9 @@ it.each([false, true])(
     );
     expect(c.data().ownedHeads?.[castId]).toEqual(before);
     expect(c.message).toContain('Selim');
-    expect(c.message).toContain('repair');
+    expect(c.message).toBe(
+      "Selim's story could not be saved for another game yet. Their saved story stays as it was.",
+    );
   },
   30000,
 );
@@ -427,7 +431,7 @@ it('replays and restores a release when the source cannot be projected', async (
   await c.checkpoint();
   expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
   expect(c.message).toContain('Selim');
-  expect(c.message).toContain('cannot be saved');
+  expect(c.message).toBe("Selim's progress could not be saved this time. Your game continues.");
   const restored = restoreState(JSON.parse(JSON.stringify(cloneState(state))));
   expect(restored.releasedCast).toContain('selim');
   expect(restored.releasedCastProjections?.selim).toEqual(refusal);

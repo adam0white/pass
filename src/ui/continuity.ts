@@ -49,8 +49,7 @@ export interface SkippedCast {
   castId: string;
   reason: string;
 }
-const skippedReason =
-  'Their saved story could not join this kitchen. This kitchen uses a separate local story for them. Their earlier story remains saved.';
+const skippedReason = 'They start fresh here. Their stories from other games stay as they were.';
 export interface ContinuitySave {
   authority?: typeof AUTHORITY;
   skipped?: SkippedCast[];
@@ -100,8 +99,20 @@ export function continuity(
       throw new Error(AUTHORITY_REFUSAL);
   };
   const isSkipped = (castId: string) => skipped.some((item) => item.castId === castId);
-  const skippedMessage = () =>
-    skipped.map((item) => `${canonicalCast(item.castId).name}: ${item.reason}`).join(' ');
+  const skippedMessage = () => {
+    const names = skipped.map((item) => canonicalCast(item.castId).name);
+    if (!names.length) return '';
+    const joined = names.length < 2 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+    return names.length === 1
+      ? `${joined} could not bring their saved story into this kitchen. They start fresh here. Their story from the other game stays as it was.`
+      : `${joined} could not bring their saved stories into this kitchen. They start fresh here. Their stories from other games stay as they were.`;
+  };
+  let labDetails = '';
+  const labStatus = () =>
+    message +
+    (new URLSearchParams(window.location.search).get('lab') === '1' && labDetails
+      ? ` Details: ${labDetails}`
+      : '');
   let localOnly = false;
   let fileOrigin = false,
     fileUnlinked = false,
@@ -376,7 +387,8 @@ export function continuity(
     const canWritePortable = (cast: (typeof CAST)[number]) => {
       const blockers = portableWriteBlockers(cast.castId, 'pass');
       if (!blockers.length) return true;
-      const notice = `${cast.name}: this saved story cannot be shared until ${blockers.join(', ')} is ready. The saved story remains where it is.`;
+      labDetails = `${cast.name}: ${blockers.join(', ')}`;
+      const notice = `${cast.name}'s story could not be saved for another game yet. Their saved story stays as it was.`;
       blockedWrites.push(notice);
       report(blockedWrites.join(' '));
       return false;
@@ -460,9 +472,8 @@ export function continuity(
         track();
         report(`${cast.name}: progress from this kitchen is saved. Their family duties still apply.`);
       } catch (error) {
-        report(
-          `${cast.name}: ${error instanceof Error ? error.message : 'this progress could not be saved'}`,
-        );
+        labDetails = String(error);
+        report(`${cast.name}'s progress could not be saved this time. Your game continues.`);
       }
     }
     if (blockedWrites.length) report(blockedWrites.join(' '));
@@ -470,7 +481,7 @@ export function continuity(
   const checkpoint = () => {
     chain = chain
       .then(checkpointNow)
-      .catch(() => report('This progress was not saved. Keep your notebook on this device.'));
+      .catch(() => report('This progress could not be saved this time. Your game continues.'));
     return chain;
   };
   const download = (value: unknown, name: string) => {
@@ -495,10 +506,10 @@ export function continuity(
     });
     const status = document.createElement('p');
     status.setAttribute('role', 'status');
-    status.textContent = message;
+    status.textContent = labStatus();
     section.append(status);
     const update = () => {
-      if (section.isConnected) status.textContent = message;
+      if (section.isConnected) status.textContent = labStatus();
       else window.removeEventListener('pass-continuity', update);
     };
     window.addEventListener('pass-continuity', update);

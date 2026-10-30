@@ -684,7 +684,9 @@ async function title() {
       cast.track();
       enterWithStatus(cast.message);
     } catch {
-      status('Keep the original notebook and start a fresh game. This saved game could not be opened.');
+      status(
+        'This saved game could not be opened. It is still saved. Start a fresh game, or send Feedback from the menu.',
+      );
     }
   });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-page]'))

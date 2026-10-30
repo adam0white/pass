@@ -38,7 +38,7 @@ const identity = (xs: string[]) => Object.fromEntries(xs.map((x) => [x, x]));
 import type { PortableAdmission } from '@adam0white/human-framework';
 export const AUTHORITY = 'pass-authority/1' as const;
 export const AUTHORITY_REFUSAL =
-  'Keep the original notebook and start a fresh game. This notebook does not establish which saved stories may continue.';
+  'This file cannot continue in this version of The Pass. Keep it and start a fresh game.';
 export function requireChapterAuthority(chapter?: KitchenChapter) {
   if (
     chapter?.version !== 'pass-cast/2' ||
