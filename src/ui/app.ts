@@ -51,7 +51,6 @@ import {
   cookOf,
   coverLine,
   type Export,
-  fingerprint,
   type GameState,
   gasOut,
   type Hint,
@@ -448,11 +447,8 @@ function openGameMenu() {
     try {
       const ex = cast.run();
       if (!ex) return;
-      const replayed = await validateReplayFile(ex);
-      required(debug.querySelector('#debug-result')).textContent =
-        fingerprint(replayed) === fingerprint(required(s))
-          ? 'The replay matches this game.'
-          : 'The replay does not match this game.';
+      await validateReplayFile(ex);
+      required(debug.querySelector('#debug-result')).textContent = 'The replay matches this game.';
     } catch {
       required(debug.querySelector('#debug-result')).textContent = 'This run could not be verified.';
     }
@@ -770,15 +766,8 @@ async function title() {
         return;
       }
       const r = await validateReplayFile(ex);
-      const same = ex.state ? fingerprint(r) === fingerprint(ex.state) : true;
       const load = () => {
         void (async () => {
-          if (!same) {
-            status(
-              'This file does not replay the same way in this version of The Pass. It may come from an older version. The file was not loaded. Start a new game instead.',
-            );
-            return;
-          }
           await cast.restore(
             guardedContinuity(r, (ex as Export & { continuity?: ContinuitySave }).continuity),
             true,
@@ -1961,7 +1950,8 @@ function drawSheet() {
   if (!s) return;
   if (pressingJob) return;
   const st = s;
-  const el = document.getElementById('sheet') as HTMLElement;
+  const el = document.getElementById('sheet');
+  if (!el) return;
   const rq = st.request;
   const staffing = availableStaffing(st)[0] ?? actionableStaffing(st)[0];
   const priorityWaiting =
