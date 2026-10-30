@@ -1,5 +1,10 @@
 # Pass handoff
 
+## Current-file comparator repair candidate — 2026-10-30
+
+Uncommitted `gd-reader-pass-file1030` candidate composed with signed copy commit4798da86 on delivered b4af546. Import and Debug Verify now rely on the existing complete `validateReplayFile` check; redundant raw JSON fingerprint comparisons are removed. Simulation fingerprints, exports, HF hashes, authority schema, save format and dependency pins are unchanged. The regression uses real cast-talk input, reload, public file selection, file nonownership/native-byte preservation and host/HF corruption refusals at360x690 and1280x800. Retained actual delivery-file reproduction and fresh candidate proofs live in `~/code/.lab-scratch/games-deferred/pass-reader-file-fix/` and `resume-pass-reader-file-fix-report.md`. Director owns SAME-reviewer confirmation, signing/CI/delivery; no commit/push/review/deploy is authorized here.
+
+
 ## Portable reader R2 authority boundary — 2026-10-30
 
 R2 supersedes the reviewed candidate's unsafe missing-denial default. New current chapters and continuity saves require `pass-authority/1` and explicit denial lists, including empty lists. Both records must agree before native activation, recording, journal-cursor adoption or save. Missing/contradictory current notebooks refuse with keep-original/start-fresh wording; no roster/catalog backfill occurs. Gameplay release remains normal while unestablished or denied chapters cannot stage a source. Original production and reviewed-candidate evidence remains immutable. R2 patch/proof/backup are separate in `pass-reader-r2/` and `resume-pass-reader-r2-report.md`; director owns bounded reviewer confirmation and all integration/release steps.
@@ -230,3 +235,7 @@ HF is pinned exactly to 2.21.0, including the lab client's dependency through a 
 The 42-run before/after proof preserves semantic line history, RNG and mechanical state. Only identified narration fields and version/opt-in metadata are excluded; `missed` intention sentinels and action labels remain exact. Focused upgrade fixtures and replay tests live in `test/hf-plain.test.ts`. Delivery, review, CI and live evidence: `/Users/abdul/code/.lab-scratch/hfadopt/pass-report.md`. Adam still accepts readiness; no new player playtest was run.
 
 The pre-delivery coordinator audit found current outgoing 2.21.0 envelopes rejected by historical-only native gates. Four real current projection regressions reproduced the failure. The finite adapters now admit exactly 2.17.0 and 2.21.0 with all existing map/rules/identity/duty checks. Snapshot validation remains in HF. Final commit/CI/live receipts supersede the first adoption commit in the external report.
+
+## 2026-10-30 combined reader candidate follow-up
+
+The speech highlight timer can expire after the public file chooser replaces the service view. `drawSheet` now returns when that view has no sheet. Highlight timing and simulation remain unchanged. The browser regression advances the real highlight timer after public navigation; both current-file viewport controls also require zero page errors. Combined patch, hashes, backups and RED/GREEN logs are in `~/code/.lab-scratch/games-deferred/resume-pass-reader-combined-report.md` and its JSON proof. Root owns independent combined review and release; this tree remains uncommitted.
