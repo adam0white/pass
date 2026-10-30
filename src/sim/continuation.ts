@@ -6,7 +6,7 @@ import {
   validatePersonaProjection,
 } from '@adam0white/human-framework-legacy';
 import { canonicalPersona, type PersonaEnvelope, validatePersona } from '@adam0white/lab-client';
-import { validateKitchenChapter } from './cast-chapter.ts';
+import { requireChapterAuthority, validateKitchenChapter } from './cast-chapter.ts';
 import { canReplay, cloneState, type Export, type GameState, personOf, replay } from './kitchen.ts';
 import { returnedZeynep, zeynepDepartureStatus } from './one-cast.ts';
 
@@ -115,6 +115,7 @@ export async function prepareReturn(envelope: PersonaEnvelope, prefix: Export): 
 }
 
 export function replayExport(ex: ReplayFile): GameState {
+  if (ex.game === 'pass@19') requireChapterAuthority(ex.castChapter ?? ex.state?.castChapter);
   if (!canReplay(ex.game) || !Number.isSafeInteger(ex.seed) || !Array.isArray(ex.inputs))
     throw new Error('That is not a supported Pass notebook.');
   const header = ex.returnChapter ?? ex.state?.returnChapter;

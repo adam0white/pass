@@ -36,7 +36,27 @@ const nativeEngine = (engine: string) => engine === '2.17.0' || engine === '2.21
 const identity = (xs: string[]) => Object.fromEntries(xs.map((x) => [x, x]));
 
 import type { PortableAdmission } from '@adam0white/human-framework';
+export const AUTHORITY = 'pass-authority/1' as const;
+export const AUTHORITY_REFUSAL =
+  'Keep the original notebook and start a fresh game. This notebook does not establish which saved stories may continue.';
+export function requireChapterAuthority(chapter?: KitchenChapter) {
+  if (
+    chapter?.version !== 'pass-cast/2' ||
+    chapter.authority !== AUTHORITY ||
+    !Array.isArray(chapter.skipped)
+  )
+    throw new Error(AUTHORITY_REFUSAL);
+  if (chapter.skipped.length > CAST.length || new Set(chapter.skipped).size !== chapter.skipped.length)
+    throw new Error(AUTHORITY_REFUSAL);
+  for (const id of chapter.skipped) {
+    keyOf(id);
+    if (chapter.inputs.some((input) => input.parent.castId === id)) throw new Error(AUTHORITY_REFUSAL);
+  }
+}
 export interface KitchenChapter {
+  authority?: typeof AUTHORITY;
+  /** Refused shelf identities use local substitutes and cannot publish source projections. */
+  skipped?: string[];
   portable?: Record<string, PortableAdmission>;
   version: 'pass-cast/1' | 'pass-cast/2';
   /** Absent in historical chapters; validation must retain their original narration. */
@@ -237,7 +257,17 @@ export async function prepareKitchenChapter(
   return chapter;
 }
 export async function validateKitchenChapter(chapter: KitchenChapter) {
-  const { claims, ...content } = chapter;
+  const { claims, skipped, authority, ...content } = chapter;
+  if (chapter.version === 'pass-cast/2') requireChapterAuthority(chapter);
+  if (skipped !== undefined) {
+    if (!Array.isArray(skipped) || skipped.length > CAST.length || new Set(skipped).size !== skipped.length)
+      throw new Error('Invalid skipped kitchen people.');
+    for (const id of skipped) {
+      keyOf(id);
+      if (chapter.inputs.some((input) => input.parent.castId === id))
+        throw new Error('A skipped person cannot have an admitted kitchen source.');
+    }
+  }
   if (claims) {
     if (claims.length !== chapter.inputs.length) throw new Error('Incomplete initial claim group.');
     for (const value of claims) {
@@ -254,7 +284,12 @@ export async function validateKitchenChapter(chapter: KitchenChapter) {
   }
   if (chapter.version === 'pass-cast/2') {
     const { prepareHF4KitchenChapter } = await import('./hf4-cast.ts');
-    if (!same(await prepareHF4KitchenChapter(chapter.inputs, chapter.seed), content))
+    const {
+      authority: _authority,
+      skipped: _skipped,
+      ...expected
+    } = await prepareHF4KitchenChapter(chapter.inputs, chapter.seed);
+    if (!same(expected, content))
       throw new Error('Pinned retained kitchen chapter does not match its sources.');
     return;
   }

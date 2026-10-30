@@ -90,7 +90,7 @@ it('title and local reload do not claim a new chapter; file receipt stays nonown
     false,
   );
 });
-it('refuses an old incomplete passport before claiming any heads', async () => {
+it('skips an old incomplete passport without claiming its head', async () => {
   const e = await envelope();
   mocks.shelf.request.mockImplementation(async (r) => {
     if (r.action === 'prepareBatch')
@@ -108,9 +108,12 @@ it('refuses an old incomplete passport before claiming any heads', async () => {
     return null;
   });
   const c = continuity(() => null, vi.fn(), vi.fn());
-  await expect(c.fresh(42)).rejects.toThrow('omits the full retained history');
+  const started = await c.fresh(42);
+  expect(started.castChapter?.inputs).toEqual([]);
+  expect(c.message).toContain('Hülya');
   const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'putBatch');
-  expect(puts).toHaveLength(0);
+  expect(puts).toHaveLength(1);
+  expect(required(puts[0])[0].envelopes).toEqual([]);
   expect(mocks.lab.telemetryOn).toBe(false);
   expect(mocks.lab.allowPersonaRecording.mock.calls.every(([allow]) => !allow)).toBe(true);
 });
@@ -255,7 +258,7 @@ it('failed fresh admission preserves the running notebook receipts and recording
 it('preserves a historical Neighbours source when its incomplete passport is refused', async () => {
   const { readFileSync } = await import('node:fs');
   const { castForGame } = await import('@adam0white/lab-client');
-  let head: PersonaEnvelope = JSON.parse(
+  const head: PersonaEnvelope = JSON.parse(
     readFileSync(new URL('./fixtures/hf3-neighbours/ravi/persona.json', import.meta.url), 'utf8'),
   );
   mocks.shelf.request.mockImplementation(async (r) => {
@@ -268,16 +271,19 @@ it('preserves a historical Neighbours source when its incomplete passport is ref
         blocked: [],
       };
     if (r.action === 'putBatch') {
-      head = r.envelopes[0];
+      expect(r.envelopes).toEqual([]);
+      expect(r.expectedHeads[head.castId]).toBe(head.revision);
       return null;
     }
     return null;
   });
   const c = continuity(() => null, vi.fn(), vi.fn());
   const before = structuredClone(head);
-  await expect(c.fresh(42)).rejects.toThrow('omits the full retained history');
+  const started = await c.fresh(42);
+  expect(started.castChapter?.inputs).toEqual([]);
+  expect(c.message).toContain('Rafi');
   expect(head).toEqual(before);
-  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'putBatch')).toBe(false);
+  expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'putBatch')).toBe(true);
 });
 
 it('names skipped people and preserves their saved heads when the batch cannot claim them', async () => {
@@ -339,6 +345,8 @@ it.each([false, true])(
     mocks.blockers.mockReturnValue(['repair']);
     const c = continuity(() => state, vi.fn(), vi.fn());
     await c.restore({
+      authority: 'pass-authority/1',
+      skipped: [],
       envelope: null,
       oneCast: [],
       ownedHeads: { [castId]: parent },
@@ -366,7 +374,7 @@ it('writes an eligible current portable checkpoint when the peer gate is open', 
   state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
   mocks.blockers.mockReturnValue([]);
   const c = continuity(() => state, vi.fn(), vi.fn());
-  await c.restore();
+  await c.restore({ authority: 'pass-authority/1', skipped: [], envelope: null, oneCast: [] });
   await c.checkpoint();
   const puts = mocks.shelf.request.mock.calls.filter(([r]) => r.action === 'put');
   expect(puts).toHaveLength(1);
@@ -388,7 +396,7 @@ it('publishes the preserved release checkpoint after the live kitchen advances a
     release.checkpoint.checkpointDigest,
   );
   const c = continuity(() => state, vi.fn(), vi.fn());
-  await c.restore();
+  await c.restore({ authority: 'pass-authority/1', skipped: [], envelope: null, oneCast: [] });
   await c.checkpoint();
   const saved = required(c.data().ownedHeads?.['hf.cast.selim.pass']);
   expect(saved.transfer.checkpoint).toEqual(release.checkpoint);
@@ -400,7 +408,7 @@ it('does not publish an HF4 release without its preserved checkpoint', async () 
   state.phase = 'evening';
   state.releasedCast = ['selim'];
   const c = continuity(() => state, vi.fn(), vi.fn());
-  await c.restore();
+  await c.restore({ authority: 'pass-authority/1', skipped: [], envelope: null, oneCast: [] });
   await c.checkpoint();
   expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
 }, 120000);
@@ -415,7 +423,7 @@ it('replays and restores a release when the source cannot be projected', async (
   const refusal = required(state.releasedCastProjections?.selim);
   expect(refusal).toHaveProperty('unavailable');
   const c = continuity(() => state, vi.fn(), vi.fn());
-  await c.restore();
+  await c.restore({ authority: 'pass-authority/1', skipped: [], envelope: null, oneCast: [] });
   await c.checkpoint();
   expect(mocks.shelf.request.mock.calls.some(([r]) => r.action === 'put')).toBe(false);
   expect(c.message).toContain('Selim');
@@ -436,7 +444,7 @@ it('publishes the release projection even if the live person later dies', async 
   state.releasedCastProjections = { selim: hf4ReleaseProjection(person) };
   person.body.alive = false;
   const c = continuity(() => state, vi.fn(), vi.fn());
-  await c.restore();
+  await c.restore({ authority: 'pass-authority/1', skipped: [], envelope: null, oneCast: [] });
   await c.checkpoint();
   expect(c.data().ownedHeads?.['hf.cast.selim.pass']).toBeDefined();
   expect(c.data().ownedHeads?.['hf.cast.selim.pass']?.terminal).toBeFalsy();

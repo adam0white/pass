@@ -106,6 +106,8 @@ it.each([false, true])(
     if (terminal) person.body.alive = false;
     const c = continuity(() => state, vi.fn(), vi.fn());
     await c.restore({
+      authority: 'pass-authority/1',
+      skipped: [],
       envelope: null,
       oneCast: [],
       ownedHeads: { [castId]: parent },
@@ -118,6 +120,148 @@ it.each([false, true])(
     );
     expect(c.data().ownedHeads?.[castId]).toEqual(before);
     expect(c.message).toContain('Rafi');
+  },
+  30000,
+);
+
+it('skips host-unsupported v1 and an occupied person before one whole-head CAS, then pins only their refusals', async () => {
+  const { parent: rafi } = await fixture();
+  const person = required(freshCommunity(42).people.find((p) => p.id === 'selim'));
+  const transfer = structuredClone(await hf4KitchenTransfer(person));
+  const { retained: _retained, ...approximate } = transfer.portable;
+  const { revision: _sourceRevision, ...sourceBody } = rafi;
+  const selim = await createPersona({
+    ...sourceBody,
+    castId: 'hf.cast.selim.pass',
+    branchId: 'v1-reader',
+    transfer: {
+      ...transfer,
+      castPassport: 'hf-portable-person/1',
+      portable: { ...approximate, version: 1 },
+      life: initialPersonaLife('hf.cast.selim.pass', 'v1-reader', 0),
+    },
+  });
+  const { revision: _revision, ...occupiedBody } = rafi;
+  const occupied = await createPersona({
+    ...occupiedBody,
+    transfer: { ...rafi.transfer, portableClaim: { game: 'repair' } },
+  });
+  const originals = structuredClone([selim, occupied]);
+  const expectedHeads = Object.fromEntries(
+    castForGame('pass').map((cast) => [
+      cast.castId,
+      originals.find((p) => p.castId === cast.castId)?.revision ?? null,
+    ]),
+  );
+  mocks.shelf.request.mockImplementation(async (request) => {
+    if (request.action === 'prepareBatch')
+      return { expectedHeads, inputs: originals.map((p) => preparePersonaLife(p, 0)), blocked: [] };
+    if (request.action === 'putBatch') {
+      expect(request.expectedHeads).toEqual(expectedHeads);
+      expect(request.envelopes).toEqual([]);
+      return null;
+    }
+    throw new Error('A skipped identity must not write.');
+  });
+  let state: ReturnType<typeof newGame> | null = null;
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  state = await c.fresh(43);
+  expect(c.message).toContain('Selim');
+  expect(c.message).toContain('Rafi');
+  expect(c.message).not.toContain('hf-portable');
+  const saved = c.data();
+  expect(saved).toMatchObject({
+    skipped: [
+      { castId: 'hf.cast.rafi.pass', reason: expect.any(String) },
+      { castId: 'hf.cast.selim.pass', reason: expect.any(String) },
+    ],
+    ownedHeads: {},
+    recordingGroup: [],
+  });
+  expect(state.castChapter?.inputs).toEqual([]);
+  expect(JSON.stringify(c.run())).not.toContain('v1-reader');
+  expect([selim, occupied]).toEqual(originals);
+  await c.restore(saved, false, true, state);
+  expect(c.message).toContain('Selim');
+  expect(c.data().skipped).toEqual(saved.skipped);
+  state.phase = 'evening';
+  const project = vi.fn(() => {
+    throw new Error('Skipped projection was inspected.');
+  });
+  Object.defineProperty(state, 'releasedCastProjections', { get: project });
+  const { queueInput } = await import('../src/sim/kitchen.ts');
+  queueInput(state, { kind: 'cast-release', who: 'selim' });
+  expect(state.releasedCast).toContain('selim');
+  await c.checkpoint();
+  expect(project).not.toHaveBeenCalled();
+  required(state.people.find((p) => p.id === 'selim')).body.alive = false;
+  await c.checkpoint();
+  expect(mocks.close).not.toHaveBeenCalled();
+  expect(mocks.shelf.request.mock.calls.map(([r]) => r.action)).toEqual(['prepareBatch', 'putBatch']);
+  await expect(c.restore({ ...saved, ownedHeads: { [selim.castId]: selim } })).rejects.toThrow('skipped');
+  await expect(c.restore({ ...saved, recordingGroup: [selim] })).rejects.toThrow('skipped');
+}, 120000);
+
+it('refuses a baseline-shaped skipped notebook before activation even with a future open peer gate', async () => {
+  const state = newGame(42, 'pass@19');
+  // Actual production unknown999 notebooks used this empty chapter and omitted both denial lists.
+  state.castChapter = {
+    version: 'pass-cast/2',
+    plainNarration: true,
+    seed: 42,
+    inputs: [],
+    actors: {},
+    facts: {},
+    portable: {},
+    claims: [],
+  };
+  const old = { envelope: null, oneCast: [], ownedHeads: {}, recordingGroup: [] };
+  const before = JSON.stringify({ state, old });
+  const c = continuity(() => state, vi.fn(), vi.fn());
+  expect(portableWriteBlockers('hf.cast.selim.pass', 'pass')).toEqual([]);
+  await expect(c.restore(old, false, true, state)).rejects.toThrow('Keep the original');
+  expect(() => c.assertActive(state)).toThrow('Keep the original');
+  c.track();
+  expect(mocks.lab.trackRun).not.toHaveBeenCalled();
+  expect(c.run()).toBeNull();
+  await c.checkpoint();
+  expect(mocks.shelf.request).not.toHaveBeenCalled();
+  expect(JSON.stringify({ state, old })).toBe(before);
+  const project = vi.fn(() => {
+    throw new Error('Source staged');
+  });
+  Object.defineProperty(state, 'releasedCastProjections', { get: project });
+  state.phase = 'evening';
+  const { queueInput } = await import('../src/sim/kitchen.ts');
+  queueInput(state, { kind: 'cast-release', who: 'selim' });
+  expect(state.releasedCast).toContain('selim');
+  expect(project).not.toHaveBeenCalled();
+  await c.checkpoint();
+  required(state.people.find((p) => p.id === 'selim')).body.alive = false;
+  await c.checkpoint();
+  expect(mocks.close).not.toHaveBeenCalled();
+  expect(mocks.shelf.request).not.toHaveBeenCalled();
+}, 30000);
+
+it.each(['save-only', 'disagreement'])(
+  'refuses %s denial information before activation',
+  async (kind) => {
+    const state = newGame(42, 'pass@19');
+    const value = {
+      authority: 'pass-authority/1' as const,
+      envelope: null,
+      oneCast: [],
+      skipped: [{ castId: 'hf.cast.selim.pass', reason: 'Saved refusal' }],
+    };
+    if (kind === 'save-only') delete required(state.castChapter).skipped;
+    const c = continuity(() => state, vi.fn(), vi.fn());
+    await expect(c.restore(value, false, true, state)).rejects.toThrow('Keep the original');
+    c.track();
+    expect(mocks.lab.trackRun).not.toHaveBeenCalled();
+    expect(() => c.assertActive(state)).toThrow('Keep the original');
+    await c.checkpoint();
+    expect(c.run()).toBeNull();
+    expect(mocks.shelf.request).not.toHaveBeenCalled();
   },
   30000,
 );

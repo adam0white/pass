@@ -8,7 +8,7 @@ import {
   preparePersonaLife,
   validatePersona,
 } from '@adam0white/lab-client';
-import { CAST, digest, type KitchenChapter, keyOf } from './cast-chapter.ts';
+import { AUTHORITY, CAST, digest, type KitchenChapter, keyOf } from './cast-chapter.ts';
 import { HF4_ACTIONS, HF4_OPENING } from './hf4-authoring.ts';
 import {
   checkpoint,
@@ -89,6 +89,8 @@ export async function prepareHF4KitchenChapter(
     if (!['selim', 'dilek', 'rafi'].includes(id)) stageRetainedVisitor(seed, id, admission, 1045 * 60_000);
   return {
     version: 'pass-cast/2',
+    authority: AUTHORITY,
+    skipped: [],
     plainNarration: true,
     seed,
     inputs: structuredClone(inputs),

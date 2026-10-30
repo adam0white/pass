@@ -208,6 +208,11 @@ function oldSave(): boolean {
 }
 function writeSave(): Promise<boolean> {
   if (!s) return Promise.resolve(true);
+  try {
+    cast.assertActive(s);
+  } catch {
+    return Promise.resolve(false);
+  }
   if (s.phase === 'sunday' && s.sunday && !pages.some((p) => p.week === s?.sunday?.week)) {
     // The page is turned at the moment Sunday opens: count only the inputs that brought us here.
     const k = s.inputs.length - Object.keys(s.sunday.chosen).length;
@@ -217,6 +222,11 @@ function writeSave(): Promise<boolean> {
   return autosave
     .write(() => {
       if (!s) return null;
+      try {
+        cast.assertActive(s);
+      } catch {
+        return null;
+      }
       const sv: Save = {
         format: SAVE_FORMAT,
         game: s.version,
@@ -664,19 +674,17 @@ async function title() {
       const record = await autosave.read();
       if (!record) throw new Error('Missing saved journal.');
       const { state: restored, run, cursor } = restoreJournalState(save.state, save.hf4Host, record.journal);
-      autosave.adopt(run, record.journal, cursor);
       await cast.restore(guardedContinuity(restored, save.continuity), false, true, restored);
+      autosave.adopt(run, record.journal, cursor);
       firstPartyStart = save.firstPartyStart ?? false;
       partyHandover = save.partyHandover ?? null;
       pages = save.pages ?? [];
       filePlay = false;
       s = restored;
       cast.track();
-      enterWithStatus();
+      enterWithStatus(cast.message);
     } catch {
-      status(
-        'Your saved game could not be opened. It is still saved. You can try Resume again, start a new game, or send Feedback from the menu.',
-      );
+      status('Keep the original notebook and start a fresh game. This saved game could not be opened.');
     }
   });
   for (const b of app.querySelectorAll<HTMLButtonElement>('[data-page]'))
@@ -783,7 +791,9 @@ async function title() {
           pages = [];
           writeSave();
           enterWithStatus('The game was replayed. It matches the saved game in the file.');
-        })().catch(() => status('That file could not be loaded.'));
+        })().catch(() =>
+          status('Keep the original file and start a fresh game. This file could not be loaded.'),
+        );
       };
       if (save)
         ask(
@@ -792,7 +802,7 @@ async function title() {
         );
       else load();
     } catch {
-      status('That file is not a saved game from The Pass.');
+      status('Keep the original file and start a fresh game. This file could not be loaded.');
     }
   });
 }
