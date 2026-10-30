@@ -17,7 +17,16 @@ import {
   watchPersonaCheckpoint,
 } from '@adam0white/lab-client';
 import { personaControls } from '@adam0white/lab-kit';
-import { CAST, digest, keyOf, kitchenTransfer, validateKitchenChapter } from '../sim/cast-chapter.ts';
+import {
+  AUTHORITY,
+  AUTHORITY_REFUSAL,
+  CAST,
+  digest,
+  keyOf,
+  kitchenTransfer,
+  requireChapterAuthority,
+  validateKitchenChapter,
+} from '../sim/cast-chapter.ts';
 import { hf4KitchenTransfer, prepareHF4KitchenChapter } from '../sim/hf4-cast.ts';
 import { isHF4 } from '../sim/hf4-person.ts';
 import { type Export, exportRun, type GameState, newGame } from '../sim/kitchen.ts';
@@ -36,7 +45,15 @@ export interface OneCastRow {
   stage: 'checkpoint' | 'admitted';
   outcome: 'accepted';
 }
+export interface SkippedCast {
+  castId: string;
+  reason: string;
+}
+const skippedReason =
+  'Their saved story could not join this kitchen. This kitchen uses a separate local story for them. Their earlier story remains saved.';
 export interface ContinuitySave {
+  authority?: typeof AUTHORITY;
+  skipped?: SkippedCast[];
   envelope: PersonaEnvelope | null;
   oneCast: OneCastRow[];
   ownedHeads?: Record<string, PersonaEnvelope>;
@@ -70,6 +87,21 @@ export function continuity(
   let heads: Record<string, PersonaEnvelope> = {},
     group: PersonaEnvelope[] = [],
     rows: OneCastRow[] = [];
+  let active = false;
+  let skipped: SkippedCast[] = [];
+  const assertActive = (state: GameState) => {
+    if (state.version !== 'pass@19') return;
+    requireChapterAuthority(state.castChapter);
+    if (
+      !active ||
+      canonicalPersona(state.castChapter?.skipped?.slice().sort()) !==
+        canonicalPersona(skipped.map((item) => item.castId).sort())
+    )
+      throw new Error(AUTHORITY_REFUSAL);
+  };
+  const isSkipped = (castId: string) => skipped.some((item) => item.castId === castId);
+  const skippedMessage = () =>
+    skipped.map((item) => `${canonicalCast(item.castId).name}: ${item.reason}`).join(' ');
   let localOnly = false;
   let fileOrigin = false,
     fileUnlinked = false,
@@ -92,7 +124,9 @@ export function continuity(
     emit();
   };
   const data = (): ContinuitySave => ({
+    authority: AUTHORITY,
     envelope: heads['hf.cast.zeynep.pass'] ?? null,
+    skipped: structuredClone(skipped),
     oneCast: structuredClone(rows),
     ownedHeads: structuredClone(heads),
     recordingGroup: structuredClone(group),
@@ -105,6 +139,13 @@ export function continuity(
   });
   const run = (): ContinuityExport | null => {
     const s = getState();
+    if (s?.version === 'pass@19') {
+      try {
+        assertActive(s);
+      } catch {
+        return null;
+      }
+    }
     return s
       ? {
           ...exportRun(s, s.version === 'pass@19' ? '4.12.0' : FRAMEWORK_VERSION),
@@ -121,6 +162,14 @@ export function continuity(
     return saved;
   };
   const track = () => {
+    const state = getState();
+    if (state?.version === 'pass@19') {
+      try {
+        assertActive(state);
+      } catch {
+        return;
+      }
+    }
     stopTracking?.();
     stopTracking = lab.trackRun(run, {
       runKey: () => getState()?.seed ?? 'title',
@@ -144,9 +193,29 @@ export function continuity(
     await ready;
     const epoch = ++generation;
     stopTracking?.();
+    active = false;
+    const loadingState = incomingState ?? getState();
+    if (loadingState?.version === 'pass@19') {
+      requireChapterAuthority(loadingState.castChapter);
+      if (
+        value?.authority !== AUTHORITY ||
+        !Array.isArray(value.skipped) ||
+        canonicalPersona(value.skipped.map((item) => item.castId).sort()) !==
+          canonicalPersona(loadingState.castChapter?.skipped?.slice().sort())
+      )
+        throw new Error(AUTHORITY_REFUSAL);
+    }
+    const nextSkipped = (value?.skipped ?? []).map((item) => {
+      keyOf(item.castId);
+      return { castId: item.castId, reason: skippedReason };
+    });
+    if (new Set(nextSkipped.map((item) => item.castId)).size !== nextSkipped.length)
+      throw new Error(AUTHORITY_REFUSAL);
+    const refused = new Set(nextSkipped.map((item) => item.castId));
     const incoming: Record<string, PersonaEnvelope> = {};
     for (const [id, p] of Object.entries(value?.ownedHeads ?? {})) {
       keyOf(id);
+      if (refused.has(id)) throw new Error('A skipped person cannot own a kitchen story.');
       const checked = await validatePersona(p);
       if (checked.castId !== id || checked.source.game !== 'pass')
         throw new Error('Invalid local ownership receipt.');
@@ -155,8 +224,15 @@ export function continuity(
     let restoredGroup = await Promise.all(
       (value?.recordingGroup ?? Object.values(incoming)).map(validatePersona),
     );
+    if (restoredGroup.some((person) => refused.has(person.castId)))
+      throw new Error('A skipped person cannot join the recording group.');
     if (epoch !== generation) throw new Error('Notebook replaced during load.');
     const state = incomingState;
+    if (
+      state?.castChapter?.inputs.some((input) => refused.has(input.parent.castId)) ||
+      state?.castChapter?.claims?.some((person) => refused.has(person.castId))
+    )
+      throw new Error('A skipped person cannot have an admitted kitchen source.');
     if (state?.castChapter) await validateKitchenChapter(state.castChapter);
     if (state && !fromFile && !value?.fileOrigin) {
       const expected = Object.values(incoming);
@@ -195,6 +271,7 @@ export function continuity(
       restoredGroup = structuredClone(
         state.castChapter.claims ?? state.castChapter.inputs.map((i) => i.parent),
       );
+    skipped = nextSkipped;
     localOnly = value?.localOnly === true;
     heads = fromFile || value?.fileOrigin ? {} : incoming;
     group = restoredGroup;
@@ -207,7 +284,9 @@ export function continuity(
       : (value?.recordingKey ?? `pass-group-${crypto.randomUUID()}`);
     rows = structuredClone(value?.oneCast ?? []);
     pending = null;
+    active = loadingState?.version === 'pass@19';
     await gate();
+    report(skippedMessage());
   }
   async function fresh(seed: number): Promise<GameState> {
     await ready;
@@ -215,7 +294,10 @@ export function continuity(
     // Stage admission before replacing the current notebook's ownership receipts.
     const reset = () => {
       stopTracking?.();
+      active = true;
       heads = {};
+      skipped = [];
+      message = '';
       group = [];
       rows = [];
       localOnly = false;
@@ -242,25 +324,32 @@ export function continuity(
       CAST.map((c) => c.castId),
       source(),
       (inputs) => prepareHF4KitchenChapter(inputs, seed),
-      { isCurrent: () => epoch === generation },
+      {
+        isCurrent: () => epoch === generation,
+        admitPerson: async (input) => {
+          await prepareHF4KitchenChapter([input], seed);
+        },
+      },
     );
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
-    if (chapter) chapter.initial.claims = structuredClone(chapter.claims);
+    if (chapter) {
+      chapter.initial.claims = structuredClone(chapter.claims);
+      if (chapter.blocked.length) chapter.initial.skipped = chapter.blocked.map((item) => item.castId);
+    }
     const next = chapter ? newGame(seed, 'pass@19', chapter.initial) : newGame(seed, 'pass@19');
     reset();
     if (!chapter) {
       await gate();
       return next;
     }
+    skipped = chapter.blocked.map((item) => ({ castId: item.castId, reason: skippedReason }));
     heads = Object.fromEntries(chapter.claims.map((p) => [p.castId, p]));
     group = chapter.claims;
     importedHistory = chapter.inputs.length > 0;
     await gate();
     if (epoch !== generation) throw new Error('Notebook replaced during admission.');
     if (chapter.blocked.length) {
-      const names = chapter.blocked.map((item) => canonicalCast(item.castId).name).join(', ');
-      const admitted = chapter.inputs.length ? 'The other cooks remember their earlier experiences. ' : '';
-      report(`${admitted}${names} could not join from their saved stories. Those stories remain saved.`);
+      report(skippedMessage());
     } else if (chapter.inputs.length) {
       report('The cooks remember their earlier experiences. Their other jobs and family duties still apply.');
     }
@@ -275,6 +364,13 @@ export function continuity(
       epoch = generation;
     if (!s || (s.version !== 'pass@13' && !kitchenEdition(s)) || !shelf.enabled || fileOrigin || localOnly)
       return;
+    if (s.version === 'pass@19') {
+      try {
+        assertActive(s);
+      } catch {
+        return;
+      }
+    }
     const minute = s.minute;
     const blockedWrites: string[] = [];
     const canWritePortable = (cast: (typeof CAST)[number]) => {
@@ -286,6 +382,8 @@ export function continuity(
       return false;
     };
     for (const cast of CAST) {
+      // Local substitutes never publish for a refused shelf identity, including after reload.
+      if (isSkipped(cast.castId)) continue;
       const id = keyOf(cast.castId),
         p = s.people.find((p) => p.id === id),
         parent = heads[cast.castId];
@@ -425,14 +523,23 @@ export function continuity(
           .then(async () => {
             const candidate = pending,
               epoch = generation;
-            if (!candidate) return;
+            const state = getState();
+            if (state?.version === 'pass@19') {
+              try {
+                assertActive(state);
+              } catch {
+                return;
+              }
+            }
+            if (!candidate || isSkipped(candidate.castId) || fileOrigin || localOnly) return;
+            if (portablePassport(candidate) && portableWriteBlockers(candidate.castId, 'pass').length) return;
             const { revision: _revision, ...body } = candidate;
             const alternative = await createPersona({
               ...body,
               branchId: crypto.randomUUID(),
               parentRevision: null,
             });
-            if (epoch !== generation || candidate !== pending) return;
+            if (epoch !== generation || candidate !== pending || isSkipped(candidate.castId)) return;
             await shelf.request({ action: 'put', envelope: alternative, fork: true });
             if (epoch !== generation) return;
             heads[alternative.castId] = alternative;
@@ -450,10 +557,25 @@ export function continuity(
   }
   return {
     local: async () => {
-      await restore();
+      await ready;
+      ++generation;
+      stopTracking?.();
+      heads = {};
+      group = [];
+      rows = [];
+      skipped = [];
+      pending = null;
+      message = '';
+      fileOrigin = false;
+      fileUnlinked = false;
+      importedHistory = false;
+      recordingKey = `pass-local-${crypto.randomUUID()}`;
       localOnly = true;
+      active = true;
+      await gate();
     },
     ready,
+    assertActive,
     data,
     run,
     restore,

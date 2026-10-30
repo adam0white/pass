@@ -30,7 +30,7 @@ import {
   type TabChoice,
   weekOf,
 } from './campaign.ts';
-import { CAST, type KitchenChapter } from './cast-chapter.ts';
+import { AUTHORITY, CAST, type KitchenChapter, requireChapterAuthority } from './cast-chapter.ts';
 import { episodeText, PRIVATE_CLUES } from './cast-scenes.ts';
 import {
   acceptKitchenShift,
@@ -592,6 +592,20 @@ export function newGame(
       edition,
     ),
 ): GameState {
+  if (edition === 'pass@19') {
+    chapter ??= {
+      version: 'pass-cast/2',
+      authority: AUTHORITY,
+      skipped: [],
+      plainNarration: true,
+      seed,
+      inputs: [],
+      actors: {},
+      facts: {},
+      portable: {},
+    };
+    requireChapterAuthority(chapter);
+  }
   const now = 9 * 60;
   const community = edition === 'pass@19' ? freshCommunity(seed, chapter?.portable) : undefined;
   const people = FOUNDERS.map((m) =>
@@ -1692,7 +1706,10 @@ function apply(s: GameState, inp: Input) {
       s.releasedCast ??= [];
       const alreadyReleased = s.releasedCast.includes(p.id);
       if (!alreadyReleased) s.releasedCast.push(p.id);
-      if (isHF4(p) && !alreadyReleased) {
+      const establishedSource =
+        s.castChapter?.authority === AUTHORITY && Array.isArray(s.castChapter.skipped);
+      const skippedSource = s.castChapter?.skipped?.some((castId) => castId.split('.')[2] === p.id);
+      if (isHF4(p) && !alreadyReleased && establishedSource && !skippedSource) {
         s.releasedCastProjections ??= {};
         if (!s.releasedCastProjections[p.id]) {
           try {
@@ -3673,6 +3690,7 @@ export function cloneState(s: GameState): GameState {
 
 export function restoreState(json: GameState): GameState {
   if (json.version === 'pass@19') {
+    requireChapterAuthority(json.castChapter);
     if (!json.hf4) throw new Error('Keep this file and start a new game.');
     const c = restoreCommunity(json.hf4, [...json.people, json.chef]);
     const restored = {
@@ -3698,6 +3716,7 @@ export function restoreJournalState(
 ) {
   if (json.version !== 'pass@19' || json.seed !== journal.opening.initial.spec.seed)
     throw new Error('Invalid saved kitchen.');
+  requireChapterAuthority(json.castChapter);
   const { run, cursor } = KitchenRun.restoreJournal(host, journal);
   const c = restoreCommunityFromJournal(run, json.seed, [...json.people, json.chef]);
   const state = {

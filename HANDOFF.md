@@ -1,5 +1,14 @@
 # Pass handoff
 
+## Portable reader R2 authority boundary — 2026-10-30
+
+R2 supersedes the reviewed candidate's unsafe missing-denial default. New current chapters and continuity saves require `pass-authority/1` and explicit denial lists, including empty lists. Both records must agree before native activation, recording, journal-cursor adoption or save. Missing/contradictory current notebooks refuse with keep-original/start-fresh wording; no roster/catalog backfill occurs. Gameplay release remains normal while unestablished or denied chapters cannot stage a source. Original production and reviewed-candidate evidence remains immutable. R2 patch/proof/backup are separate in `pass-reader-r2/` and `resume-pass-reader-r2-report.md`; director owns bounded reviewer confirmation and all integration/release steps.
+
+## Portable reader candidate — 2026-10-30
+
+Uncommitted candidate in `gd-reader-pass1030`; director owns review/integration/release. The live baseline remains8eff0b3, HF4.12/client0.5.12/kit0.5.29; pins are unchanged. Per-person host admission now skips incompatible histories before the unchanged whole-head atomic CAS. Only skipped IDs and plain reasons persist; full unowned originals stay solely on the shelf. Pinned skipped IDs block source projection, checkpoint, terminal and fork paths, including reload/file paths. Accepted source archives and file nonownership remain. Current source-projection refusals are preserved. Original live unknown999 success and validv1 failure evidence is immutable in `~/code/.lab-scratch/games-deferred/pass-reader-proof/`. Candidate checks, local public-UI controls and full patch/backup are separate under `pass-reader-candidate/` and `resume-pass-reader-candidate-report.md`. No certificate, review, commit, push or deployment is authorized here; director acceptance remains required.
+
+
 ## Remaining panel source — 2026-10-29
 
 What remains: independent recheck, exact source CI and ROOT integration/main CI/normal fresh managed deployment/live controls/cleanup. Adam/eligible player acceptance and the same-tester retest remain paused, review 2026-11-03. This source increment runs no player rounds or screenshots.
