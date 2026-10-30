@@ -219,8 +219,12 @@ it('refuses a baseline-shaped skipped notebook before activation even with a fut
   const before = JSON.stringify({ state, old });
   const c = continuity(() => state, vi.fn(), vi.fn());
   expect(portableWriteBlockers('hf.cast.selim.pass', 'pass')).toEqual([]);
-  await expect(c.restore(old, false, true, state)).rejects.toThrow('Keep the original');
-  expect(() => c.assertActive(state)).toThrow('Keep the original');
+  await expect(c.restore(old, false, true, state)).rejects.toThrow(
+    'This file cannot continue in this version of The Pass. Keep it and start a fresh game.',
+  );
+  expect(() => c.assertActive(state)).toThrow(
+    'This file cannot continue in this version of The Pass. Keep it and start a fresh game.',
+  );
   c.track();
   expect(mocks.lab.trackRun).not.toHaveBeenCalled();
   expect(c.run()).toBeNull();
@@ -255,10 +259,14 @@ it.each(['save-only', 'disagreement'])(
     };
     if (kind === 'save-only') delete required(state.castChapter).skipped;
     const c = continuity(() => state, vi.fn(), vi.fn());
-    await expect(c.restore(value, false, true, state)).rejects.toThrow('Keep the original');
+    await expect(c.restore(value, false, true, state)).rejects.toThrow(
+      'This file cannot continue in this version of The Pass. Keep it and start a fresh game.',
+    );
     c.track();
     expect(mocks.lab.trackRun).not.toHaveBeenCalled();
-    expect(() => c.assertActive(state)).toThrow('Keep the original');
+    expect(() => c.assertActive(state)).toThrow(
+      'This file cannot continue in this version of The Pass. Keep it and start a fresh game.',
+    );
     await c.checkpoint();
     expect(c.run()).toBeNull();
     expect(mocks.shelf.request).not.toHaveBeenCalled();
