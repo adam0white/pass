@@ -595,6 +595,9 @@ export function continuity(
     chooseRecording,
     checkpoint,
     track,
+    get skippedMessage() {
+      return skippedMessage();
+    },
     get message() {
       return message;
     },

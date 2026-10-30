@@ -311,9 +311,13 @@ const INFO: Record<string, [string, string]> = {
     'The tally is the number of tables served, minus the tables that left without eating, plus ten for each bill you paid. This is the game’s own way of scoring.',
   ],
 };
+function denialNotice(): string {
+  const message = cast.skippedMessage;
+  return message ? `<p class="run-status" role="status">${esc(message)}</p>` : '';
+}
 function topBar(label: string, phase: string): string {
   const [heading, text] = INFO[phase] ?? required(INFO.title);
-  return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}${s && (s.version === 'pass@13' || kitchenEdition(s)) && phase !== 'title' ? '<button id="people">People</button>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header><div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${esc(text)}</p></div>`;
+  return `<header class="lab-topbar"><span class="bar-words">${phase === 'title' ? '<a href="https://human.adamwhite.work/games/">All games</a>' : esc(label)}</span>${phase === 'service' ? '<span class="clock" id="clock"></span>' : ''}${s && (s.version === 'pass@13' || kitchenEdition(s)) && phase !== 'title' ? '<button id="people">People</button>' : ''}<button class="info-button" popovertarget="phase-help" aria-label="Information">i</button><button id="game-menu" class="menu-trigger" aria-label="Game menu">≡</button></header>${phase !== 'title' && phase !== 'service' ? denialNotice() : ''}<div id="phase-help" popover="auto" class="info-popover"><button class="info-close" popovertarget="phase-help" popovertargetaction="hide" aria-label="Close information">×</button><h2>${heading}</h2><p>${esc(text)}</p></div>`;
 }
 let tillStart = { key: '', amount: 0 };
 function tillBar(st: GameState): string {
@@ -640,7 +644,7 @@ async function title() {
   };
   const enterWithStatus = (message = '') => {
     enter();
-    if (!message) return;
+    if (!message || message === cast.skippedMessage) return;
     const note = document.createElement('p');
     note.className = 'run-status';
     note.setAttribute('role', 'status');
@@ -1293,7 +1297,7 @@ function service() {
     ${topBar('', 'service')}<div class="state-strip" id="till"></div>
     ${kitchenEdition(s) ? '<aside id="kitchen-stock" class="soft"></aside>' : ''}
     <div class="rail" id="rail"></div><div class="scene" id="scene"></div>
-    ${['pass@18', 'pass@19'].includes(s.version) ? '<aside class="service-board"><div id="status" role="status"></div><div id="service-account" tabindex="0" aria-label="Served and lost tables"></div></aside>' : ''}
+    ${['pass@18', 'pass@19'].includes(s.version) ? `<aside class="service-board">${denialNotice()}<div id="status" role="status"></div><div id="service-account" tabindex="0" aria-label="Served and lost tables"></div></aside>` : ''}
     <div class="caption" id="caption" role="status"></div><div class="sheet" id="sheet"></div>
   </div>`;
   document.getElementById('scene')?.addEventListener('click', (e) => {
