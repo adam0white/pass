@@ -110,22 +110,17 @@ it('does not credit food work when the learner defers the ordinary request', () 
  * Whether the current C1 seed-plus-public-input path reaches a `modified` verdict is UNOBSERVED (Deferred, 2026-11-03).
  */
 it('does not credit food work when the learner modifies the ordinary request (historical native unit)', () => {
+  // One real cold restore of the R3 native archive and the same ordinary requests. The behavior assertions below are the evidence.
+  // The single final verifyCommunity replays the whole archive (R3 prefix plus this suffix). Current replay/cold-restore equality and
+  // continuation live in 'records real guidance…'; the archive is not re-verified here before the suffix, and no twin restore is made.
   const s = restoreState(structuredClone(native.checkpoint) as unknown as ReturnType<typeof cloneState>);
-  expect(verifyCommunity(s.chef).verified).toBe(true);
   expect(native.meta.archiveVerified).toBe(true);
   expect(s.privateAccounts?.selim).toBeDefined();
   expect(grillLessonAvailable(s, 'rafi')).toBe(true);
-  // The native cold suffix: a second cold restore stays identical to the first through the same real inputs.
-  const twin = restoreState(structuredClone(native.checkpoint) as unknown as ReturnType<typeof cloneState>);
-  for (const x of [s, twin]) {
-    queueInput(x, { kind: 'grill-lesson', learner: 'rafi' });
-    queueInput(x, { kind: 'ask', cook: 'rafi', verb: 'grill', insist: false });
-  }
+  queueInput(s, { kind: 'grill-lesson', learner: 'rafi' });
+  queueInput(s, { kind: 'ask', cook: 'rafi', verb: 'grill', insist: false });
   expect(s.grillLessons?.[0]?.teacherVerdict).toBe('assented');
-  for (let i = 0; i < 6; i++) {
-    step(s);
-    step(twin);
-  }
+  for (let i = 0; i < 6; i++) step(s);
   expect(s.cooks.find((cook) => cook.id === 'rafi')?.night.events.at(-1)).toMatchObject({
     verb: 'grill',
     verdict: 'modified',
@@ -135,9 +130,7 @@ it('does not credit food work when the learner modifies the ordinary request (hi
   expect(s.grillLessons?.[0]?.guidedWork).toBe(0);
   expect(s.grillLessons?.[0]?.food).toBeUndefined();
   expect(s.grillLessons?.[0]?.state).toBe('no-food-work');
-  expect(raw(twin)).toEqual(raw(s));
   expect(verifyCommunity(s.chef).verified).toBe(true);
-  expect(verifyCommunity(twin.chef).verified).toBe(true);
 }, 120000);
 
 /** The file is a genuine R3 public export serialized before any mutation (generator and source hashes in the .meta sidecar), and the

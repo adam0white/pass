@@ -1,5 +1,9 @@
 # Pass handoff
 
+## Native-unit shrink — 2026-10-31 (uncommitted source delta)
+
+Main CI 41162697999 on 92ab3b5 failed one test: the historical-native unit in `test/grill-lesson.test.ts` ran 120296 ms against its 120000 ms cap. Under the owner's 2026-10-31 ruling that redundant tests can be cut, the unit now keeps one real cold restore, the same ordinary requests, six steps, every behavior assertion and one final `verifyCommunity` over the whole native archive. The second cold restore, its duplicate steps and equality, and the duplicate initial and twin verifies were removed. Current replay and cold-restore coverage stays in the current guidance test. It remains a historical unit, not a current public modified witness (unobserved, review 2026-11-03). The 120000 ms cap, shards and fixtures are unchanged. The review, signed source and CI are not closed by this note; read the checkpoints below as history.
+
 ## Current delivery checkpoint — 2026-10-31
 
 PR13 signed source `65cfe9454e38cbd2c014e8a00e18718363feb27d` had exact Codex/Opus clearance and source CI, then merged as `768adae57a3bfc2242b618a9fa86eb5ff48b125e`. Main CI timed out twice; that release was not deployed. Live remains the earlier b6e919a build.
