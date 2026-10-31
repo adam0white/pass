@@ -489,7 +489,7 @@ Source: the second Pass retest, a fictional agent panel on commit `288b2fda7c858
 
 **How to read the rows.** Ranked asks are F-2496 to F-2510, five testers with three asks each. The quotation after each id is the tester’s own text. It gives the ranked ask first, then each later wording from the same report that differs, labelled by report section. Later spans are kept so a changed condition is not lost; the sealed packet holds the full reports. Rows F-2491 to F-2495 are the five return answers, not additional asks. F-2511 to F-2520 are unused. Each report’s verdict is `mixed`: the tester’s own conditions, not a vote and not a population estimate.
 
-**Planned directions (decisions due, not decided).** On 2026-11-03: explain meaning, status, preview, duplicate wording, warnings and the bank target (F-2496, F-2498, F-2501, F-2503, F-2505 to F-2510). On 2026-11-10: broader story, a recovery preference, whether a saved-run Resume exists and works (it was untried), and pacing after the C14 human-speed comparison (F-2497, F-2499, F-2500, F-2502, F-2504). Packet dates are kept as written.
+**Planned directions (decisions due, not decided).** On 2026-11-03: explain meaning, status, preview, duplicate wording, warnings and the bank target (F-2496, F-2498, F-2501, F-2503, F-2505 to F-2510); check whether a saved-run Resume exists and works (F-2500); and a way to recover after an Insist “go home” goes badly (F-2502). Also on 2026-11-03: the unranked phone “talk another time” lead below. F-2505 is first in line on that day. On 2026-11-10: a broader story reply and pacing after the C14 human-speed comparison (F-2497, F-2499, F-2504). Dates changed on 2026-10-31 (coordinator ruling, 09:24Z): F-2500 and F-2502 moved from the sealed route’s 2026-11-10 to 2026-11-03. All other packet dates are kept as written.
 
 **Limits that stay.** No automatic cook obedience, undo, free cover, hard pause, clock or difficulty retune, new story or religious policy follows from these asks. Specific qualifications from the packet:
 
@@ -515,7 +515,7 @@ Source: the second Pass retest, a fictional agent panel on commit `288b2fda7c858
 
 - Player words, exact (opening ask, then labelled later spans): "Make "ask me about Nevin" lead to a longer reply. Selim's line was one short sentence, and the follow-up pulled him off the grill." Later wording (section 8): "Make "ask me about Nevin" lead to more than one short line. The follow-up should not cost me the grill." Later wording (section 9): "It gave one short line after a long wait. On the phone it never appeared, because the choice was disabled or offered only the wait line."
 - Disposition and conditions: Longer reply to “ask me about Nevin”: a broader-story preference. On desktop it came after a long wait; on the phone it did not appear. No automatic change. Difficulty, quiet faith, agency and refusal stay as they are.
-- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10. Why Nov 10 and not Nov 3: the ask ranks a longer Nevin reply, which is more story, not a clearer label or warning. The 2026-11-03 work on wording, status and the disabled phone choice comes first, so the reply is judged on the text that remains. Verdict word: mixed (the tester’s own stated conditions, not a vote).
 - Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/maya/report.md` in the sealed packet.
 
 ### F-2498 — Maya Chen
@@ -536,7 +536,7 @@ Source: the second Pass retest, a fictional agent panel on commit `288b2fda7c858
 
 - Player words, exact (opening ask, then labelled later spans): "Let me carry on from where I stopped, so I don't replay Monday. This is a repeat ask. I did not see whether that exists, because I never opened Resume." Later wording (section 8): "Resume from where I stopped. I did not check whether Resume exists." Later wording (section 9): "not seen. I never opened Resume."
 - Disposition and conditions: Carry on from where he stopped. This is a repeat ask. He never opened Resume, and the in-game menu Resume is an unpause, so this is not evidence that a saved-run Resume is absent. Check what exists before any change (the saved-run Resume was untried).
-- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, moved to Nov 3 by the 2026-10-31 coordinator ruling (the first step is checking what exists; no progress loss is inferred). Verdict word: mixed (the tester’s own stated conditions, not a vote).
 - Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/emre/report.md` in the sealed packet.
 
 ### F-2501 — Emre Kaya
@@ -550,7 +550,7 @@ Source: the second Pass retest, a fictional agent panel on commit `288b2fda7c858
 
 - Player words, exact (opening ask, then labelled later spans): "Let me recover when I insist and it goes badly. On desktop, one click on "Insist: Dilek, go home" sent her home until 22:00. I got ₺0 and no tables served, and I could not fix it." Later wording (section 8): "Let me recover when I insist and it goes badly. A "go home" click should not remove a cook for the whole night with nothing to do about it." Later wording (section 9): "On desktop the effect was big enough to wreck my night."
 - Disposition and conditions: Let the player recover after an Insist “go home” goes badly. Nia insisted on purpose despite the visible trust warning and agreed it was for fun. This is not an automatic undo and not mandatory compliance. The 215-minute claim was not observed for 215 game minutes and its source is unverified. Difficulty, refusal and agency stay.
-- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, moved to Nov 3 by the 2026-10-31 coordinator ruling. Nia ended her desktop session on this click and wrote “That is a new stopping reason” (section 9). Verdict word: mixed (the tester’s own stated conditions, not a vote).
 - Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/nia/report.md` in the sealed packet.
 
 ### F-2503 — Nia Okafor
@@ -570,8 +570,8 @@ Source: the second Pass retest, a fictional agent panel on commit `288b2fda7c858
 ### F-2505 — Rosa Alvarez
 
 - Player words, exact (opening ask, then labelled later spans): "Rewrite the cook sentences I could not follow. This covers "I will explain the wait. I am leaving the other tables for three minutes…", the "Insist / Hold it to insist" help line, and the status "in the bathroom" beside that sentence." Later wording (section 8): "Rewrite the sentences that confused me. "I will explain the wait. I am leaving the other tables for three minutes." should say who he talks to. Make the status ("in the bathroom") match the quote. Replace "Insist" and "Hold it to insist" with plain words." Later wording (section 9): "the "Insist / Hold it to insist" help line and Selim's "I will explain the wait" quote. Each cost me a reread, and together they ended both sessions."
-- Disposition and conditions: Rewrite the sentences Rosa could not follow, make the status match the quote, and replace “Insist” and “Hold it to insist”. She reread twice by her own table. Meaning, status and duplicate wording. Source cause unverified. No rule that a cook must always obey.
-- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Disposition and conditions: Rewrite the sentences Rosa could not follow, make the status match the quote, and replace “Insist” and “Hold it to insist”. She reread twice by her own table. Meaning, status and duplicate wording. Source cause unverified. No rule that a cook must always obey. Rosa lists the help line and the quote under “New blockers” (section 9) and wrote that together they ended both sessions.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Deferred by the two-iteration rule, and first in line on Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
 - Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/rosa/report.md` in the sealed packet.
 
 ### F-2506 — Rosa Alvarez
@@ -608,3 +608,12 @@ Source: the second Pass retest, a fictional agent panel on commit `288b2fda7c858
 - Disposition and conditions: Early help to see how the week’s money could work, and what flatbreads are when they are always 0. An early bank-target explanation is clarity, not a financial guarantee. Monday’s ₺520 and ₺560 do not prove the target impossible. No bank deadline was reached.
 - Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
 - Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/sonia/report.md` in the sealed packet.
+
+### Unranked source lead — Maya Chen, phone “talk another time” button
+
+This is not a ranked ask and has no F number. The sealed ledger has no row for it. It is recorded here so the source is not lost, and it is not rated as blocking.
+
+- Player words, exact: Section 9, under “New blockers”: "The phone "talk another time" button does nothing I could see." Section 4, “Lost me”: "The "Talk with Selim/Dilek another time" button on the phone did nothing I could see." Section 3, 21.3 s (reaction): "Tapping Talk with Selim another time changed nothing I can see. Offers are disabled before the doors open, so no conversation yet. Going on."
+- Disposition and conditions: Check on the phone what the button should do and whether it shows anything. Maya tapped it before service, while both People offers were greyed out. She wrote “Going on” and kept playing; this record does not call it blocking. She also lists “On the phone, the "talk another time" button” as confusing (section 5). Not seen on desktop. Source cause unverified; it may be intended behaviour before the doors open.
+- Owner and date: the games-deferred Pass host owner; 2026-11-03 (open). The ruling asked for a dated entry without naming the day; this date was picked by the documentation author because the button sits on the same phone People sheet as F-2497’s disabled choice. Deferred, not scheduled for delivery.
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/maya/report.md` in the sealed packet (SHA-256 above).
