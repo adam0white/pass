@@ -71,7 +71,7 @@ test('keeps the selected third cook focused after a real file receipt changes th
     clearingPrefix.seed,
     clearingPrefix.inputs as Parameters<typeof replay>[1],
     clearingPrefix.minute,
-    'pass@19',
+    'pass@20',
   );
   const file = JSON.stringify(exportRun(state, '4.12.0'));
   await page.locator('#game-menu').click();

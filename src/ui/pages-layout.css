@@ -266,6 +266,12 @@ body {
   .people-service .slip :is(.t, .d, .st, .party-label) {
     font-size: 16px;
   }
+  /* One ingredient per line: "grill ○○ cold side ○" no longer runs past the card and is cut off. */
+  .people-service .slip .d {
+    display: block;
+    margin-right: 0;
+    white-space: normal;
+  }
   .people-service .scene {
     height: 100%;
   }

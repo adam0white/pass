@@ -1,0 +1,25 @@
+{
+ "purpose": "Genuine R3 pass@20/HF4.12 public host export of the seed-7 prefix, serialized before any mutation. Valid under R3 strict replay; expected to be refused by current strict replay. Refusal proves the file is not a current export, not that it was ever invalid.",
+ "sourceRoot": "evidence/R4-baseline-R3-source (immutable R3 candidate copy)",
+ "sourceHashes": {
+  "src/sim/kitchen.ts": "ad3b7d3fc6c26e72a44a05e1ed23ef0bad1a372a11b16f1f679dc5d457a1d26b",
+  "src/sim/continuation.ts": "de88eb268f3b61d62b33cadcfe93e7bb544ad0d6d24818f2583a83c3669c0d06",
+  "test/fixtures/grill-lesson-prefix.json": "cf501e3d4be853f1286696ddfab2ab4a129abcd4c35b4bc4b5c119691ecd8dda",
+  "generator": "7638fef98dcdd53325ca563d641429a988ceabf8db22aaa02ac2ad2ead0e6fbd"
+ },
+ "prefix": {
+  "seed": 7,
+  "minute": 2670,
+  "inputs": 62
+ },
+ "counts": {
+  "topInputs": 62,
+  "stateInputs": 62,
+  "stateApplied": 62,
+  "stateMinute": 2670
+ },
+ "listsAgree": true,
+ "validUnderR3Replay": true,
+ "exportSha256": "7bea680eef722d0ca4b7251bb49410baf0edaceccb79d22444bc7cbcd2c085e4",
+ "supersedes": "R7 malformed export (63 top-level inputs vs 62 state.inputs), preserved as evidence/R8-grill-lesson-historical-public-export.MALFORMED-63v62.json"
+}

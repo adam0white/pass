@@ -41,8 +41,8 @@ function movedCook() {
 }
 
 describe('staffing prompts after an accepted station change', () => {
-  it('keeps pass@19 unfillable staffing gaps visible without a prompt', () => {
-    const s = newGame(42, 'pass@19');
+  it('keeps pass@20 unfillable staffing gaps visible without a prompt', () => {
+    const s = newGame(42, 'pass@20');
     s.phase = 'service';
     s.staffing = [
       {

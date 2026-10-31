@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { boardDefaults, cloneState, newGame, queueInput, step } from '../src/sim/kitchen.ts';
-import { boardReplies, breakSlots, openingBoard } from '../src/ui/board.ts';
+import { boardReplies, breakSlots, earlyCoverageWarnings, openingBoard } from '../src/ui/board.ts';
 
 function tuesday() {
   const s = newGame(42);
@@ -12,6 +12,25 @@ function tuesday() {
 }
 
 describe('board presentation choices', () => {
+  it('names the default break that leaves the grill empty for the 18:12 table (F-2168)', () => {
+    const s = newGame(42, 'pass@20');
+    const rows = openingBoard(s);
+    const warnings = earlyCoverageWarnings(s, rows);
+    // The default plan is unchanged: someone still has a break that overlaps the early table.
+    expect(rows.some((row) => row.breakAt === 1090)).toBe(true);
+    expect(warnings.length).toBeGreaterThan(0);
+    for (const line of warnings)
+      expect(line).toMatch(/meal break \(\d\d:\d\d\u2013\d\d:\d\d\) leaves the (grill|cold side) empty/);
+    expect(warnings.join(' ')).toMatch(/Selim|Dilek/);
+    // Moving every break past the early table, or choosing a cover, removes the warning.
+    const moved = rows.map((row) => ({ ...row, breakAt: 1185 + (row.cook === 'selim' ? 0 : 25) }));
+    expect(earlyCoverageWarnings(s, moved)).toEqual([]);
+    const covered = rows.map((row) => ({ ...row, cover: row.cook === 'selim' ? 'dilek' : 'selim' }));
+    expect(earlyCoverageWarnings(s, covered)).toEqual([]);
+    // Historical editions and Thursday onward keep their own words.
+    expect(earlyCoverageWarnings({ ...s, version: 'pass@17' }, rows)).toEqual([]);
+    expect(earlyCoverageWarnings({ ...s, night: 4 }, rows)).toEqual([]);
+  });
   it('offers named 24-hour slots within the existing allowed interval, retaining a saved time', () => {
     expect(breakSlots(1115)).toEqual([
       { minute: 1090, label: '18:10 before the rush' },
@@ -39,8 +58,8 @@ describe('board presentation choices', () => {
       expect(typeof row.coverAccepted).toBe('boolean');
     }
   });
-  it('keeps pass@19 opening relief as an explicit player choice', () => {
-    const s = newGame(42, 'pass@19');
+  it('keeps pass@20 opening relief as an explicit player choice', () => {
+    const s = newGame(42, 'pass@20');
     s.previousBoard = boardDefaults(s).slice(0, -1);
     expect(openingBoard(s).every((row) => row.cover === null)).toBe(true);
   }, 120000);

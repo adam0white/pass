@@ -29,7 +29,7 @@ it('restores an appended journal and keeps the last committed save after a faile
     },
   };
   const store = new Autosave(storage);
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   const run = communityRun(state.chef);
   const save = () =>
     store.write(() => ({ run, host: { state: structuredClone(state), host: run.journalHost() } }));

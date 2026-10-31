@@ -63,7 +63,7 @@ export function zeynepDepartureStatus(s: GameState): {
   eligible: boolean;
   reasons: string[];
 } {
-  if (s.version === 'pass@19')
+  if (s.version === 'pass@20')
     return { canRelease: false, eligible: false, reasons: ['Use the current kitchen release control.'] };
   const reasons: string[] = [];
   const p = personOf(s);

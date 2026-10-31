@@ -324,7 +324,7 @@ it.each([false, true])(
   'keeps a blocked current portable head unchanged, terminal=%s',
   async (terminal) => {
     const { hf4KitchenTransfer } = await import('../src/sim/hf4-cast.ts');
-    const state = newGame(42, 'pass@19');
+    const state = newGame(42, 'pass@20');
     const person = required(state.people.find((p) => p.id === 'selim'));
     const transfer = await hf4KitchenTransfer(person);
     const castId = 'hf.cast.selim.pass',
@@ -370,7 +370,7 @@ it.each([false, true])(
 
 // Synthetic ready peers exercise the permitted host path; no live readiness is implied.
 it('writes an eligible current portable checkpoint when the peer gate is open', async () => {
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   const person = required(state.people.find((p) => p.id === 'selim'));
   state.phase = 'evening';
   state.releasedCast = ['selim'];
@@ -388,7 +388,7 @@ it('writes an eligible current portable checkpoint when the peer gate is open', 
 
 it('publishes the preserved release checkpoint after the live kitchen advances and reloads it', async () => {
   const { hf4KitchenTransfer } = await import('../src/sim/hf4-cast.ts');
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   const person = required(state.people.find((p) => p.id === 'selim'));
   state.phase = 'evening';
   state.releasedCast = ['selim'];
@@ -408,7 +408,7 @@ it('publishes the preserved release checkpoint after the live kitchen advances a
 }, 120000);
 
 it('does not publish an HF4 release without its preserved checkpoint', async () => {
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   state.phase = 'evening';
   state.releasedCast = ['selim'];
   const c = continuity(() => state, vi.fn(), vi.fn());
@@ -418,7 +418,7 @@ it('does not publish an HF4 release without its preserved checkpoint', async () 
 }, 120000);
 
 it('replays and restores a release when the source cannot be projected', async () => {
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   queueInput(state, { kind: 'board', rows: boardDefaults(state) });
   queueInput(state, { kind: 'open' });
   while (state.phase === 'service') step(state);
@@ -441,7 +441,7 @@ it('replays and restores a release when the source cannot be projected', async (
 }, 180000);
 
 it('publishes the release projection even if the live person later dies', async () => {
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   const person = required(state.people.find((p) => p.id === 'selim'));
   state.phase = 'evening';
   state.releasedCast = ['selim'];

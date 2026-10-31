@@ -1,0 +1,42 @@
+{
+ "game": "pass@19",
+ "framework": "4.12.0",
+ "plainNarration": true,
+ "seed": 7,
+ "inputs": [
+  {
+   "kind": "board",
+   "rows": [
+    {
+     "cook": "selim",
+     "station": "grill",
+     "breakAt": 1090,
+     "cover": null
+    },
+    {
+     "cook": "dilek",
+     "station": "cold",
+     "breakAt": 1115,
+     "cover": null
+    }
+   ],
+   "at": 1045
+  },
+  {
+   "kind": "open",
+   "at": 1045
+  }
+ ],
+ "castChapter": {
+  "version": "pass-cast/2",
+  "authority": "pass-authority/1",
+  "skipped": [],
+  "plainNarration": true,
+  "seed": 7,
+  "inputs": [],
+  "actors": {},
+  "facts": {},
+  "portable": {}
+ },
+ "minute": 1250
+}

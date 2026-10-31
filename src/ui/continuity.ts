@@ -89,7 +89,7 @@ export function continuity(
   let active = false;
   let skipped: SkippedCast[] = [];
   const assertActive = (state: GameState) => {
-    if (state.version !== 'pass@19') return;
+    if (state.version !== 'pass@20') return;
     requireChapterAuthority(state.castChapter);
     if (
       !active ||
@@ -150,7 +150,7 @@ export function continuity(
   });
   const run = (): ContinuityExport | null => {
     const s = getState();
-    if (s?.version === 'pass@19') {
+    if (s?.version === 'pass@20') {
       try {
         assertActive(s);
       } catch {
@@ -159,7 +159,7 @@ export function continuity(
     }
     return s
       ? {
-          ...exportRun(s, s.version === 'pass@19' ? '4.12.0' : FRAMEWORK_VERSION),
+          ...exportRun(s, s.version === 'pass@20' ? '4.12.0' : FRAMEWORK_VERSION),
           continuity: data(),
           oneCast: structuredClone(rows),
         }
@@ -174,7 +174,7 @@ export function continuity(
   };
   const track = () => {
     const state = getState();
-    if (state?.version === 'pass@19') {
+    if (state?.version === 'pass@20') {
       try {
         assertActive(state);
       } catch {
@@ -206,7 +206,7 @@ export function continuity(
     stopTracking?.();
     active = false;
     const loadingState = incomingState ?? getState();
-    if (loadingState?.version === 'pass@19') {
+    if (loadingState?.version === 'pass@20') {
       requireChapterAuthority(loadingState.castChapter);
       if (
         value?.authority !== AUTHORITY ||
@@ -295,7 +295,7 @@ export function continuity(
       : (value?.recordingKey ?? `pass-group-${crypto.randomUUID()}`);
     rows = structuredClone(value?.oneCast ?? []);
     pending = null;
-    active = loadingState?.version === 'pass@19';
+    active = loadingState?.version === 'pass@20';
     await gate();
     report(skippedMessage());
   }
@@ -324,7 +324,7 @@ export function continuity(
       !shelf.enabled ||
       (typeof location !== 'undefined' && ['localhost', '127.0.0.1'].includes(location.hostname))
     ) {
-      const next = newGame(seed, 'pass@19');
+      const next = newGame(seed, 'pass@20');
       reset();
       localOnly = true;
       await gate();
@@ -347,7 +347,7 @@ export function continuity(
       chapter.initial.claims = structuredClone(chapter.claims);
       if (chapter.blocked.length) chapter.initial.skipped = chapter.blocked.map((item) => item.castId);
     }
-    const next = chapter ? newGame(seed, 'pass@19', chapter.initial) : newGame(seed, 'pass@19');
+    const next = chapter ? newGame(seed, 'pass@20', chapter.initial) : newGame(seed, 'pass@20');
     reset();
     if (!chapter) {
       await gate();
@@ -375,7 +375,7 @@ export function continuity(
       epoch = generation;
     if (!s || (s.version !== 'pass@13' && !kitchenEdition(s)) || !shelf.enabled || fileOrigin || localOnly)
       return;
-    if (s.version === 'pass@19') {
+    if (s.version === 'pass@20') {
       try {
         assertActive(s);
       } catch {
@@ -535,7 +535,7 @@ export function continuity(
             const candidate = pending,
               epoch = generation;
             const state = getState();
-            if (state?.version === 'pass@19') {
+            if (state?.version === 'pass@20') {
               try {
                 assertActive(state);
               } catch {

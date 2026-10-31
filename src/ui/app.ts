@@ -9,6 +9,7 @@ import {
   heardTopics,
   kitchenEdition,
   privateConversationAvailable,
+  privateConversationNote,
 } from '../sim/kitchen-edition.ts';
 import { NARRATION_EDITION } from '../sim/narration-edition.ts';
 /**
@@ -88,7 +89,7 @@ import {
 } from '../sim/kitchen.ts';
 import { zeynepDepartureStatus } from '../sim/one-cast.ts';
 import { Autosave, indexedJournalStorage } from './autosave.ts';
-import { boardReplies, breakSlots, sameBoard } from './board.ts';
+import { boardReplies, breakSlots, earlyCoverageWarnings, sameBoard } from './board.ts';
 import { automaticClockPlayback, inspectingCook, SPEED_NAMES } from './clock.ts';
 import { type ContinuitySave, continuity, guardedContinuity } from './continuity.ts';
 import { portionEdition } from './editions.ts';
@@ -173,19 +174,23 @@ const cast = continuity(
 
 // ---------- save ----------
 
-const autosave = new Autosave<Save>(indexedJournalStorage<Save>());
+/** Whether this edition can open a stored save; anything else is kept as it was. */
+function openable(sv: Save | undefined): sv is Save {
+  return (
+    !!sv &&
+    sv.format === SAVE_FORMAT &&
+    sv.game === 'pass@20' &&
+    sv.framework === FRAMEWORK_VERSION &&
+    JSON.stringify(sv.hf4Engine) === JSON.stringify(frameworkEngine())
+  );
+}
+const autosave = new Autosave<Save>(indexedJournalStorage<Save>((host) => !openable(host)));
 let savedRecord: Awaited<ReturnType<typeof autosave.read>> = null;
 
 function readSave(): Save | null {
   try {
     const sv = savedRecord?.host;
-    return sv &&
-      sv.format === SAVE_FORMAT &&
-      sv.game === 'pass@19' &&
-      sv.framework === FRAMEWORK_VERSION &&
-      JSON.stringify(sv.hf4Engine) === JSON.stringify(frameworkEngine())
-      ? sv
-      : null;
+    return openable(sv) ? sv : null;
   } catch {
     return null;
   }
@@ -480,7 +485,7 @@ function openPeople() {
   dialog.setAttribute('aria-label', 'People');
   dialog.innerHTML =
     '<h2>People</h2><p>You do not have to have these conversations or make these work offers.</p><button id="people-close">Resume</button>';
-  if (s.version === 'pass@19') {
+  if (s.version === 'pass@20') {
     const section = document.createElement('section');
     section.setAttribute('aria-label', 'My current condition');
     for (const line of liveReadingWords(s.chef, s.chef)) {
@@ -728,8 +733,8 @@ async function title() {
         s =
           returning ??
           (secondWeek
-            ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined, 'pass@19')
-            : newGame(seed, 'pass@19'));
+            ? beginAtWeekTwo(seed, nevin ? 'nevin' : undefined, 'pass@20')
+            : newGame(seed, 'pass@20'));
         cast.track();
         if (!secondWeek && nevin && s.inputs.length === 0) queueInput(s, { kind: 'pace', value: 'nevin' });
         const saved = await writeSave();
@@ -760,7 +765,7 @@ async function title() {
     try {
       const ex = JSON.parse(await f.text()) as Export & { minute?: number };
       if (
-        ex.game !== 'pass@19' ||
+        ex.game !== 'pass@20' ||
         !canReplay(ex.game) ||
         (typeof ex.framework === 'string' && ex.framework !== FRAMEWORK_VERSION)
       ) {
@@ -821,7 +826,7 @@ function replayNight(sv: Save): number {
     'pass@16',
     'pass@17',
     'pass@18',
-    'pass@19',
+    'pass@20',
   ].includes(sv.game);
   for (const i of sv.inputs) {
     if (i.kind !== 'open') continue;
@@ -848,7 +853,7 @@ function replayNight(sv: Save): number {
         'pass@16',
         'pass@17',
         'pass@18',
-        'pass@19',
+        'pass@20',
       ].includes(sv.game);
     }
   }
@@ -887,8 +892,16 @@ function board(draft?: BoardRow[], editing: string | null = null) {
     oven: 'oven',
   };
   const earlyBooking =
-    ['pass@18', 'pass@19'].includes(st.version) && st.night <= 3
-      ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>`
+    ['pass@18', 'pass@20'].includes(st.version) && st.night <= 3
+      ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>${earlyCoverageWarnings(
+          st,
+          rows,
+        )
+          .map(
+            (line) =>
+              `<p class="early-booking early-gap">${esc(line)} Move that break or choose a cook to cover it.</p>`,
+          )
+          .join('')}`
       : '';
   const parties =
     earlyBooking +
@@ -1093,8 +1106,16 @@ function board(draft?: BoardRow[], editing: string | null = null) {
       oven: 'oven',
     };
     const earlyBooking =
-      ['pass@18', 'pass@19'].includes(st.version) && st.night <= 3
-        ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>`
+      ['pass@18', 'pass@20'].includes(st.version) && st.night <= 3
+        ? `<p class="early-booking">An early table arrives at 18:12 and leaves after 18:24 without paying ${lira(40)} if its food is late. Keep the grill and cold side covered. Move a meal break or arrange cover before opening. Cooks send finished meals out automatically.</p>${earlyCoverageWarnings(
+            st,
+            rows,
+          )
+            .map(
+              (line) =>
+                `<p class="early-booking early-gap">${esc(line)} Move that break or choose a cook to cover it.</p>`,
+            )
+            .join('')}`
         : '';
     const parties =
       earlyBooking +
@@ -1293,11 +1314,11 @@ function service() {
     });
   }
   if (peopleRun(s))
-    app.innerHTML = `<div class="service people-service ${kitchenEdition(s) ? 'kitchen-service' : ''} ${['pass@18', 'pass@19'].includes(s.version) ? 'early-service' : ''}">
+    app.innerHTML = `<div class="service people-service ${kitchenEdition(s) ? 'kitchen-service' : ''} ${['pass@18', 'pass@20'].includes(s.version) ? 'early-service' : ''}">
     ${topBar('', 'service')}<div class="state-strip" id="till"></div>
     ${kitchenEdition(s) ? '<aside id="kitchen-stock" class="soft"></aside>' : ''}
     <div class="rail" id="rail"></div><div class="scene" id="scene"></div>
-    ${['pass@18', 'pass@19'].includes(s.version) ? `<aside class="service-board">${denialNotice()}<div id="status" role="status"></div><div id="service-account" tabindex="0" aria-label="Served and lost tables"></div></aside>` : ''}
+    ${['pass@18', 'pass@20'].includes(s.version) ? `<aside class="service-board">${denialNotice()}<div id="status" role="status"></div><div id="service-account" tabindex="0" aria-label="Served and lost tables"></div></aside>` : ''}
     <div class="caption" id="caption" role="status"></div><div class="sheet" id="sheet"></div>
   </div>`;
   document.getElementById('scene')?.addEventListener('click', (e) => {
@@ -1553,7 +1574,7 @@ function drawRail() {
               : reg.name
             : `table ${t.table}`;
         const patience = t.patience + (booking?.promised ? 0 : st.apron ? 12 : 0);
-        const cause = ['pass@18', 'pass@19'].includes(st.version)
+        const cause = ['pass@18', 'pass@20'].includes(st.version)
           ? `<div class="st">Waiting ${wait} min · leaves after ${clock(t.at + patience)} · ${lira(t.price)} at risk.</div><div class="st">${esc(t.doneGrill < t.grill ? 'Waiting for the grill.' : t.doneCold < t.cold ? 'Waiting for the cold side.' : t.doneOven < t.oven ? 'Waiting for the oven.' : 'Waiting for a clean plate or delivery.')}</div>`
           : '';
         const option =
@@ -1603,6 +1624,7 @@ const FIXTURES: Record<string, { x: number; y: number }> = {
   yard: { x: 318, y: 22 },
   table: { x: 46, y: 22 },
   store: { x: 180, y: 22 },
+  toilet: { x: 318, y: 22 },
   room: { x: 46, y: 22 },
   conversation: { x: 180, y: 140 },
   'explain-wait': { x: 46, y: 22 },
@@ -1620,6 +1642,7 @@ function placeOf(id: CookId): string {
   if (['break', 'smoke', 'phone', 'skim'].includes(a.affordanceId)) return 'yard';
   if (a.affordanceId === 'eat') return 'table';
   if (a.affordanceId === 'pray') return 'store';
+  if (a.affordanceId === 'toilet') return 'toilet';
   return 'idle';
 }
 
@@ -1860,7 +1883,7 @@ function drawCaption() {
       : fresh && a
         ? `<span class="hand">${esc(a.text)}</span>`
         : '';
-  const receipts = ['pass@17', 'pass@18', 'pass@19'].includes(s.version)
+  const receipts = ['pass@17', 'pass@18', 'pass@20'].includes(s.version)
     ? s.said
         .filter(
           (line) =>
@@ -2102,10 +2125,10 @@ function drawSheet() {
       )
       .join('')}</div>
     <details class="insist-choice"><summary>Insist on a job for ${esc(m.name)}</summary><p>Insisting puts pressure on ${esc(m.name)} and can cost their trust. They still choose how to answer.</p><div class="insist-jobs">${h.list.map((v) => `<button data-insist="${v.verb}" ${waiting || absent || !attentionAvailable(st, selected as CookId) ? 'disabled' : ''}>Insist: ${esc(m.name)}, ${VERB_LABEL[v.verb].toLowerCase()}</button>`).join('')}</div></details>
-    ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@19'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
+    ${(st.version === 'pass@13' || kitchenEdition(st)) && !absent && inKitchen(st, selected) ? `<div class="row crew-contact"><button data-contact="check-in">How are you doing?</button>${([FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@20'].includes(st.version) ? !!heardTopic(st, selected) : st.said.some((line) => line.who === selected && line.at >= openAt(st.night) - 5)) ? `<button data-contact="follow-up">${[FOLLOWUP_EDITION, NARRATION_EDITION, 'pass@17', 'pass@18', 'pass@20'].includes(st.version) && heardTopic(st, selected)?.text.includes('sunset prayer') ? 'About the missed sunset prayer' : 'About what you said'}</button>` : ''}</div>` : ''}
     ${
-      st.version === 'pass@19' && !absent
-        ? `<div class="crew-contact"><button data-contact="invite" ${privateConversationAvailable(st, selected) ? '' : 'disabled'}>Invite ${esc(m.name)} to talk in private for three minutes</button><p class="soft">If they agree, they stop work. Their station may need someone else. They can refuse.</p>${
+      st.version === 'pass@20' && !absent
+        ? `<div class="crew-contact"><button data-contact="invite" ${privateConversationAvailable(st, selected) ? '' : 'disabled'}>Invite ${esc(m.name)} to talk in private for three minutes</button><p class="soft">If they agree, they stop work. Their station may need someone else. They can refuse.${privateConversationAvailable(st, selected) ? '' : ` ${esc(privateConversationNote(st, selected))}`}</p>${
             heardTopics(st, m.id).length
               ? `<details><summary>Choose something you heard ${esc(m.name)} say</summary>${heardTopics(
                   st,
@@ -2121,7 +2144,7 @@ function drawSheet() {
         : ''
     }
     ${
-      st.version === 'pass@19' && !absent
+      st.version === 'pass@20' && !absent
         ? st.tickets
             .filter((ticket) => clearingAvailable(st, ticket.id))
             .map(
@@ -2132,7 +2155,7 @@ function drawSheet() {
         : ''
     }
     ${
-      st.version === 'pass@19' && selected === 'selim' && st.privateAccounts?.selim
+      st.version === 'pass@20' && selected === 'selim' && st.privateAccounts?.selim
         ? `<details class="grill-guidance"><summary>Help Selim pass on the grill work</summary><p>Ask Selim to guide another cook for three minutes while they prepare waiting grill food. Selim stops cooking. The learner must answer a separate ordinary job request and leave their present station. Both requests can be refused. Food and customers keep waiting.</p>${st.crew
             .filter((person) => person.id !== 'selim' && !person.left)
             .map(
@@ -2254,6 +2277,7 @@ const WHERE: Record<string, string> = {
   yard: 'outside',
   table: 'eating',
   store: 'in the storeroom',
+  toilet: 'in the bathroom',
   idle: 'free',
 };
 

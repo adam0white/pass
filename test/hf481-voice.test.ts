@@ -13,7 +13,7 @@ import {
 import { suggestionWords } from '../src/sim/lines.ts';
 
 it('voices agreed board answers once and keeps familiar cooks in ink', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   const before = JSON.stringify(cloneState(s));
   expect(hints(s, 'selim').every((hint) => !hint.guess)).toBe(true);
   expect(JSON.stringify(cloneState(s))).toBe(before);
@@ -26,7 +26,7 @@ it('voices agreed board answers once and keeps familiar cooks in ink', () => {
 }, 60000);
 
 it('sharpens an observer preview after repeated looks and retains that learning on restore', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   const cook = personOf(s, 'selim');
   const confidence = () =>
     predictAs(s.chef, cook, offersFor(s, 'selim', 'grill'), {
@@ -55,7 +55,7 @@ it('sharpens an observer preview after repeated looks and retains that learning 
 }, 60000);
 
 it('uses the framework-rendered answer for current cooks', () => {
-  const p = personOf(newGame(42, 'pass@19'), 'selim');
+  const p = personOf(newGame(42, 'pass@20'), 'selim');
   const resolution = {
     verdict: 'modified',
     reason: 'busy',

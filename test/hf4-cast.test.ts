@@ -15,7 +15,7 @@ import { advance } from '../src/sim/host-policy.ts';
 import { cloneState, newGame, personOf, queueInput, replay, restoreState, step } from '../src/sim/kitchen.ts';
 
 it('records actual HF4 promptings in kitchen minutes', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   const phase = () => s.phase;
   while (!(s.night === 3 && s.phase === 'evening')) advance(s, 'ask', 'promise-none');
   queueInput(s, { kind: 'jar', choice: 'talk' });
@@ -58,7 +58,7 @@ it('projects a current person and admits the retained passport before the new ru
   });
   const chapter = await prepareHF4KitchenChapter([preparePersonaLife(parent, 0)], 43);
   expect(chapter.portable?.hulya?.person).toEqual(transfer.portable);
-  const game = newGame(43, 'pass@19', chapter);
+  const game = newGame(43, 'pass@20', chapter);
   expect(checkpoint(game.chef).archive.initial.people.some((p) => p.id === 'hulya')).toBe(false);
   const source = JSON.stringify(chapter.portable?.hulya);
   const beforeRefusal = JSON.stringify(checkpoint(game.chef));
@@ -91,14 +91,14 @@ it('projects a current person and admits the retained passport before the new ru
   const saved = JSON.parse(JSON.stringify(cloneState(game)));
   expect(JSON.parse(JSON.stringify(cloneState(restoreState(saved))))).toEqual(saved);
   expect(
-    JSON.parse(JSON.stringify(cloneState(replay(43, game.inputs, game.minute, 'pass@19', chapter)))),
+    JSON.parse(JSON.stringify(cloneState(replay(43, game.inputs, game.minute, 'pass@20', chapter)))),
   ).toEqual(saved);
   expect(chapter.portable?.hulya?.person).toEqual(transfer.portable);
 }, 120000);
 
 it('fingerprints the host state as well as the HF archive', async () => {
   const { cloneState, fingerprint, newGame } = await import('../src/sim/kitchen.ts');
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   const saved = JSON.parse(JSON.stringify(cloneState(state)));
   expect(fingerprint(state)).toBe(fingerprint(saved));
   saved.till += 1;
@@ -122,7 +122,7 @@ it('keeps a retained visitor duty at its mapped wall time when paid work is acce
     limitations: transfer.limitations,
   });
   const chapter = await prepareHF4KitchenChapter([preparePersonaLife(parent, 0)], 43);
-  const game = newGame(43, 'pass@19', chapter);
+  const game = newGame(43, 'pass@20', chapter);
   const original = JSON.stringify(chapter.portable?.zeynep);
   expect(checkpoint(game.chef).archive.initial.people.some((p) => p.id === 'zeynep')).toBe(false);
   queueInput(game, { kind: 'cast-invite', who: 'zeynep' });
@@ -139,6 +139,6 @@ it('keeps a retained visitor duty at its mapped wall time when paid work is acce
   const saved = JSON.parse(JSON.stringify(cloneState(game)));
   expect(JSON.parse(JSON.stringify(cloneState(restoreState(saved))))).toEqual(saved);
   expect(
-    JSON.parse(JSON.stringify(cloneState(replay(43, game.inputs, game.minute, 'pass@19', chapter)))),
+    JSON.parse(JSON.stringify(cloneState(replay(43, game.inputs, game.minute, 'pass@20', chapter)))),
   ).toEqual(saved);
 }, 120000);
