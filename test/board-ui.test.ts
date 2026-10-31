@@ -31,6 +31,21 @@ describe('board presentation choices', () => {
     expect(earlyCoverageWarnings({ ...s, version: 'pass@17' }, rows)).toEqual([]);
     expect(earlyCoverageWarnings({ ...s, night: 4 }, rows)).toEqual([]);
   });
+  it('names the time the station really empties when a break starts after 18:12 (F-2168)', () => {
+    const s = newGame(42, 'pass@20');
+    const rows = openingBoard(s).map((row) => ({ ...row, breakAt: row.cook === 'selim' ? 1095 : 1185 }));
+    const late = earlyCoverageWarnings(s, rows).join(' ');
+    expect(late).toContain(
+      '(18:15\u201318:35) leaves the grill empty from 18:15, while the early table is still waiting.',
+    );
+    expect(late).not.toContain('18:12');
+    // A break that already covers 18:12 keeps the arrival wording.
+    const early = openingBoard(s).map((row) => ({ ...row, breakAt: row.cook === 'selim' ? 1090 : 1185 }));
+    expect(earlyCoverageWarnings(s, early).join(' ')).toContain('when the early table arrives at 18:12.');
+    // A break from 18:24 no longer overlaps the early table.
+    const none = openingBoard(s).map((row) => ({ ...row, breakAt: 1104 + (row.cook === 'selim' ? 0 : 100) }));
+    expect(earlyCoverageWarnings(s, none)).toEqual([]);
+  });
   it('offers named 24-hour slots within the existing allowed interval, retaining a saved time', () => {
     expect(breakSlots(1115)).toEqual([
       { minute: 1090, label: '18:10 before the rush' },
