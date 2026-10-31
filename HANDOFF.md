@@ -1,5 +1,15 @@
 # Pass handoff
 
+## Current delivery checkpoint — 2026-10-31
+
+PR13 signed source `65cfe9454e38cbd2c014e8a00e18718363feb27d` had exact Codex/Opus clearance and source CI, then merged as `768adae57a3bfc2242b618a9fa86eb5ff48b125e`. Main CI timed out twice; that release was not deployed. Live remains the earlier b6e919a build.
+
+PR14 follow-up code `bfaa191cdc396ceb20cbf81b5997155a7195cbc8` is signed and has exact Codex/Opus source clearance. It keeps the other missing-station prompts, corrects break-warning times, records the three-Monday pacing result, and distributes every native test across three shards without changing assertions or timeouts. Its exact CI and live checks remain delivery gates. The historical-native test's existing120-second limit is still a risk; three shards do not resolve individual test duration. Adam decides the pacing/absence questions on2026-11-03. Technical delivery, same-player retest and Adam's readiness acceptance remain separate.
+
+This checkpoint supersedes the earlier candidate-status paragraphs below. Those paragraphs record the state when written; their unsigned/uncommitted wording does not describe the merged PR13 or reviewed follow-up code.
+
+## Earlier candidate notes (historical)
+
 ## LIGHT fixes candidate — 2026-10-30 (uncommitted)
 
 Branch `gd-pass-light-fixes1030` on b6e919a, HF4.12.0, client 0.5.12 / kit 0.5.29. Candidate only: not signed, not delivered. It covers F-2166 (partly), F-2167, F-2168, F-2169, F-2172 (note) and F-2175 (CSS, unverified visually). It makes pass@20 the only new-game edition; pass@19 refuses clearly and originals stay stored. The per-ask status, owners and dates are in the “LIGHT retest asks” section of `docs/design.md`. This candidate changes pacing: the five-minute review keeps a cook’s own running activity, and bathroom and prayer visits are no longer cut. One bounded comparison (seeds 7, 42, 99, Monday, every question answered “leave it empty”) showed more served, fewer walkouts and fewer empty minutes than b6e919a; see `docs/design.md`. Difficulty is not claimed unchanged; Adam decides on 2026-11-03. Follow-up 2026-10-31: the status line keeps other empty stations alongside a left-empty answer, the early-table warning names the time the station actually empties, and CI runs three native shards. Open engineering: live checks for F-2173, F-2174, F-2175, F-2176 and the F-2166/F-2167/F-2168/F-2172 displays. F-2166 question counts are not closure and Adam decides the absence policy on 2026-11-03. Independent body review of the 41 bodies is CLEAR; the signed SHA, Opus CLEAR, exact CI, deployment and owner-size browser checks remain. Evidence: `~/code/.lab-scratch/games-deferred/pass-light-fixes/`.
