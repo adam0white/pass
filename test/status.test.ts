@@ -70,6 +70,26 @@ describe('serviceStatus', () => {
     work(s, 'selim', 'grill');
     expect(serviceStatus(s).text).not.toContain('You left');
   });
+  it('keeps a separate prompt for another empty station while a left-empty answer stands', () => {
+    const s = setup();
+    s.version = 'pass@20';
+    s.tickets = [ticket({ grill: 1, cold: 1 })];
+    s.minute = 1100;
+    s.staffing = [
+      { id: 0, who: 'selim', station: 'grill', until: 1119, reason: '', state: 'left', open: true },
+    ];
+    const shown = serviceStatus(s);
+    expect(shown.text).toContain('You left the grill empty.');
+    expect(shown.text).toContain('The cold side needs a cook.');
+    expect(shown.text).not.toContain('Grill needs');
+    expect(shown.needsResponse).toBe(true);
+    // The chef's answer still stands alone when nothing else is missing.
+    s.tickets = [ticket({ grill: 1, cold: 0 })];
+    expect(serviceStatus(s)).toEqual({
+      text: 'You left the grill empty. You will not be asked about it again while it stays empty. You can ask a cook to work there now.',
+      needsResponse: false,
+    });
+  });
   it('explains an unfillable pass@20 station gap without prompting', () => {
     const s = setup();
     s.version = 'pass@20';

@@ -55,10 +55,19 @@ export function earlyCoverageWarnings(s: GameState, rows: readonly BoardRow[]): 
     );
     if (staffed) continue;
     const name = nameOf(s, row.cook);
+    const plan = `${name}\u2019s meal break (${hhmm(row.breakAt)}\u2013${hhmm(row.breakAt + 20)})`;
+    // The station empties at the later of the break start and the early table's arrival.
+    const emptyAt = Math.max(row.breakAt, EARLY_ARRIVES);
+    const when =
+      emptyAt === EARLY_ARRIVES
+        ? 'at 18:12'
+        : `from ${hhmm(emptyAt)}, while the early table is still waiting`;
     out.push(
       row.cover
-        ? `${name}\u2019s meal break (${hhmm(row.breakAt)}\u2013${hhmm(row.breakAt + 20)}) leaves the ${where} empty at 18:12 because the cook you chose to cover said no.`
-        : `${name}\u2019s meal break (${hhmm(row.breakAt)}\u2013${hhmm(row.breakAt + 20)}) leaves the ${where} empty when the early table arrives at 18:12.`,
+        ? `${plan} leaves the ${where} empty ${when} because the cook you chose to cover said no.`
+        : emptyAt === EARLY_ARRIVES
+          ? `${plan} leaves the ${where} empty when the early table arrives at 18:12.`
+          : `${plan} leaves the ${where} empty ${when}.`,
     );
   }
   return out;

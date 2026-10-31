@@ -19,8 +19,17 @@ export function noCoverWords(station: string): string {
 }
 
 /** A station the chef chose to leave empty, while that absence continues and nobody is working there. */
-function leftEmpty(s: GameState, missing: readonly Station[]) {
-  return s.staffing?.findLast((d) => d.state === 'left' && d.open !== false && missing.includes(d.station));
+function leftEmpty(s: GameState, missing: readonly Station[]): Station[] {
+  const stations = (s.staffing ?? [])
+    .filter((d) => d.state === 'left' && d.open !== false && missing.includes(d.station))
+    .map((d) => d.station);
+  return [...new Set(stations)];
+}
+
+function stationList(stations: readonly Station[]): string {
+  return stations.length === 3
+    ? 'the grill, the cold side and the oven'
+    : stations.map((st) => VERB_WORD[st]).join(' and ');
 }
 
 export interface ServiceStatus {
@@ -91,27 +100,26 @@ export function serviceStatus(s: GameState): ServiceStatus {
   const dark = gasOut(s);
   const missing = needed.filter((st) => !staffed.has(st) && (!dark || st === 'cold'));
   if (missing.length) {
-    const names =
-      missing.length === 3
-        ? 'the grill, the cold side and the oven'
-        : missing.map((st) => VERB_WORD[st]).join(' and ');
-    // The chef's own answer stays visible while the absence it answered continues.
-    const left = s.version === 'pass@20' ? leftEmpty(s, missing) : undefined;
-    if (left)
-      return status(
-        `You left ${VERB_WORD[left.station]} empty. You will not be asked about it again while it stays empty. You can ask a cook to work there now.`,
-      );
-    if (
+    // The chef's own answer stays visible while the absence it answered continues. Every other
+    // missing station keeps its own line and its own prompt.
+    const left = s.version === 'pass@20' ? leftEmpty(s, missing) : [];
+    const others = missing.filter((st) => !left.includes(st));
+    const leftText = left.length
+      ? `You left ${stationList(left)} empty. You will not be asked about it again while ${left.length === 1 ? 'it stays' : 'they stay'} empty. You can ask a cook to work there now.`
+      : '';
+    if (left.length && !others.length) return status(leftText);
+    const names = stationList(others);
+    const rest =
       ['pass@16', 'pass@17', 'pass@18', 'pass@20'].includes(s.version) &&
-      missing.every((station) => !canCoverStation(s, station))
-    )
-      return status(noCoverWords(names));
-    return status(
-      ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
-        ? `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'has' : 'have'} nobody in tonight’s plan.`
-        : `${names[0]?.toUpperCase()}${names.slice(1)} ${missing.length === 1 ? 'needs' : 'need'} a cook.`,
-      !['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version),
-    );
+      others.every((station) => !canCoverStation(s, station))
+        ? status(noCoverWords(names))
+        : status(
+            ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
+              ? `${names[0]?.toUpperCase()}${names.slice(1)} ${others.length === 1 ? 'has' : 'have'} nobody in tonight’s plan.`
+              : `${names[0]?.toUpperCase()}${names.slice(1)} ${others.length === 1 ? 'needs' : 'need'} a cook.`,
+            !['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version),
+          );
+    return left.length ? status(`${leftText} ${rest.text}`, rest.needsResponse) : rest;
   }
 
   if (dark && (remaining.grill > 0 || remaining.oven > 0))

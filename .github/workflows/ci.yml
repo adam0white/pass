@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -52,9 +52,9 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Both complete shards retain every original test, assertion and deadline.
+      # All three complete shards retain every original test, assertion and deadline.
       # One worker avoids competing full HF archive replays on a two-core runner.
-      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/2 --maxWorkers=1
+      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/3 --maxWorkers=1
   ci:
     if: always()
     needs: [quality, native]
