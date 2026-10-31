@@ -1,12 +1,14 @@
 # Pass handoff
 
-## Current delivery checkpoint — 2026-10-31
+## Current release checkpoint — 2026-10-31
 
-PR13 signed source `65cfe9454e38cbd2c014e8a00e18718363feb27d` had exact Codex/Opus clearance and source CI, then merged as `768adae57a3bfc2242b618a9fa86eb5ff48b125e`. Main CI timed out twice; that release was not deployed. Live remains the earlier b6e919a build.
+Remaining: final exact-source clearance and hosted CI, exact merged-main CI, normal deployment, live checks and same-player retest. Adam decides pacing and absence on 2026-11-03. Live remains b6e919a; the later source changes are not deployed.
 
-PR14 follow-up code `bfaa191cdc396ceb20cbf81b5997155a7195cbc8` is signed and has exact Codex/Opus source clearance. It keeps the other missing-station prompts, corrects break-warning times, records the three-Monday pacing result, and distributes every native test across three shards without changing assertions or timeouts. Its exact CI and live checks remain delivery gates. The historical-native test's existing120-second limit is still a risk; three shards do not resolve individual test duration. Adam decides the pacing/absence questions on2026-11-03. Technical delivery, same-player retest and Adam's readiness acceptance remain separate.
+PR13 source65cfe9454e38cbd2c014e8a00e18718363feb27d had exact Codex/Opus clearance and green source CI, then merged768adae57a3bfc2242b618a9fa86eb5ff48b125e. Main CI timed out twice. PR14 final source713da9d9370a24e9eff7455beffdce3fc7550c65 had exact Codex/Opus clearance and green source CI41161646232, then merged92ab3b5452824d87211169772cf46b287e731111. Its main CI41162697999 failed because the historical-native grill test ran120296ms against its120000ms cap. No retry was used for that failure.
 
-This checkpoint supersedes the earlier candidate-status paragraphs below. Those paragraphs record the state when written; their unsigned/uncommitted wording does not describe the merged PR13 or reviewed follow-up code.
+Under the owner's2026-10-31 ruling allowing redundant tests to be cut, signedfc4ad998e754e2ce5b970a8ac508469f6f9be3a5 keeps one genuine historical cold restore, the same two ordinary requests, six steps, every no-credit behavior assertion and one final full-prefix-plus-suffix HF verification. The duplicate restore, duplicate steps, historical twin-state equality and duplicate initial/twin verifies were removed. The dedicated current replay/cold-restore control is unchanged. The historical unit is not a current public modified witness; that witness remains unobserved, review2026-11-03. The120000ms cap, fixtures, shards and product code are unchanged. Exact shrink bodies have independent Codex CLEAR and Opus CLEAR atfc4ad998; local focused7/7 and lane0 do not establish hosted CI or delivery. This successor changes only this release checkpoint; its exact clearance and CI remain gates.
+
+Earlier candidate notes below record the state when written. Their unsigned/uncommitted status does not describe later signed or merged work. Technical delivery, same-player retest and Adam's readiness acceptance are separate.
 
 ## Earlier candidate notes (historical)
 
