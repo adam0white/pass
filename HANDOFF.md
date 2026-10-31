@@ -1,6 +1,12 @@
 # Pass handoff
 
-## Current release checkpoint — 2026-10-31
+## Player-loop documentation checkpoint — 2026-10-31
+
+Second retest asks F-2496–F-2510 (panel on 288b2fda, 2026-10-31) are recorded as a dated Deferred section in `docs/design.md`, with dates 2026-11-03 and 2026-11-10. This documentation update fixes no ask and changes no runtime code. It does not import the sealed source packet; that packet is prospective in the human-framework repository. The owner's two-iteration rule ends the player loop once this documentation is integrated.
+
+The retest used the deployed clean288b2fda/HF4.12 build. The earlier release checkpoint below records the pre-delivery state; its old live pin and pending gates are historical. Technical runtime proofs and Adam's readiness decision stay separate from this player-loop record.
+
+## Earlier release checkpoint — 2026-10-31 (historical)
 
 Remaining: final exact-source clearance and hosted CI, exact merged-main CI, normal deployment, live checks and same-player retest. Adam decides pacing and absence on 2026-11-03. Live remains b6e919a; the later source changes are not deployed.
 
