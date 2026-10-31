@@ -476,3 +476,135 @@ noncausal wording when the host lacks matching evidence.
 GDI-568, GDI-569 and GDI-642 are candidate source only. Parent independent review,
 signed delivery, exact green CI and live release checks remain. Adam accepts
 game readiness. No player round was run.
+
+## Deferred — second retest asks, 2026-10-31 (F-2496–F-2510)
+
+Source: the second Pass retest, a fictional agent panel on commit `288b2fda7c8589931a9d9e8f044f1a8aaf630333`, app 0.1.0, Human Framework 4.12.0, round `light-1031-pass-retest2`. The panel was the same four standing testers (Maya, Emre, Nia, Rosa) and one new cold tester (Sonia), each in fresh independent contexts on a phone and a desktop, one tester at a time, with a free stop. Collection ended 2026-10-31T07:36:57.910821Z. These are synthetic observations, not human recruitment, and the run lengths (67–455 seconds) are model and tool time, not human reading speed.
+
+**What remains.** Every row below is open. Each date names the day a decision or a check is due, not a delivery. Nothing here changes the game. Adam decides readiness and policy; the games-deferred Pass host owner does the work after that decision.
+
+**Loop state.** This is the second game-fix and retest iteration. By the owner’s two-iteration rule, the player loop ends once this Deferred record is integrated. That ends the loop; it does not say any ask is fixed, and it is not player or owner acceptance. This record claims no clearance, no CI result, no deployment and no canonical HF import. No third panel and no automatic fix or easier game is proposed.
+
+**Source record.** Producer words are unchanged in a private sealed packet at `~/code/.lab-scratch/playtest/light-1030/source-packets/pass-retest2/`. Its future path in this repository, `docs/lab/reviews/light-2026-10-30/pass-retest2/`, is prospective: nothing has been imported, so no public link is given. Report SHA-256 hashes (`report.original.md.txt`): Maya `eccfb8e9d3ef25acc0e391910d71bbbbdcae9f3854b21c2533aa2546bf64dd5c`, Emre `d0bfccb7a52da2bac5ebf03263b8bab87d8483a487d3d5c75090073b88660b39`, Nia `c2f21abf75e5076c9ef974c121d806fdc89935aba23d7bf44c1d954dc135639d`, Rosa `c7c47c055a88894651ea7bd7cfc1114a2262ad30dd596cfb67e56a4857c3a9a0`, Sonia `8a15f348d51431fed8e762b55f8cf87e9f8395ba28e8285221aa59b276c7fbd3`. The full inventory is `sha256.json` in the packet.
+
+**How to read the rows.** Ranked asks are F-2496 to F-2510, five testers with three asks each. The quotation after each id is the tester’s own text. It gives the ranked ask first, then each later wording from the same report that differs, labelled by report section. Later spans are kept so a changed condition is not lost; the sealed packet holds the full reports. Rows F-2491 to F-2495 are the five return answers, not additional asks. F-2511 to F-2520 are unused. Each report’s verdict is `mixed`: the tester’s own conditions, not a vote and not a population estimate.
+
+**Planned directions (decisions due, not decided).** On 2026-11-03: explain meaning, status, preview, duplicate wording, warnings and the bank target (F-2496, F-2498, F-2501, F-2503, F-2505 to F-2510). On 2026-11-10: broader story, a recovery preference, whether a saved-run Resume exists and works (it was untried), and pacing after the C14 human-speed comparison (F-2497, F-2499, F-2500, F-2502, F-2504). Packet dates are kept as written.
+
+**Limits that stay.** No automatic cook obedience, undo, free cover, hard pause, clock or difficulty retune, new story or religious policy follows from these asks. Specific qualifications from the packet:
+
+- Maya saw a warning in one session and wrote later that none appeared. Both statements stay; there is no universal absence claim.
+- Nia insisted on purpose, with the trust warning visible, and found it amusing. A recovery request is not an automatic undo.
+- Emre knowingly retained a cover that had refused, to see its cost.
+- Monday money totals do not prove the ₺5,200 target impossible. Explaining the target early is clarity, not a financial guarantee.
+- A cook eating earlier than a planned break could be a different meal. It does not show the schedule was ignored.
+- Prefix time, stale controls and live-clock drift during model latency do not show a timing defect. Clock, skip and speed are retuned only after calibration C14.
+- Recorded history reads were partial for Emre (598 of 907 lines), Nia (599 of 963) and Rosa (399 of 1583), so their statements about earlier material may concern text they did not read. Maya and Sonia read their supplied history in full.
+- The Native v2 hold took 1.8 seconds. No fix is credited for the difference from the earlier instrument.
+- All five reports are conditional. There are no votes and no acceptance.
+- The technical proof for fonts, native files, geometry and the current SDK stays separate, partial or UNRUN. Existing GDI items and older source and candidate history above stay historical. This record closes none of them.
+
+### F-2496 — Maya Chen
+
+- Player words, exact (opening ask, then labelled later spans): "Warn me before I tap a talk or a follow-up that the cook will leave the grill or cold side, and for how long. Do the same for a table complaint at the kitchen door, which pulled Dilek and Selim away on their own." Later wording (section 8): "Tell me before I tap that a talk, a follow-up or a table complaint will take a cook off a station, and for how long." Later wording (section 9): "I still got no warning about the Nevin follow-up, or about a table complaint pulling a cook away."
+- Disposition and conditions: Add a warning before a talk, follow-up or table complaint at the kitchen door takes a cook off a station, with the length. The tester saw the opening-page and private-talk warnings and, in the same visit, wrote that nothing warned her about the Nevin follow-up. Both statements stay. The source must be inspected first for the table-complaint pull. No claim is made that a warning is absent everywhere.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/maya/report.md` in the sealed packet.
+
+### F-2497 — Maya Chen
+
+- Player words, exact (opening ask, then labelled later spans): "Make "ask me about Nevin" lead to a longer reply. Selim's line was one short sentence, and the follow-up pulled him off the grill." Later wording (section 8): "Make "ask me about Nevin" lead to more than one short line. The follow-up should not cost me the grill." Later wording (section 9): "It gave one short line after a long wait. On the phone it never appeared, because the choice was disabled or offered only the wait line."
+- Disposition and conditions: Longer reply to “ask me about Nevin”: a broader-story preference. On desktop it came after a long wait; on the phone it did not appear. No automatic change. Difficulty, quiet faith, agency and refusal stay as they are.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/maya/report.md` in the sealed packet.
+
+### F-2498 — Maya Chen
+
+- Player words, exact (opening ask, then labelled later spans): "Fix the doubled bathroom wording in Selim's "How are you doing?" reply." Later wording (section 8): "Fix the doubled bathroom wording in Selim's reply." Later wording (section 9): "wording not met. Selim's bathroom line still repeats."
+- Disposition and conditions: Selim’s “How are you doing?” reply says the bathroom line twice, seen on both devices. Reproduce in source first.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/maya/report.md` in the sealed packet.
+
+### F-2499 — Emre Kaya
+
+- Player words, exact (opening ask, then labelled later spans): "Don't leave me watching when a station is empty. "Time is slowed. A station needs a cook" came up on both devices. I still found nobody on desktop Tuesday 18:42 whose predicted reply was anything but "bathroom", and Fast barely sped it up." Later wording (section 8): "Give me something to do when a station is empty. Let me ask someone useful, or skip the slowed stretch." Later wording (section 9): "But Tuesday 18:42 on desktop and Monday 18:15 on phone were still dead waits, and Fast did not shorten the slowed stretch."
+- Disposition and conditions: Something to do, or a skip, while a station is empty and time is slowed. Fast was not tested in a normal stretch. Clock, skip and speed change only after the C14 human-speed comparison. Emre chose Dilek’s meal break and the refused cover on purpose to see their cost; there is no free cover.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10 (calibration C14). Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/emre/report.md` in the sealed packet.
+
+### F-2500 — Emre Kaya
+
+- Player words, exact (opening ask, then labelled later spans): "Let me carry on from where I stopped, so I don't replay Monday. This is a repeat ask. I did not see whether that exists, because I never opened Resume." Later wording (section 8): "Resume from where I stopped. I did not check whether Resume exists." Later wording (section 9): "not seen. I never opened Resume."
+- Disposition and conditions: Carry on from where he stopped. This is a repeat ask. He never opened Resume, and the in-game menu Resume is an unpause, so this is not evidence that a saved-run Resume is absent. Check what exists before any change (the saved-run Resume was untried).
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/emre/report.md` in the sealed packet.
+
+### F-2501 — Emre Kaya
+
+- Player words, exact (opening ask, then labelled later spans): "Show how table counts grow. The "I need about ₺920 a night" line is a real answer to my earlier ask. Monday was ₺600 again (15 of 15 tables), and I still can't see how to earn more than that." Later wording (section 8): "Show how the 15-table count grows through the week, next to the ₺920 a night target." Later wording (section 9): "Table growth is still not explained. Monday was 15 of 15 tables and ₺600 again."
+- Disposition and conditions: Show how the table count grows next to the ₺920-a-night target. An early explanation of the bank target is clarity, not a financial guarantee. Monday’s ₺600 does not prove the target impossible. No bank deadline was reached; Emre reached Tuesday 18:42 and the other testers stopped on Monday.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/emre/report.md` in the sealed packet.
+
+### F-2502 — Nia Okafor
+
+- Player words, exact (opening ask, then labelled later spans): "Let me recover when I insist and it goes badly. On desktop, one click on "Insist: Dilek, go home" sent her home until 22:00. I got ₺0 and no tables served, and I could not fix it." Later wording (section 8): "Let me recover when I insist and it goes badly. A "go home" click should not remove a cook for the whole night with nothing to do about it." Later wording (section 9): "On desktop the effect was big enough to wreck my night."
+- Disposition and conditions: Let the player recover after an Insist “go home” goes badly. Nia insisted on purpose despite the visible trust warning and agreed it was for fun. This is not an automatic undo and not mandatory compliance. The 215-minute claim was not observed for 215 game minutes and its source is unverified. Difficulty, refusal and agency stay.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/nia/report.md` in the sealed packet.
+
+### F-2503 — Nia Okafor
+
+- Player words, exact (opening ask, then labelled later spans): "Answer what I actually asked. "How are you doing?" got a toilet or prayer line on the phone. It got a real reply about Nevin on desktop." Later wording (section 8): "Answer what I actually asked. "How are you doing?" should get a reply about the person, not the toilet or prayer line plus a refusal." Later wording (section 9): ""How are you doing?" got a canned refusal on the phone and a real reply on desktop."
+- Disposition and conditions: “How are you doing?” got a toilet or prayer line with a refusal on the phone and a real Nevin reply on desktop. Meaning, status and preview wording. Inspect the source for reply selection first. No rule that a cook must always obey.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/nia/report.md` in the sealed packet.
+
+### F-2504 — Nia Okafor
+
+- Player words, exact (opening ask, then labelled later spans): "Cut the waiting stretches, or give me something to do in them." Later wording (section 8): "Shorten the stretches where I can only watch, or give me something to do in them." Later wording (section 9): "I still waited 12–28 s several times while tables left."
+- Disposition and conditions: Shorter watching stretches, or something to do in them. Waits of 12 to 28 seconds are model and tool time, not proof of a defect at human speed. Clock, skip and speed change only after the C14 comparison. Difficulty, quiet faith, agency and refusal stay.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-10 (open)`, so Nov 10 (calibration C14). Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/nia/report.md` in the sealed packet.
+
+### F-2505 — Rosa Alvarez
+
+- Player words, exact (opening ask, then labelled later spans): "Rewrite the cook sentences I could not follow. This covers "I will explain the wait. I am leaving the other tables for three minutes…", the "Insist / Hold it to insist" help line, and the status "in the bathroom" beside that sentence." Later wording (section 8): "Rewrite the sentences that confused me. "I will explain the wait. I am leaving the other tables for three minutes." should say who he talks to. Make the status ("in the bathroom") match the quote. Replace "Insist" and "Hold it to insist" with plain words." Later wording (section 9): "the "Insist / Hold it to insist" help line and Selim's "I will explain the wait" quote. Each cost me a reread, and together they ended both sessions."
+- Disposition and conditions: Rewrite the sentences Rosa could not follow, make the status match the quote, and replace “Insist” and “Hold it to insist”. She reread twice by her own table. Meaning, status and duplicate wording. Source cause unverified. No rule that a cook must always obey.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/rosa/report.md` in the sealed packet.
+
+### F-2506 — Rosa Alvarez
+
+- Player words, exact (opening ask, then labelled later spans): "Show early whether ₺5,200 is reachable (still not seen)." Later wording (section 8): "Show early whether ₺5,200 is reachable. A line such as "You have ₺360. You need ₺5,200 by Saturday." would do." Later wording (section 9): "I saw only "₺160 … ₺5,200 due Saturday" and a bar. I saw no forecast."
+- Disposition and conditions: Show early whether ₺5,200 is reachable. Rosa saw no forecast. An early bank-target explanation is clarity, not a financial guarantee. Monday totals do not prove the target impossible. No bank deadline was reached.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/rosa/report.md` in the sealed packet.
+
+### F-2507 — Rosa Alvarez
+
+- Player words, exact (opening ask, then labelled later spans): "Warn about Dilek's meal break in the rush as well as Selim's. After that, make the "Nobody will work at the grill while Selim eats" line match the break I chose." Later wording (section 8): "Warn about Dilek's meal break in the rush as well as Selim's. Also make the plan dialog line "Nobody will work at the grill while Selim eats" match the break I chose." Later wording (section 9): "Also, Selim ate at 19:48 when I had moved his break to 21:00, and I could not tell why."
+- Disposition and conditions: Warn about Dilek’s meal break in the rush, and make the plan-dialog line match the chosen break. Selim eating at 19:48 after a 21:00 plan may be a different meal; it is not proven that the schedule was ignored. Warning and status wording.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/rosa/report.md` in the sealed packet.
+
+### F-2508 — Sonia Ionescu
+
+- Player words, exact (opening ask, then labelled later spans): "When a cook agrees, the cook should do it. If they will do something else, tell me before it happens. Examples: Selim said "I will do that now", then went to eat. Dilek's 18:35 break plan was followed by her eating at 20:24." Later wording (section 5): ""I will do that now" under a job button does not mean he will. The page does say these are "the chef’s guess", but then why show it?"
+- Disposition and conditions: Sonia saw cooks agree to a plan and then be shown eating at another time. Preview versus action wording. Source cause unverified. An earlier meal than planned could be a different meal; it is not proven that the schedule was ignored. No rule that a cook must always obey. Refusal and agency stay.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/sonia/report.md` in the sealed packet.
+
+### F-2509 — Sonia Ionescu
+
+- Player words, exact (opening ask, then labelled later spans): "The label should match the words. Dilek asks to phone her mother and the label says "bathroom". Selim is labelled "in the bathroom" but drawn at the back door while explaining the wait to tables. He was due to pray, and later the same hour it says toilet." Later wording (section 5): "Dilek said "I’m not at my agreed station" while marked outside."
+- Disposition and conditions: Labels and words disagree: a bathroom label while Dilek asks to phone her mother, and Selim labelled “in the bathroom” but drawn at the back door. Status and preview wording. Source cause unverified. No rule that a cook must always obey.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/sonia/report.md` in the sealed packet.
+
+### F-2510 — Sonia Ionescu
+
+- Player words, exact (opening ask, then labelled later spans): "Show me early how the week's money could work. ₺40 a table against ₺5,200 by Saturday. And say what flatbreads are, if there are always 0." Later wording (section 5): "Flatbreads are always 0 and never explained."
+- Disposition and conditions: Early help to see how the week’s money could work, and what flatbreads are when they are always 0. An early bank-target explanation is clarity, not a financial guarantee. Monday’s ₺520 and ₺560 do not prove the target impossible. No bank deadline was reached.
+- Owner and date: the games-deferred Pass host owner; sealed route `target2026-11-03 (open)`, so Nov 3. Verdict word: mixed (the tester’s own stated conditions, not a vote).
+- Source: `docs/lab/reviews/light-2026-10-30/pass-retest2/sonia/report.md` in the sealed packet.

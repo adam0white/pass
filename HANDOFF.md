@@ -8,6 +8,8 @@ PR13 source65cfe9454e38cbd2c014e8a00e18718363feb27d had exact Codex/Opus clearan
 
 Under the owner's2026-10-31 ruling allowing redundant tests to be cut, signedfc4ad998e754e2ce5b970a8ac508469f6f9be3a5 keeps one genuine historical cold restore, the same two ordinary requests, six steps, every no-credit behavior assertion and one final full-prefix-plus-suffix HF verification. The duplicate restore, duplicate steps, historical twin-state equality and duplicate initial/twin verifies were removed. The dedicated current replay/cold-restore control is unchanged. The historical unit is not a current public modified witness; that witness remains unobserved, review2026-11-03. The120000ms cap, fixtures, shards and product code are unchanged. Exact shrink bodies have independent Codex CLEAR and Opus CLEAR atfc4ad998; local focused7/7 and lane0 do not establish hosted CI or delivery. This successor changes only this release checkpoint; its exact clearance and CI remain gates.
 
+Second retest asks F-2496–F-2510 (panel on 288b2fda, 2026-10-31) are recorded as a dated Deferred section in `docs/design.md`, with dates 2026-11-03 and 2026-11-10. That is documentation only: no ask is fixed, no source changed, and the sealed source packet has not been imported into this repository. The owner's two-iteration rule ends the player loop once this documentation is integrated.
+
 Earlier candidate notes below record the state when written. Their unsigned/uncommitted status does not describe later signed or merged work. Technical delivery, same-player retest and Adam's readiness acceptance are separate.
 
 ## Earlier candidate notes (historical)
