@@ -6,7 +6,7 @@ import { boardDefaults, cloneState, newGame, queueInput } from '../src/sim/kitch
 import { agreementStatus, cookRequestWarning, publicPrayerPlan } from '../src/ui/request-context.ts';
 
 it('warns from actual station coverage and the public authored prayer window without changing state', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   const before = JSON.stringify(cloneState(s));
@@ -19,7 +19,7 @@ it('warns from actual station coverage and the public authored prayer window wit
 });
 
 it('keeps the station and cover answers distinct even when one cook refuses relief', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   const row = { ...boardDefaults(s)[0]!, accepted: true, cover: 'dilek', coverAccepted: false };
   expect(agreementStatus(s, row, false)).toBe('Selim agreed. Dilek has not agreed to cover.');
   expect(agreementStatus(s, { ...row, accepted: false }, false)).toBe(

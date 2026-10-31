@@ -38,7 +38,7 @@ export const kitchenLexicon: Lexicon = {
 
 /** Called on the actual active interval before HF advances or ends it, never on a queued request. */
 export function observeNarration(s: GameState, p: Person, status?: 'completed' | 'interrupted') {
-  if (![NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) || !s.narration) return;
+  if (![NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@20'].includes(s.version) || !s.narration) return;
   const a = p.activity;
   if (!a || a.startedAt >= s.minute) return;
   const ordered =
@@ -86,7 +86,7 @@ export function eveningNarration(s: GameState, p: Person): string | undefined {
   const review = p.review;
   const r = review?.last;
   if (
-    ![NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) ||
+    ![NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@20'].includes(s.version) ||
     !review ||
     !r?.missed.length
   )

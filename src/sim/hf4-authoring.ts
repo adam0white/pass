@@ -178,6 +178,37 @@ export function kitchenSpec(seed: number): RunSpec {
             'I need to finish this first.',
             'I am doing something else now.',
           ],
+          // The verdict already says "use the bathroom first" or "eat first"; these give the cause, not the same clause again.
+          'reason.need:bladder': [
+            'My bladder is full.',
+            'I cannot hold it much longer.',
+            'I have needed the toilet for a while.',
+            'It is getting urgent.',
+          ],
+          'reason.need:food': [
+            'I am hungry.',
+            'I have not eaten enough.',
+            'My stomach is empty.',
+            'I need to eat soon.',
+          ],
+          'reason.need:water': [
+            'I am thirsty.',
+            'My mouth is dry.',
+            'I need water.',
+            'I have had too little to drink.',
+          ],
+          'reason.need:sleep': [
+            'I am very tired.',
+            'I find it hard to stay awake.',
+            'I have had too little sleep.',
+            'I need sleep.',
+          ],
+          'reason.need:rest': [
+            'I need a rest.',
+            'I have been standing too long.',
+            'I have been on my feet too long.',
+            'I need to sit down.',
+          ],
           'reason.forecast:body': [
             'That would leave me too tired.',
             'I would be too tired later.',

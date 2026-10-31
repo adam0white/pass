@@ -47,9 +47,32 @@ describe('serviceStatus', () => {
       needsResponse: false,
     });
   });
-  it('explains an unfillable pass@19 station gap without prompting', () => {
+  it('keeps the chef\u2019s "leave it empty" answer visible while the absence continues (F-2166)', () => {
     const s = setup();
-    s.version = 'pass@19';
+    s.version = 'pass@20';
+    s.tickets = [ticket()];
+    s.minute = 1100;
+    s.staffing = [
+      { id: 0, who: 'selim', station: 'grill', until: 1119, reason: '', state: 'left', open: true },
+    ];
+    const shown = serviceStatus(s);
+    expect(shown.needsResponse).toBe(false);
+    expect(shown.text).toContain('You left the grill empty.');
+    expect(shown.text).toContain('will not be asked about it again while it stays empty');
+    // A guessed deadline does not end the answer; the absence does.
+    s.minute = 1119;
+    expect(serviceStatus(s).text).toContain('You left the grill empty.');
+    // Once that absence is over the answer no longer applies.
+    if (s.staffing[0]) s.staffing[0].open = false;
+    expect(serviceStatus(s).text).not.toContain('You left');
+    // A station somebody works at never claims to be empty.
+    s.minute = 1100;
+    work(s, 'selim', 'grill');
+    expect(serviceStatus(s).text).not.toContain('You left');
+  });
+  it('explains an unfillable pass@20 station gap without prompting', () => {
+    const s = setup();
+    s.version = 'pass@20';
     s.tickets = [ticket()];
     for (const cook of s.cooks) cook.gone = true;
     expect(serviceStatus(s)).toEqual({

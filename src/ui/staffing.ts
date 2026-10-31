@@ -32,7 +32,7 @@ export function actionableStaffing(s: GameState): StaffingDecision[] {
 export function availableStaffing(s: GameState): StaffingDecision[] {
   return actionableStaffing(s).filter(
     (decision) =>
-      !['pass@16', 'pass@17', 'pass@18', 'pass@19'].includes(s.version) ||
+      !['pass@16', 'pass@17', 'pass@18', 'pass@20'].includes(s.version) ||
       staffingOptions(s, decision).length > 0,
   );
 }

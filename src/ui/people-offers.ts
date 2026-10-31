@@ -5,7 +5,7 @@ import { lira } from './words.ts';
 /** Private offers have one answer per notebook. Reading availability never changes the run. */
 export function offerUnavailable(s: GameState, who: string): string | null {
   if (
-    s.version === 'pass@19' &&
+    s.version === 'pass@20' &&
     (!!s.privateAccounts?.[who] ||
       s.said.some((line) => line.who === who && line.text === PRIVATE_CLUES[who]))
   )

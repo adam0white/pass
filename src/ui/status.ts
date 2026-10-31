@@ -18,6 +18,11 @@ export function noCoverWords(station: string): string {
   return `Nobody can cover ${station} now. The cooks are unavailable or unwilling. Time runs at your chosen speed until someone can help.`;
 }
 
+/** A station the chef chose to leave empty, while that absence continues and nobody is working there. */
+function leftEmpty(s: GameState, missing: readonly Station[]) {
+  return s.staffing?.findLast((d) => d.state === 'left' && d.open !== false && missing.includes(d.station));
+}
+
 export interface ServiceStatus {
   text: string;
   needsResponse: boolean;
@@ -72,7 +77,7 @@ export function serviceStatus(s: GameState): ServiceStatus {
   if (s.plates.clean <= 0 && waitingForPlate) {
     if (staffed.has('dish') || !stationsTonight(s).includes('dish'))
       return status('Food is waiting for clean plates.');
-    if (['pass@16', 'pass@17', 'pass@18', 'pass@19'].includes(s.version) && !canCoverStation(s, 'dish'))
+    if (['pass@16', 'pass@17', 'pass@18', 'pass@20'].includes(s.version) && !canCoverStation(s, 'dish'))
       return status(`Food is waiting for clean plates. ${noCoverWords('the dishes')}`);
     return status(
       ['pass@5', 'pass@6', 'pass@7', 'pass@8', 'pass@9', 'pass@10', 'pass@11'].includes(s.version)
@@ -90,8 +95,14 @@ export function serviceStatus(s: GameState): ServiceStatus {
       missing.length === 3
         ? 'the grill, the cold side and the oven'
         : missing.map((st) => VERB_WORD[st]).join(' and ');
+    // The chef's own answer stays visible while the absence it answered continues.
+    const left = s.version === 'pass@20' ? leftEmpty(s, missing) : undefined;
+    if (left)
+      return status(
+        `You left ${VERB_WORD[left.station]} empty. You will not be asked about it again while it stays empty. You can ask a cook to work there now.`,
+      );
     if (
-      ['pass@16', 'pass@17', 'pass@18', 'pass@19'].includes(s.version) &&
+      ['pass@16', 'pass@17', 'pass@18', 'pass@20'].includes(s.version) &&
       missing.every((station) => !canCoverStation(s, station))
     )
       return status(noCoverWords(names));

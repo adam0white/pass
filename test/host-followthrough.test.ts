@@ -28,7 +28,7 @@ import { offerUnavailable } from '../src/ui/people-offers.ts';
 import clearingPrefix from './fixtures/host-clearing-prefix.json';
 
 function service() {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   return s;
@@ -102,12 +102,12 @@ it('reveals no account from an interrupted private activity or a later ordinary 
 }, 120000);
 
 it('clears one real abandoned meal, conserves its plate, and retains fallback after interruption', () => {
-  // Headless ordinary-input prefix: night two, Dilek takes room work, table 23 leaves.
+  // Headless ordinary-input prefix: night two, Dilek takes room work, table 2 (ticket T10) is plated at its walkout limit and leaves.
   const s = replay(
     clearingPrefix.seed,
     clearingPrefix.inputs as Parameters<typeof replay>[1],
     clearingPrefix.minute,
-    'pass@19',
+    'pass@20',
   );
   const ticket = s.tickets.find((ticket) => clearingAvailable(s, ticket.id));
   if (!ticket) throw new Error('The actual played prefix must leave an abandoned plate.');

@@ -48,7 +48,7 @@ beforeEach(() => {
 });
 
 async function fixture() {
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   const person = required(state.people.find((p) => p.id === 'rafi'));
   const sourcePerson = required(freshCommunity(42).people.find((p) => p.id === 'rafi'));
   const transfer = await hf4KitchenTransfer(sourcePerson);
@@ -203,7 +203,7 @@ it('skips host-unsupported v1 and an occupied person before one whole-head CAS, 
 }, 120000);
 
 it('refuses a baseline-shaped skipped notebook before activation even with a future open peer gate', async () => {
-  const state = newGame(42, 'pass@19');
+  const state = newGame(42, 'pass@20');
   // Actual production unknown999 notebooks used this empty chapter and omitted both denial lists.
   state.castChapter = {
     version: 'pass-cast/2',
@@ -250,7 +250,7 @@ it('refuses a baseline-shaped skipped notebook before activation even with a fut
 it.each(['save-only', 'disagreement'])(
   'refuses %s denial information before activation',
   async (kind) => {
-    const state = newGame(42, 'pass@19');
+    const state = newGame(42, 'pass@20');
     const value = {
       authority: 'pass-authority/1' as const,
       envelope: null,

@@ -28,7 +28,7 @@ import {
 } from '@adam0white/human-framework';
 
 export const MINUTE_MS = 60_000;
-export const HF4_HOST = { id: 'pass', edition: 'pass@19', schema: 'pass-hf4/1' } as const;
+export const HF4_HOST = { id: 'pass', edition: 'pass@20', schema: 'pass-hf4/1' } as const;
 export function admitted<T>(result: Result<T>): T {
   if (!result.ok) throw new Error(`${result.error.code} ${result.error.path}: ${result.error.message}`);
   return result.value;

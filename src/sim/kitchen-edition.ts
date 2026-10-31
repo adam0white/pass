@@ -23,6 +23,7 @@ import {
   type GameState,
   inKitchen,
   memberOf,
+  nameOf,
   offersFor,
   openAt,
   personOf,
@@ -35,7 +36,7 @@ import { NARRATION_EDITION, observeNarration, PANEL_EDITION } from './narration-
 export const KITCHEN_EDITION = 'pass@14';
 export const FOLLOWUP_EDITION = 'pass@15';
 export const kitchenEdition = (s: Pick<GameState, 'version'>) =>
-  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(
+  [KITCHEN_EDITION, FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@20'].includes(
     s.version,
   );
 export interface KitchenWorld {
@@ -122,7 +123,7 @@ export function kitchenNight(s: GameState) {
     },
     guests: [],
     conversations: [],
-    ...([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)
+    ...([FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@20'].includes(s.version)
       ? { followup: { attention: {}, deliveries: [] } }
       : {}),
   };
@@ -260,7 +261,7 @@ export function kitchenTask(
   const rec = decide(p, offers, {
     now: s.minute,
     suggestion: { voiceId: 'chef', affordanceId: aff.id, strength: 0.5 },
-    settleForeground: s.version === 'pass@19',
+    settleForeground: s.version === 'pass@20',
   });
   const verdict = rec.suggestion?.verdict ?? 'refused';
   if (kind !== 'room')
@@ -291,7 +292,7 @@ export function kitchenTask(
   );
   const chosen = offers.find((o) => o.id === rec.chosenAffordanceId);
   if (!chosen || !start(s, who, chosen, rec, previous)) return;
-  if (s.version === 'pass@19' && p.activity) {
+  if (s.version === 'pass@20' && p.activity) {
     s.kitchen.foregroundAt ??= {};
     s.kitchen.foregroundAt[who] = p.activity.startedAt;
   }
@@ -300,11 +301,11 @@ export function kitchenTask(
     words(
       s,
       who,
-      `${s.version === 'pass@19' && rec.suggestion ? (suggestionWords(p, rec.suggestion, aff.id, previous)?.text ?? 'Not now, Chef.') : (rec.suggestion?.says ?? 'Not now, Chef.')} ${[PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version) && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
+      `${s.version === 'pass@20' && rec.suggestion ? (suggestionWords(p, rec.suggestion, aff.id, previous)?.text ?? 'Not now, Chef.') : (rec.suggestion?.says ?? 'Not now, Chef.')} ${[PANEL_EDITION, 'pass@18', 'pass@20'].includes(s.version) && kind !== 'room' ? personalReply(who, 'later') : 'I am not taking that request now.'}`,
     );
     return;
   }
-  if (s.version === 'pass@19' && kind !== 'room') {
+  if (s.version === 'pass@20' && kind !== 'room') {
     const entry = s.kitchen.conversations.at(-1);
     if (entry) entry.activity = communityRun(p).active.find((a) => a.person === who)?.id;
   }
@@ -367,7 +368,7 @@ const personalReply = (who: string, kind: 'later' | 'private') => {
 };
 /** An interrupted task keeps its original world fallback and reveals no private account. */
 export function kitchenInterrupted(s: GameState, who: string, action: string, at: number, activity: string) {
-  if (s.version !== 'pass@19') return;
+  if (s.version !== 'pass@20') return;
   for (const lesson of s.grillLessons ?? []) {
     if (
       ['waiting', 'watching'].includes(lesson.state) &&
@@ -568,9 +569,9 @@ export function kitchenMinute(s: GameState) {
 
 /** A finite authored topic requires the exact speaker's actual retained utterance. */
 function retainedTopic(s: GameState, who: string) {
-  if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version))
+  if (![FOLLOWUP_EDITION, NARRATION_EDITION, PANEL_EDITION, 'pass@18', 'pass@20'].includes(s.version))
     return undefined;
-  if ([PANEL_EDITION, 'pass@18', 'pass@19'].includes(s.version)) {
+  if ([PANEL_EDITION, 'pass@18', 'pass@20'].includes(s.version)) {
     const disclosure = s.said.findLast((line) => line.who === who && line.text === PRIVATE_CLUES[who]);
     if (disclosure)
       return {
@@ -677,7 +678,7 @@ export function roomDelivery(s: GameState, ticket: number, table: number): boole
 /** Successful discovery belongs to this notebook, not the capped presentation log. */
 export function recordPrivateAccount(s: GameState, who: string, at: number) {
   const text = PRIVATE_CLUES[who];
-  if (s.version !== 'pass@19' || !text || s.privateAccounts?.[who]) return;
+  if (s.version !== 'pass@20' || !text || s.privateAccounts?.[who]) return;
   s.privateAccounts ??= {};
   s.privateAccounts[who] = { at, text };
 }
@@ -687,7 +688,7 @@ export function recordPrivateAccount(s: GameState, who: string, at: number) {
  */
 export function privateConversationAvailable(s: GameState, who: string): boolean {
   return (
-    s.version === 'pass@19' &&
+    s.version === 'pass@20' &&
     s.phase === 'service' &&
     !!PRIVATE_CLUES[who] &&
     s.people.some((p) => p.id === who) &&
@@ -700,6 +701,17 @@ export function privateConversationAvailable(s: GameState, who: string): boolean
   );
 }
 
+/** Why the private invitation is unavailable now, from the same conditions. Empty when it is available. */
+export function privateConversationNote(s: GameState, who: string): string {
+  if (privateConversationAvailable(s, who)) return '';
+  const name = nameOf(s, who);
+  if (s.version !== 'pass@20' || !PRIVATE_CLUES[who]) return `${name} has nothing private to say.`;
+  if (s.privateAccounts?.[who] || s.said.some((line) => line.who === who && line.text === PRIVATE_CLUES[who]))
+    return `${name} has already told you this.`;
+  if (s.phase !== 'service') return 'You can invite someone only while the kitchen is open.';
+  return `${name} can be invited only while in the kitchen and free to answer.`;
+}
+
 export interface HeardTopic {
   id: string;
   at?: number;
@@ -709,7 +721,7 @@ export interface HeardTopic {
 }
 /** Finite actual utterances, not biography lookup or a generated response to arbitrary text. */
 export function heardTopics(s: GameState, who: string): HeardTopic[] {
-  if (s.version !== 'pass@19') return [];
+  if (s.version !== 'pass@20') return [];
   const topics: HeardTopic[] = [];
   const account = s.privateAccounts?.[who];
   if (account) topics.push({ ...account, id: `private:${who}`, reply: personalReply(who, 'private') });
@@ -759,7 +771,7 @@ export function heardTopics(s: GameState, who: string): HeardTopic[] {
   return topics;
 }
 export function heardTopic(s: GameState, who: string, topic?: string) {
-  if (s.version === 'pass@19') {
+  if (s.version === 'pass@20') {
     const topics = heardTopics(s, who);
     return topic === undefined ? topics[0] : topics.find((t) => t.id === topic);
   }
@@ -781,7 +793,7 @@ const ordinaryFollowup = (who: string) =>
  */
 export function clearingAvailable(s: GameState, ticket: number): boolean {
   return (
-    s.version === 'pass@19' &&
+    s.version === 'pass@20' &&
     s.phase === 'service' &&
     s.tickets.some((t) => t.id === ticket && t.status === 'walked' && t.platedAt !== undefined) &&
     s.plates.dirty.some((d) => d.abandonedTicket === ticket && d.at > s.minute + 3) &&
@@ -872,7 +884,7 @@ export interface GrillLesson {
 }
 export function grillLessonAvailable(s: GameState, learner: string): boolean {
   return (
-    s.version === 'pass@19' &&
+    s.version === 'pass@20' &&
     s.phase === 'service' &&
     !!s.privateAccounts?.selim &&
     learner !== 'selim' &&

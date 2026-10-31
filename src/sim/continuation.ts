@@ -115,7 +115,7 @@ export async function prepareReturn(envelope: PersonaEnvelope, prefix: Export): 
 }
 
 export function replayExport(ex: ReplayFile): GameState {
-  if (ex.game === 'pass@19') requireChapterAuthority(ex.castChapter ?? ex.state?.castChapter);
+  if (ex.game === 'pass@20') requireChapterAuthority(ex.castChapter ?? ex.state?.castChapter);
   if (!canReplay(ex.game) || !Number.isSafeInteger(ex.seed) || !Array.isArray(ex.inputs))
     throw new Error('That is not a supported Pass notebook.');
   const header = ex.returnChapter ?? ex.state?.returnChapter;

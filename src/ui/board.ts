@@ -6,6 +6,7 @@ import {
   cloneState,
   type GameState,
   memberOf,
+  nameOf,
   onShift,
   queueInput,
   restoreState,
@@ -20,11 +21,54 @@ export function breakSlots(current: number): { minute: number; label: string }[]
     }));
 }
 
+const hhmm = (minute: number) =>
+  `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+/** The early table arrives at 18:12 and needs the grill and the cold side until 18:24. */
+const EARLY_ARRIVES = 18 * 60 + 12;
+const EARLY_LEAVES = 18 * 60 + 24;
+
+/**
+ * Plain consequences of the plan as it stands: a meal break with nobody to cover it leaves its station
+ * empty while the early table waits. It names the cook, the break and the station; it changes nothing.
+ */
+export function earlyCoverageWarnings(s: GameState, rows: readonly BoardRow[]): string[] {
+  if (!['pass@18', 'pass@20'].includes(s.version) || s.night > 3) return [];
+  const agreed = s.board?.agreed ? s.board.rows : [];
+  const place: Record<string, string> = { grill: 'grill', cold: 'cold side' };
+  const out: string[] = [];
+  for (const row of rows) {
+    const where = place[row.station];
+    if (!where || row.breakAt >= EARLY_LEAVES || row.breakAt + 20 <= EARLY_ARRIVES) continue;
+    const answer = agreed.find(
+      (a) =>
+        a.cook === row.cook &&
+        a.station === row.station &&
+        a.breakAt === row.breakAt &&
+        a.cover === row.cover,
+    );
+    if (row.cover && answer?.coverAccepted !== false) continue;
+    const staffed = rows.some(
+      (other) =>
+        other.cook !== row.cook &&
+        other.station === row.station &&
+        (other.breakAt >= EARLY_LEAVES || other.breakAt + 20 <= EARLY_ARRIVES),
+    );
+    if (staffed) continue;
+    const name = nameOf(s, row.cook);
+    out.push(
+      row.cover
+        ? `${name}\u2019s meal break (${hhmm(row.breakAt)}\u2013${hhmm(row.breakAt + 20)}) leaves the ${where} empty at 18:12 because the cook you chose to cover said no.`
+        : `${name}\u2019s meal break (${hhmm(row.breakAt)}\u2013${hhmm(row.breakAt + 20)}) leaves the ${where} empty when the early table arrives at 18:12.`,
+    );
+  }
+  return out;
+}
+
 export function openingBoard(s: GameState): BoardRow[] {
   const rows = boardDefaults(s);
   const ids = onShift(s);
   // Panel edition never assigns relief without a player's choice. Previous choices survive.
-  if (['pass@17', 'pass@18', 'pass@19'].includes(s.version))
+  if (['pass@17', 'pass@18', 'pass@20'].includes(s.version))
     return rows.map((row) => ({
       ...row,
       cover: s.previousBoard?.some((old) => old.cook === row.cook) ? row.cover : null,

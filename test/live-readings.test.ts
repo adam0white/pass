@@ -4,7 +4,7 @@ import { newGame } from '../src/sim/kitchen.ts';
 import { liveReadingWords } from '../src/ui/live-readings.ts';
 
 it('reads my current feelings in words without changing the run or disclosing another cook', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   const before = JSON.stringify(checkpoint(s.chef));
   const words = liveReadingWords(s.chef, s.chef);
   expect(words.join(' ')).toContain('I feel');

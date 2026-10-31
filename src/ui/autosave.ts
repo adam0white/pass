@@ -22,7 +22,11 @@ export interface JournalStorage<T> {
 }
 
 /** One transaction commits a new chunk, the head, and the matching host snapshot. */
-export function indexedJournalStorage<T>(): JournalStorage<T> {
+/**
+ * `retain` marks a stored save this edition can no longer open. Replacing it keeps its original head and
+ * chunks under a separate key instead of deleting them, so a new game never destroys an unreadable save.
+ */
+export function indexedJournalStorage<T>(retain?: (host: T) => boolean): JournalStorage<T> {
   let db: Promise<IDBDatabase> | undefined;
   const open = () =>
     (db ??= new Promise<IDBDatabase>((resolve, reject) => {
@@ -72,9 +76,14 @@ export function indexedJournalStorage<T>(): JournalStorage<T> {
         old.onsuccess = () => {
           const previous = old.result as Omit<Commit<T>, 'chunk'> | undefined;
           if (previous && (value.fresh || previous.head.lineage !== value.head.lineage)) {
-            chunks.delete(
-              IDBKeyRange.bound([previous.head.lineage, 0], [previous.head.lineage, Number.MAX_SAFE_INTEGER]),
-            );
+            if (retain?.(previous.host as T)) heads.put(previous, `kept:${previous.head.lineage}`);
+            else
+              chunks.delete(
+                IDBKeyRange.bound(
+                  [previous.head.lineage, 0],
+                  [previous.head.lineage, Number.MAX_SAFE_INTEGER],
+                ),
+              );
           }
           if (value.fresh && (!previous || previous.head.lineage !== value.head.lineage))
             chunks.delete(

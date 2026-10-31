@@ -7,7 +7,7 @@ const time = (minute: number) =>
   `${String(Math.floor((minute % 1440) / 60)).padStart(2, '0')}:${String(Math.ceil(minute % 60)).padStart(2, '0')}`;
 
 export function publicPrayerPlan(s: GameState, who: string, breakAt?: number): string {
-  if (s.version !== 'pass@19' || who !== 'selim' || !onShift(s).includes(who)) return '';
+  if (s.version !== 'pass@20' || who !== 'selim' || !onShift(s).includes(who)) return '';
   const { from, until } = SELIM_PRAYER_WINDOW;
   const meal =
     breakAt === undefined

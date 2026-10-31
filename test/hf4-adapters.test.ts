@@ -27,7 +27,7 @@ import {
 } from '../src/sim/kitchen.ts';
 
 it('records every custom completion when one community tick finishes two cooks', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   if (!s.kitchen) throw new Error('Missing kitchen');
   // World-only opportunities before opening. Both activities must actually start through HF.
   for (const [who, action] of [
@@ -83,7 +83,7 @@ it('records every custom completion when one community tick finishes two cooks',
 }, 120000);
 
 it('resumes the planned meal after actual prayer completion and replays the break', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   queueInput(s, {
     kind: 'board',
     rows: boardDefaults(s).map((row) => ({ ...row, breakAt: row.cook === 'selim' ? 1125 : row.breakAt })),
@@ -121,7 +121,7 @@ it('resumes the planned meal after actual prayer completion and replays the brea
 }, 120000);
 
 it('clears an earlier request when a cook accepts a new dining-room task', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   for (let minute = 0; minute < 9; minute++) {
@@ -160,7 +160,7 @@ it('records dated kitchen advice as replayable HF4 evidence', () => {
 }, 120000);
 
 it('keeps a relief cook at their agreed station until the scheduled break', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   const rows = boardDefaults(s).map((row) => ({
     ...row,
     breakAt: row.cook === 'selim' ? 1090 : 1185,
@@ -202,7 +202,7 @@ it('does not author copied home activities for departed people', () => {
 }, 120000);
 
 it('pins the released cook checkpoint across later community time', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   const person = personOf(s, 'selim');
   interrupt(person, s.minute, 'release fixture');
   s.phase = 'evening';
@@ -218,7 +218,7 @@ it('pins the released cook checkpoint across later community time', () => {
 }, 120000);
 
 it('retains actual protested work through refresh and restore', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   for (let i = 0; i < 12; i++) step(s);
@@ -242,7 +242,7 @@ it('retains actual protested work through refresh and restore', () => {
 }, 120000);
 
 it('passes the remaining rush forecast to HF station offers', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   s.phase = 'service';
   const offer = offersFor(s, 'dilek').find((a) => a.id === 'grill');
   if (!offer?.followedBy?.length) throw new Error('Missing authored rush continuation');
@@ -262,7 +262,7 @@ it('passes the remaining rush forecast to HF station offers', () => {
 }, 120000);
 
 it('resumes an agreed station when the emergency meal completes', () => {
-  const s = newGame(42, 'pass@19');
+  const s = newGame(42, 'pass@20');
   queueInput(s, { kind: 'board', rows: boardDefaults(s) });
   queueInput(s, { kind: 'open' });
   const p = personOf(s, 'dilek');
